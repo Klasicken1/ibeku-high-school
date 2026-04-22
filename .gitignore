@@ -1,0 +1,20 @@
+# Environment variables - NEVER commit real credentials
+.env
+
+# System files
+.DS_Store
+Thumbs.db
+
+# VS Code settings
+.vscode/
+
+# Uploaded files (too large for Git)
+public/assets/images/gallery/*.jpg
+public/assets/images/gallery/*.png
+public/assets/images/gallery/*.jpeg
+
+# PHP dependencies (if you add Composer later)
+vendor/
+
+# Logs
+*.log
