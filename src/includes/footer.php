@@ -9,13 +9,13 @@
 
    HOW TO USE ON A PAGE:
    ─────────────────────
-   At the very bottom of any page file, before closing:
+   At the very bottom of any page file:
 
      <?php
        $pageJs = 'home';   // loads assets/js/pages/home.js
-                           // omit this variable if page has no specific JS
+                           // omit if page has no specific JS
+       require_once '../src/includes/footer.php';
      ?>
-     <?php require_once '../src/includes/footer.php'; ?>
 
    ============================================================ */
 ?>
@@ -59,12 +59,12 @@
       <div class="footer__col">
         <h4>School</h4>
         <ul>
-          <li><a href="/about.php">About the School</a></li>
-          <li><a href="/about.php#history">School History</a></li>
-          <li><a href="/about.php#principal-ss">SS Principal's Message</a></li>
-          <li><a href="/about.php#principal-js">JS Principal's Message</a></li>
-          <li><a href="/about.php#anthem">School Anthem</a></li>
-          <li><a href="/about.php#facilities">Facilities</a></li>
+          <li><a href="<?php echo BASE_PATH; ?>about.php">About the School</a></li>
+          <li><a href="<?php echo BASE_PATH; ?>about.php#history">School History</a></li>
+          <li><a href="<?php echo BASE_PATH; ?>about.php#principal-ss">SS Principal's Message</a></li>
+          <li><a href="<?php echo BASE_PATH; ?>about.php#principal-js">JS Principal's Message</a></li>
+          <li><a href="<?php echo BASE_PATH; ?>about.php#anthem">School Anthem</a></li>
+          <li><a href="<?php echo BASE_PATH; ?>about.php#facilities">Facilities</a></li>
         </ul>
       </div>
 
@@ -72,12 +72,12 @@
       <div class="footer__col">
         <h4>Academics</h4>
         <ul>
-          <li><a href="/academics.php">Departments</a></li>
-          <li><a href="/academics.php#subjects">Subjects Offered</a></li>
-          <li><a href="/academics.php#timetable">Timetables</a></li>
-          <li><a href="/academics.php#clubs">Clubs &amp; Societies</a></li>
-          <li><a href="/academics.php#awards">Awards &amp; Honours</a></li>
-          <li><a href="/academics.php#resources">Learning Resources</a></li>
+          <li><a href="<?php echo BASE_PATH; ?>academics.php">Departments</a></li>
+          <li><a href="<?php echo BASE_PATH; ?>academics.php#subjects">Subjects Offered</a></li>
+          <li><a href="<?php echo BASE_PATH; ?>academics.php#timetable">Timetables</a></li>
+          <li><a href="<?php echo BASE_PATH; ?>academics.php#clubs">Clubs &amp; Societies</a></li>
+          <li><a href="<?php echo BASE_PATH; ?>academics.php#awards">Awards &amp; Honours</a></li>
+          <li><a href="<?php echo BASE_PATH; ?>academics.php#resources">Learning Resources</a></li>
         </ul>
       </div>
 
@@ -85,12 +85,12 @@
       <div class="footer__col">
         <h4>Quick Links</h4>
         <ul>
-          <li><a href="/results.php">Check Results</a></li>
-          <li><a href="/admissions.php">Admissions</a></li>
-          <li><a href="/news.php">News &amp; Events</a></li>
-          <li><a href="/gallery.php">Gallery</a></li>
-          <li><a href="/hall-of-fame.php">Hall of Fame</a></li>
-          <li><a href="/contact.php">Contact Us</a></li>
+          <li><a href="<?php echo BASE_PATH; ?>results.php">Check Results</a></li>
+          <li><a href="<?php echo BASE_PATH; ?>admissions.php">Admissions</a></li>
+          <li><a href="<?php echo BASE_PATH; ?>news.php">News &amp; Events</a></li>
+          <li><a href="<?php echo BASE_PATH; ?>gallery.php">Gallery</a></li>
+          <li><a href="<?php echo BASE_PATH; ?>hall-of-fame.php">Hall of Fame</a></li>
+          <li><a href="<?php echo BASE_PATH; ?>contact.php">Contact Us</a></li>
         </ul>
       </div>
 
@@ -122,15 +122,15 @@
 
 <!-- ═══════════════════════════════════════════
      SCRIPTS
-     Load shared JS first, then page-specific JS.
+     Shared JS first, then page-specific JS.
      ═══════════════════════════════════════════ -->
 
 <!-- Shared JS — runs on every page -->
-<script src="/assets/js/main.js"></script>
+<script src="<?php echo BASE_PATH; ?>assets/js/main.js"></script>
 
 <!-- Page-specific JS — only loaded when $pageJs is set -->
 <?php if (!empty($pageJs)): ?>
-  <script src="/assets/js/pages/<?php echo htmlspecialchars($pageJs); ?>.js"></script>
+  <script src="<?php echo BASE_PATH; ?>assets/js/pages/<?php echo htmlspecialchars($pageJs); ?>.js"></script>
 <?php endif; ?>
 
 </body>
