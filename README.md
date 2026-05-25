@@ -27,7 +27,7 @@ to demonstrate the full development process.
 - Contact form
 - **Admin panel** — school staff can upload results, post news, manage gallery
 - Fully responsive — works on mobile, tablet, and desktop
-- Clean, accessible design using school colours (green and gold)
+- Clean, accessible design using school colours (light blue #4a90d9 and dark purple #3d1a6e)
 
 ---
 
