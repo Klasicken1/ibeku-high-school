@@ -244,14 +244,8 @@ require_once '../src/includes/header.php';
             <span class="timetable-card__dot"></span>
             Current timetable available
           </div>
-          
-            href="<?php echo htmlspecialchars($filePath); ?>"
-            class="btn--download <?php echo $btnClass; ?>"
-            download="<?php echo htmlspecialchars($tt['level']); ?>-Timetable-IHS.pdf"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            ⬇ Download <?php echo htmlspecialchars($tt['level']); ?> Timetable (PDF)
+          <a href="<?php echo htmlspecialchars($filePath); ?>" class="btn--download <?php echo $btnClass; ?>" download="<?php echo htmlspecialchars($tt['level']); ?>-Timetable-IHS.pdf" target="_blank" rel="noopener noreferrer">
+            &#11015; Download <?php echo htmlspecialchars($tt['level']); ?> Timetable (PDF)
           </a>
           <?php else: ?>
           <div class="timetable-card__status timetable-card__status--pending">
