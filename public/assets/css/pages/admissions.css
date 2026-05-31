@@ -1,0 +1,734 @@
+/* ============================================================
+   IBEKU HIGH SCHOOL — ADMISSIONS PAGE STYLES
+   File: public/assets/css/pages/admissions.css
+
+   Shared styles live in: assets/css/style.css
+   This file contains only admissions page styles.
+   ============================================================ */
+
+
+/* ============================================================
+   PAGE HERO
+   ============================================================ */
+.page-hero--admissions {
+  background: linear-gradient(135deg, #1a0835 0%, var(--purple) 50%, var(--blue-dark) 100%);
+}
+
+
+/* ============================================================
+   OVERVIEW STATS
+   ============================================================ */
+.admissions-overview {
+  background: var(--purple);
+  padding: 48px 5%;
+}
+
+.admissions-overview__grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.overview-stat {
+  text-align: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 0 20px;
+}
+
+.overview-stat:last-child { border-right: none; }
+
+.overview-stat__num {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.6rem;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1;
+  display: block;
+}
+
+.overview-stat__lbl {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 6px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: block;
+}
+
+
+/* ============================================================
+   WHY JOIN IBEKU
+   ============================================================ */
+.why-section {
+  padding: 90px 5%;
+}
+
+.why-section__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+
+.why-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.why-card {
+  background: var(--blue-pale);
+  border-radius: 14px;
+  padding: 22px 18px;
+  border: 1.5px solid transparent;
+  transition: all 0.25s;
+}
+
+.why-card:hover {
+  border-color: var(--blue);
+  background: #ffffff;
+  box-shadow: 0 8px 28px rgba(74, 144, 217, 0.12);
+  transform: translateY(-3px);
+}
+
+.why-card__icon {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.why-card h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--purple);
+  margin-bottom: 6px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.why-card p {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.why-text p {
+  font-size: 0.97rem;
+  color: var(--muted);
+  line-height: 1.85;
+  margin-bottom: 16px;
+}
+
+.why-text__highlights {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.why-highlight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.why-highlight::before {
+  content: '✓';
+  width: 24px;
+  height: 24px;
+  background: var(--purple);
+  color: #ffffff;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+
+/* ============================================================
+   ENTRY REQUIREMENTS
+   ============================================================ */
+.requirements-section {
+  background: var(--off);
+  padding: 90px 5%;
+}
+
+.requirements-section__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.requirements-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-top: 50px;
+}
+
+.req-card {
+  background: #ffffff;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 20px rgba(61, 26, 110, 0.06);
+  transition: all 0.3s;
+}
+
+.req-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 36px rgba(61, 26, 110, 0.1);
+}
+
+.req-card__header {
+  padding: 28px 30px 22px;
+  position: relative;
+  overflow: hidden;
+}
+
+.req-card__header::after {
+  content: '';
+  position: absolute;
+  right: -40px;
+  top: -40px;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+
+.req-card__header--jss {
+  background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue) 100%);
+}
+
+.req-card__header--sss {
+  background: linear-gradient(135deg, var(--purple) 0%, var(--purple-mid) 100%);
+}
+
+.req-card__icon {
+  font-size: 2.4rem;
+  display: block;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.req-card__header h3 {
+  font-size: 1.5rem;
+  color: #ffffff;
+  margin-bottom: 4px;
+  position: relative;
+  z-index: 1;
+}
+
+.req-card__header p {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.72);
+  position: relative;
+  z-index: 1;
+}
+
+.req-card__body {
+  padding: 24px 30px 28px;
+}
+
+.req-card__body h4 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--purple);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 18px 0 10px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.req-card__body h4:first-child { margin-top: 0; }
+
+.req-card__body ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.req-card__body ul li {
+  font-size: 13.5px;
+  color: var(--muted);
+  line-height: 1.6;
+  padding-left: 18px;
+  position: relative;
+}
+
+.req-card__body ul li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--blue-dark);
+  font-weight: 700;
+}
+
+
+/* ============================================================
+   HOW TO APPLY — STEPS
+   ============================================================ */
+.apply-steps-section {
+  padding: 90px 5%;
+}
+
+.apply-steps-section__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 22px;
+  margin-top: 50px;
+  position: relative;
+}
+
+/* Connecting line */
+.steps-grid::before {
+  content: '';
+  position: absolute;
+  top: 36px;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--purple) 0%, var(--blue) 100%);
+  z-index: 0;
+}
+
+.step-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 28px 20px 24px;
+  border: 1px solid var(--border);
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s;
+}
+
+.step-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 36px rgba(61, 26, 110, 0.1);
+  border-color: var(--purple-light);
+}
+
+.step-card__num {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--purple) 0%, var(--purple-mid) 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Playfair Display', serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0 auto 16px;
+  border: 3px solid #ffffff;
+  box-shadow: 0 0 0 2px var(--purple);
+}
+
+.step-card__icon {
+  font-size: 1.8rem;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.step-card h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--purple);
+  margin-bottom: 8px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.step-card p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+
+/* ============================================================
+   FEES & IMPORTANT DATES
+   ============================================================ */
+.fees-dates-section {
+  background: var(--off);
+  padding: 90px 5%;
+}
+
+.fees-dates-section__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+}
+
+.fees-card,
+.dates-card {
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.fees-card__header,
+.dates-card__header {
+  padding: 22px 28px;
+}
+
+.fees-card__header {
+  background: linear-gradient(135deg, var(--purple) 0%, var(--purple-mid) 100%);
+}
+
+.dates-card__header {
+  background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue) 100%);
+}
+
+.fees-card__header h3,
+.dates-card__header h3 {
+  font-size: 1.2rem;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.fees-card__header p,
+.dates-card__header p {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.fees-table,
+.dates-table {
+  width: 100%;
+}
+
+.fees-row,
+.dates-row {
+  display: grid;
+  padding: 13px 28px;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  font-size: 13.5px;
+  transition: background 0.2s;
+}
+
+.fees-row { grid-template-columns: 1fr auto; }
+.dates-row { grid-template-columns: 1fr auto; }
+
+.fees-row:last-child,
+.dates-row:last-child { border-bottom: none; }
+
+.fees-row:hover,
+.dates-row:hover { background: var(--off); }
+
+.fees-row__item,
+.dates-row__event { color: var(--text); }
+
+.fees-row__amount {
+  font-weight: 700;
+  color: var(--purple);
+  font-family: 'Playfair Display', serif;
+  font-size: 15px;
+}
+
+.dates-row__date {
+  font-weight: 700;
+  color: var(--blue-dark);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.fees-note {
+  padding: 14px 28px;
+  font-size: 12px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  background: var(--off);
+  font-style: italic;
+}
+
+
+/* ============================================================
+   APPLICATION FORM
+   ============================================================ */
+.application-form-section {
+  padding: 90px 5%;
+}
+
+.application-form-section__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 80px;
+  align-items: start;
+}
+
+.application-form-section__info p {
+  font-size: 0.97rem;
+  color: var(--muted);
+  line-height: 1.85;
+  margin-bottom: 16px;
+}
+
+.contact-options {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.contact-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--purple-pale);
+  border-radius: 12px;
+  padding: 14px 18px;
+  border: 1px solid rgba(61, 26, 110, 0.12);
+}
+
+.contact-option__icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.contact-option__text strong {
+  display: block;
+  font-size: 13.5px;
+  color: var(--purple);
+  margin-bottom: 2px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.contact-option__text span {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.application-form-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 40px;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(61, 26, 110, 0.08);
+}
+
+.application-form-card h3 {
+  font-size: 1.6rem;
+  color: var(--purple);
+  margin-bottom: 6px;
+}
+
+.application-form-card > p {
+  font-size: 13.5px;
+  color: var(--muted);
+  margin-bottom: 28px;
+  line-height: 1.65;
+}
+
+.form-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--blue-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin: 22px 0 14px;
+  display: block;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'DM Sans', sans-serif;
+}
+
+.form-section-label:first-of-type { margin-top: 0; }
+
+.btn--apply {
+  width: 100%;
+  background: var(--purple);
+  color: #ffffff;
+  border: none;
+  padding: 15px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'DM Sans', sans-serif;
+  margin-top: 8px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.btn--apply:hover {
+  background: var(--purple-mid);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(61, 26, 110, 0.3);
+}
+
+.form-success {
+  display: none;
+  background: #e6f9ed;
+  border: 1px solid #2d8a4e;
+  border-radius: 10px;
+  padding: 20px 22px;
+  margin-top: 16px;
+  text-align: center;
+}
+
+.form-success p {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a7a3a;
+  margin-bottom: 4px;
+}
+
+.form-success span {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* ── Privacy note ── */
+.form-privacy {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 14px;
+  line-height: 1.6;
+}
+
+
+/* ============================================================
+   FAQ
+   ============================================================ */
+.admissions-faq {
+  background: var(--off);
+  padding: 80px 5%;
+}
+
+.admissions-faq__inner {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.faq-list {
+  margin-top: 46px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.faq-item {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+
+.faq-item:hover {
+  box-shadow: 0 4px 16px rgba(61, 26, 110, 0.08);
+}
+
+.faq-item__question {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 18px 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  text-align: left;
+  font-family: 'DM Sans', sans-serif;
+  transition: background 0.2s;
+}
+
+.faq-item__question:hover,
+.faq-item.open .faq-item__question {
+  background: var(--purple-pale);
+}
+
+.faq-item__question span {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--purple);
+  line-height: 1.4;
+}
+
+.faq-item__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--purple-pale);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 18px;
+  color: var(--purple);
+  transition: transform 0.3s;
+  border: 1px solid rgba(61, 26, 110, 0.2);
+}
+
+.faq-item.open .faq-item__icon {
+  transform: rotate(45deg);
+  background: var(--purple);
+  color: #ffffff;
+}
+
+.faq-item__answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease, padding 0.35s ease;
+  padding: 0 22px;
+}
+
+.faq-item.open .faq-item__answer {
+  max-height: 300px;
+  padding: 0 22px 20px;
+}
+
+.faq-item__answer p {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+
+/* ============================================================
+   ADMISSIONS RESPONSIVE
+   ============================================================ */
+@media (max-width: 900px) {
+  .admissions-overview__grid    { grid-template-columns: repeat(2, 1fr); }
+  .overview-stat                { border-right: none; border-bottom: 1px solid rgba(255,255,255,.15); padding: 14px 0; }
+  .overview-stat:last-child     { border-bottom: none; }
+  .why-section__inner           { grid-template-columns: 1fr; gap: 50px; }
+  .requirements-grid            { grid-template-columns: 1fr; }
+  .steps-grid                   { grid-template-columns: repeat(2, 1fr); }
+  .steps-grid::before           { display: none; }
+  .fees-dates-section__inner    { grid-template-columns: 1fr; }
+  .application-form-section__inner { grid-template-columns: 1fr; gap: 50px; }
+}
+
+@media (max-width: 600px) {
+  .why-grid                     { grid-template-columns: 1fr; }
+  .steps-grid                   { grid-template-columns: 1fr; }
+  .admissions-overview__grid    { grid-template-columns: repeat(2, 1fr); }
+  .application-form-card        { padding: 28px 22px; }
+}
