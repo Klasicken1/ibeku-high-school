@@ -11,7 +11,7 @@ Format: [version] — date — description
 - Added README, .gitignore, .env.example
 - Began Phase 1: Static frontend
 
-## [1.0.0] — 2025-05-31
+## [1.0.0] — 2026-05-31
 
 ### Added — Phase 1 Complete
 - All 11 public pages built and fully functional
