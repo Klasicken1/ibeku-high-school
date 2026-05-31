@@ -741,3 +741,355 @@
   .result-panel__meta      { flex-wrap: wrap; }
   .result-panel__meta-item { min-width: 50%; }
 }
+
+/* ============================================================
+   PRINT STYLES — RESULT SHEET
+   Only the result sheet renders when printing.
+   Everything else is hidden.
+   ============================================================ */
+@media print {
+
+  /* ── Suppress all browser chrome ── */
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm 12mm 15mm;
+  }
+
+  /* ── Hide everything on the page ── */
+  nav,
+  .topbar,
+  .ann-bar,
+  .ann-bar--show,
+  .page-hero,
+  .page-anchors,
+  .checker-section__info,
+  .checker-card--full > h3,
+  .checker-card--full > p,
+  .form-group,
+  .form-row,
+  .btn--check-full,
+  .result-panel__header,
+  .result-panel__meta,
+  .result-panel__subjects,
+  .result-panel__footer,
+  .result-not-found--full,
+  .how-it-works,
+  .grading-section,
+  .faq-section,
+  footer,
+  .back-to-top,
+  #annBar {
+    display: none !important;
+  }
+
+  /* ── Reset body ── */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    font-size: 11pt !important;
+    color: #000000 !important;
+  }
+
+  /* ── Strip all section padding ── */
+  .checker-section {
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .checker-section__inner {
+    display: block !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    gap: 0 !important;
+  }
+
+  .checker-card--full {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    position: static !important;
+    width: 100% !important;
+  }
+
+  .result-panel {
+    display: block !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* ── Show the result sheet ── */
+  .result-sheet {
+    display: block !important;
+  }
+}
+
+
+/* ============================================================
+   RESULT SHEET DESIGN
+   Hidden on screen — visible only when printing.
+   ============================================================ */
+.result-sheet {
+  display: none;
+}
+
+/* ── Sheet header ── */
+.rs-header {
+  text-align: center;
+  border-bottom: 3px double #000000;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+
+.rs-header__logo {
+  width: 70px;
+  height: 70px;
+  border: 2px solid #000000;
+  border-radius: 50%;
+  margin: 0 auto 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18pt;
+  font-weight: bold;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.rs-header__school {
+  font-size: 16pt;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 3px;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.rs-header__address {
+  font-size: 9pt;
+  margin-bottom: 6px;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.rs-header__title {
+  font-size: 11pt;
+  font-weight: bold;
+  text-transform: uppercase;
+  border: 2px solid #000000;
+  display: inline-block;
+  padding: 3px 28px;
+  margin-top: 6px;
+  letter-spacing: 1.5px;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+/* ── Student info grid ── */
+.rs-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px 24px;
+  border: 1px solid #000000;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  font-size: 10pt;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.rs-info__item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.rs-info__label {
+  font-weight: bold;
+  white-space: nowrap;
+  font-size: 10pt;
+}
+
+.rs-info__value {
+  border-bottom: 1px solid #000000;
+  flex: 1;
+  min-width: 80px;
+  font-size: 10pt;
+  padding-bottom: 1px;
+}
+
+/* ── Subject table ── */
+.rs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10pt;
+  margin-bottom: 10px;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.rs-table th {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  padding: 5px 6px;
+  text-align: center;
+  font-size: 9pt;
+  border: 1px solid #000000;
+  font-weight: bold;
+  line-height: 1.3;
+}
+
+.rs-table td {
+  border: 1px solid #000000;
+  padding: 4px 7px;
+  text-align: center;
+  font-size: 10pt;
+}
+
+.rs-table td:first-child {
+  text-align: left;
+  font-weight: bold;
+  padding-left: 8px;
+}
+
+.rs-table tbody tr:nth-child(even) td {
+  background-color: #f2f2f2 !important;
+}
+
+/* ── Summary row ── */
+.rs-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid #000000;
+  margin-bottom: 10px;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.rs-summary__item {
+  padding: 6px 10px;
+  border-right: 1px solid #000000;
+  text-align: center;
+}
+
+.rs-summary__item:last-child {
+  border-right: none;
+}
+
+.rs-summary__label {
+  font-size: 7.5pt;
+  font-weight: bold;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 3px;
+  letter-spacing: 0.5px;
+}
+
+.rs-summary__value {
+  font-size: 13pt;
+  font-weight: bold;
+  display: block;
+}
+
+/* ── Comments section ── */
+.rs-comments {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.rs-comment-box {
+  border: 1px solid #000000;
+  padding: 7px 10px;
+  min-height: 65px;
+}
+
+.rs-comment-box__label {
+  font-weight: bold;
+  font-size: 9pt;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+  display: block;
+  border-bottom: 1px solid #cccccc;
+  padding-bottom: 3px;
+  letter-spacing: 0.5px;
+}
+
+.rs-comment-box__line {
+  border-bottom: 1px solid #999999;
+  min-height: 18px;
+  margin-bottom: 5px;
+}
+
+.rs-comment-box__sig {
+  font-size: 8.5pt;
+  margin-top: 7px;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* ── Footer row ── */
+.rs-footer {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: center;
+  border-top: 2px solid #000000;
+  padding-top: 8px;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 10pt;
+}
+
+.rs-footer__resumption strong {
+  display: block;
+  font-size: 8.5pt;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+}
+
+.rs-footer__resumption span {
+  font-size: 11pt;
+  font-weight: bold;
+}
+
+.rs-footer__stamp {
+  width: 88px;
+  height: 88px;
+  border: 2px dashed #000000;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7.5pt;
+  text-align: center;
+  color: #666666;
+  line-height: 1.4;
+}
+
+.rs-footer__generated {
+  text-align: right;
+  font-size: 9pt;
+}
+
+.rs-footer__generated strong {
+  display: block;
+  font-size: 8pt;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+/* ── Watermark footer ── */
+.rs-watermark {
+  text-align: center;
+  font-size: 7.5pt;
+  color: #888888;
+  margin-top: 8px;
+  border-top: 1px solid #cccccc;
+  padding-top: 5px;
+  font-family: 'Times New Roman', Times, serif;
+}
