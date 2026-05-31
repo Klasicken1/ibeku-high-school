@@ -1,0 +1,451 @@
+/* ============================================================
+   IBEKU HIGH SCHOOL — CONTACT PAGE STYLES
+   File: public/assets/css/pages/contact.css
+
+   Shared styles live in: assets/css/style.css
+   This file contains only contact page styles.
+   ============================================================ */
+
+
+/* ============================================================
+   PAGE HERO
+   ============================================================ */
+.page-hero--contact {
+  background: linear-gradient(135deg, #0d1f40 0%, var(--blue-dark) 50%, var(--purple) 100%);
+}
+
+
+/* ============================================================
+   CONTACT GRID — INFO + FORM
+   ============================================================ */
+.contact-section {
+  padding: 90px 5%;
+}
+
+.contact-section__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 80px;
+  align-items: start;
+}
+
+
+/* ============================================================
+   CONTACT INFO COLUMN
+   ============================================================ */
+.contact-info p {
+  font-size: 0.97rem;
+  color: var(--muted);
+  line-height: 1.85;
+  margin-bottom: 32px;
+}
+
+.contact-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 36px;
+}
+
+.contact-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 20px 22px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  transition: all 0.25s;
+}
+
+.contact-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 28px rgba(61, 26, 110, 0.1);
+  border-color: var(--purple-light);
+}
+
+.contact-card__icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: var(--purple-pale);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.contact-card__text strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--purple);
+  margin-bottom: 3px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.contact-card__text span,
+.contact-card__text a {
+  font-size: 13.5px;
+  color: var(--muted);
+  line-height: 1.6;
+  display: block;
+}
+
+.contact-card__text a {
+  color: var(--blue-dark);
+  transition: color 0.2s;
+}
+
+.contact-card__text a:hover {
+  color: var(--purple);
+}
+
+/* Office hours table */
+.office-hours {
+  background: var(--purple-pale);
+  border-radius: 14px;
+  padding: 22px 24px;
+  border: 1px solid rgba(61, 26, 110, 0.12);
+  margin-bottom: 28px;
+}
+
+.office-hours h4 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--purple);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 14px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.hours-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(61, 26, 110, 0.08);
+  font-size: 13.5px;
+}
+
+.hours-row:last-child { border-bottom: none; }
+
+.hours-row__day   { color: var(--text); font-weight: 500; }
+.hours-row__time  { color: var(--purple); font-weight: 700; }
+.hours-row__closed { color: #cc3333; font-weight: 600; }
+
+/* Social links */
+.contact-socials h4 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--purple);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 14px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.social-links {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.social-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--purple);
+  transition: all 0.2s;
+}
+
+.social-link:hover {
+  background: var(--purple);
+  color: #ffffff;
+  border-color: var(--purple);
+  transform: translateY(-2px);
+}
+
+.social-link__icon { font-size: 1.1rem; }
+
+
+/* ============================================================
+   CONTACT FORM COLUMN
+   ============================================================ */
+.contact-form-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 40px;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(61, 26, 110, 0.08);
+  position: sticky;
+  top: 90px;
+}
+
+.contact-form-card h3 {
+  font-size: 1.6rem;
+  color: var(--purple);
+  margin-bottom: 6px;
+}
+
+.contact-form-card > p {
+  font-size: 13.5px;
+  color: var(--muted);
+  margin-bottom: 28px;
+  line-height: 1.65;
+}
+
+.btn--send {
+  width: 100%;
+  background: var(--blue);
+  color: #ffffff;
+  border: none;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  margin-top: 6px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.btn--send:hover {
+  background: var(--blue-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(74, 144, 217, 0.3);
+}
+
+.contact-form-success {
+  display: none;
+  background: #e6f9ed;
+  border: 1px solid #2d8a4e;
+  border-radius: 10px;
+  padding: 20px 22px;
+  margin-top: 16px;
+  text-align: center;
+}
+
+.contact-form-success p {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a7a3a;
+  margin-bottom: 4px;
+}
+
+.contact-form-success span {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+
+/* ============================================================
+   MAP SECTION
+   ============================================================ */
+.map-section {
+  background: var(--off);
+  padding: 0 0 90px;
+}
+
+.map-section__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 5%;
+}
+
+.map-section__header {
+  padding: 60px 0 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.map-container {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(61, 26, 110, 0.1);
+  position: relative;
+  background: var(--blue-pale);
+}
+
+.map-container iframe {
+  width: 100%;
+  height: 460px;
+  border: none;
+  display: block;
+}
+
+/* Directions bar below map */
+.map-directions-bar {
+  background: var(--purple);
+  padding: 18px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.map-directions-bar p {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.map-directions-bar p strong {
+  color: #ffffff;
+}
+
+.btn--directions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  color: var(--purple);
+  padding: 10px 22px;
+  border-radius: 7px;
+  font-size: 13.5px;
+  font-weight: 700;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn--directions:hover {
+  background: var(--blue-light);
+  color: var(--purple);
+  transform: translateY(-1px);
+}
+
+/* Nearby landmarks */
+.landmarks {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.landmark-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  transition: all 0.2s;
+}
+
+.landmark-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(61, 26, 110, 0.08);
+}
+
+.landmark-card__icon { font-size: 1.5rem; flex-shrink: 0; }
+
+.landmark-card__text strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--purple);
+  margin-bottom: 3px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.landmark-card__text span {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+
+/* ============================================================
+   DEPARTMENTS CONTACTS
+   ============================================================ */
+.dept-contacts-section {
+  padding: 90px 5%;
+}
+
+.dept-contacts-section__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.dept-contacts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+  margin-top: 46px;
+}
+
+.dept-contact-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 26px 24px;
+  border: 1px solid var(--border);
+  transition: all 0.3s;
+}
+
+.dept-contact-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 32px rgba(61, 26, 110, 0.1);
+  border-color: var(--purple-light);
+}
+
+.dept-contact-card__icon {
+  font-size: 2rem;
+  margin-bottom: 14px;
+  display: block;
+}
+
+.dept-contact-card h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--purple);
+  margin-bottom: 6px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.dept-contact-card p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.65;
+  margin-bottom: 14px;
+}
+
+.dept-contact-card__contact {
+  font-size: 13px;
+  color: var(--blue-dark);
+  font-weight: 600;
+  display: block;
+}
+
+
+/* ============================================================
+   CONTACT RESPONSIVE
+   ============================================================ */
+@media (max-width: 900px) {
+  .contact-section__inner { grid-template-columns: 1fr; gap: 50px; }
+  .contact-form-card      { position: static; }
+  .landmarks              { grid-template-columns: 1fr 1fr; }
+  .dept-contacts-grid     { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 600px) {
+  .contact-form-card      { padding: 26px 20px; }
+  .landmarks              { grid-template-columns: 1fr; }
+  .dept-contacts-grid     { grid-template-columns: 1fr; }
+  .map-directions-bar     { flex-direction: column; align-items: flex-start; }
+  .map-container iframe   { height: 320px; }
+}
