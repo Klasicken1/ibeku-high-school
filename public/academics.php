@@ -262,18 +262,7 @@ require_once '../src/includes/header.php';
 
     </div>
 
-    <!-- Admin note -->
-    <div class="timetable-admin-note reveal">
-      <span class="timetable-admin-note__icon" aria-hidden="true">ℹ️</span>
-      <div class="timetable-admin-note__text">
-        <p>
-          <strong>For school administrators:</strong> Timetables are managed through the
-          <a href="<?php echo BASE_PATH; ?>admin/login.php" style="color:var(--blue-dark);font-weight:600">Admin Panel</a>.
-          The Dean of Studies (JS) updates JSS timetables and the Dean of Studies (SS) updates SSS timetables.
-          Uploaded files replace the current version immediately — no technical knowledge required.
-        </p>
-      </div>
-    </div>
+    
 
   </div>
 </section>
@@ -313,44 +302,52 @@ require_once '../src/includes/header.php';
      * principal > vp_admin > vp_academics > vp_general > dean > counselor > hod > form_teacher > subject_teacher
      */
     $staff = [
-      /* ── SENIOR SECONDARY ADMINISTRATION ── */
-      ['initials'=>'SP', 'name'=>'[SS Principal]',          'role'=>'Principal',                       'dept'=>'Senior Secondary', 'section'=>'ss', 'filter'=>'admin-ss'],
-      ['initials'=>'VA', 'name'=>'[VP Administration SS]',  'role'=>'Vice Principal (Administration)', 'dept'=>'Senior Secondary', 'section'=>'ss', 'filter'=>'admin-ss'],
-      ['initials'=>'VC', 'name'=>'[VP Academics SS]',       'role'=>'Vice Principal (Academics)',      'dept'=>'Senior Secondary', 'section'=>'ss', 'filter'=>'admin-ss'],
-      ['initials'=>'VG', 'name'=>'[VP General Duties SS]',  'role'=>'Vice Principal (General Duties)', 'dept'=>'Senior Secondary', 'section'=>'ss', 'filter'=>'admin-ss'],
-      ['initials'=>'DS', 'name'=>'[Dean of Studies SS]',    'role'=>'Dean of Studies',                 'dept'=>'Senior Secondary', 'section'=>'ss', 'filter'=>'admin-ss'],
-      ['initials'=>'GC', 'name'=>'[Guidance Counsellor SS]','role'=>'Guidance Counsellor',             'dept'=>'Senior Secondary', 'section'=>'ss', 'filter'=>'admin-ss'],
+      /* ── PRINCIPALS — paired SS + JS ── */
+      ['initials'=>'SP','name'=>'[SS Principal]',         'role'=>'Principal',                       'dept'=>'Senior Secondary','section'=>'ss','filter'=>'admin-ss'],
+      ['initials'=>'JP','name'=>'[JS Principal]',         'role'=>'Principal',                       'dept'=>'Junior Secondary','section'=>'js','filter'=>'admin-js'],
 
-      /* ── JUNIOR SECONDARY ADMINISTRATION ── */
-      ['initials'=>'JP', 'name'=>'[JS Principal]',          'role'=>'Principal',                       'dept'=>'Junior Secondary', 'section'=>'js', 'filter'=>'admin-js'],
-      ['initials'=>'JA', 'name'=>'[VP Administration JS]',  'role'=>'Vice Principal (Administration)', 'dept'=>'Junior Secondary', 'section'=>'js', 'filter'=>'admin-js'],
-      ['initials'=>'JC', 'name'=>'[VP Academics JS]',       'role'=>'Vice Principal (Academics)',      'dept'=>'Junior Secondary', 'section'=>'js', 'filter'=>'admin-js'],
-      ['initials'=>'JG', 'name'=>'[VP General Duties JS]',  'role'=>'Vice Principal (General Duties)', 'dept'=>'Junior Secondary', 'section'=>'js', 'filter'=>'admin-js'],
-      ['initials'=>'JD', 'name'=>'[Dean of Studies JS]',    'role'=>'Dean of Studies',                 'dept'=>'Junior Secondary', 'section'=>'js', 'filter'=>'admin-js'],
-      ['initials'=>'JL', 'name'=>'[Guidance Counsellor JS]','role'=>'Guidance Counsellor',             'dept'=>'Junior Secondary', 'section'=>'js', 'filter'=>'admin-js'],
+      /* ── VP ADMINISTRATION — paired ── */
+      ['initials'=>'VA','name'=>'[VP Admin SS]',          'role'=>'Vice Principal (Administration)', 'dept'=>'Senior Secondary','section'=>'ss','filter'=>'admin-ss'],
+      ['initials'=>'JA','name'=>'[VP Admin JS]',          'role'=>'Vice Principal (Administration)', 'dept'=>'Junior Secondary','section'=>'js','filter'=>'admin-js'],
+
+      /* ── VP ACADEMICS — paired ── */
+      ['initials'=>'VC','name'=>'[VP Academics SS]',      'role'=>'Vice Principal (Academics)',      'dept'=>'Senior Secondary','section'=>'ss','filter'=>'admin-ss'],
+      ['initials'=>'JC','name'=>'[VP Academics JS]',      'role'=>'Vice Principal (Academics)',      'dept'=>'Junior Secondary','section'=>'js','filter'=>'admin-js'],
+
+      /* ── VP GENERAL DUTIES — paired ── */
+      ['initials'=>'VG','name'=>'[VP General Duties SS]', 'role'=>'Vice Principal (General Duties)', 'dept'=>'Senior Secondary','section'=>'ss','filter'=>'admin-ss'],
+      ['initials'=>'JG','name'=>'[VP General Duties JS]', 'role'=>'Vice Principal (General Duties)', 'dept'=>'Junior Secondary','section'=>'js','filter'=>'admin-js'],
+
+      /* ── DEAN OF STUDIES — paired ── */
+      ['initials'=>'DS','name'=>'[Dean of Studies SS]',   'role'=>'Dean of Studies',                 'dept'=>'Senior Secondary','section'=>'ss','filter'=>'admin-ss'],
+      ['initials'=>'JD','name'=>'[Dean of Studies JS]',   'role'=>'Dean of Studies',                 'dept'=>'Junior Secondary','section'=>'js','filter'=>'admin-js'],
+
+      /* ── GUIDANCE COUNSELLOR — paired ── */
+      ['initials'=>'GC','name'=>'[Guidance Counsellor SS]','role'=>'Guidance Counsellor',            'dept'=>'Senior Secondary','section'=>'ss','filter'=>'admin-ss'],
+      ['initials'=>'JL','name'=>'[Guidance Counsellor JS]','role'=>'Guidance Counsellor',            'dept'=>'Junior Secondary','section'=>'js','filter'=>'admin-js'],
 
       /* ── SCIENCES ── */
-      ['initials'=>'HS', 'name'=>'[HOD Sciences]',          'role'=>'H.O.D Sciences',                 'dept'=>'Sciences',         'section'=>'ss', 'filter'=>'sciences'],
-      ['initials'=>'PH', 'name'=>'[Physics Teacher]',       'role'=>'Subject Teacher',                 'dept'=>'Physics',          'section'=>'ss', 'filter'=>'sciences'],
-      ['initials'=>'CH', 'name'=>'[Chemistry Teacher]',     'role'=>'Subject Teacher',                 'dept'=>'Chemistry',        'section'=>'ss', 'filter'=>'sciences'],
-      ['initials'=>'BI', 'name'=>'[Biology Teacher]',       'role'=>'Subject Teacher',                 'dept'=>'Biology',          'section'=>'ss', 'filter'=>'sciences'],
-      ['initials'=>'MT', 'name'=>'[Mathematics Teacher]',   'role'=>'Subject Teacher',                 'dept'=>'Mathematics',      'section'=>'ss', 'filter'=>'sciences'],
+      ['initials'=>'HS','name'=>'[HOD Sciences]',         'role'=>'H.O.D Sciences',                 'dept'=>'Sciences',        'section'=>'ss','filter'=>'sciences'],
+      ['initials'=>'PH','name'=>'[Physics Teacher]',      'role'=>'Subject Teacher',                 'dept'=>'Physics',         'section'=>'ss','filter'=>'sciences'],
+      ['initials'=>'CH','name'=>'[Chemistry Teacher]',    'role'=>'Subject Teacher',                 'dept'=>'Chemistry',       'section'=>'ss','filter'=>'sciences'],
+      ['initials'=>'BI','name'=>'[Biology Teacher]',      'role'=>'Subject Teacher',                 'dept'=>'Biology',         'section'=>'ss','filter'=>'sciences'],
+      ['initials'=>'MT','name'=>'[Mathematics Teacher]',  'role'=>'Subject Teacher',                 'dept'=>'Mathematics',     'section'=>'ss','filter'=>'sciences'],
 
       /* ── ARTS ── */
-      ['initials'=>'HA', 'name'=>'[HOD Arts]',              'role'=>'H.O.D Arts',                     'dept'=>'Arts',             'section'=>'ss', 'filter'=>'arts'],
-      ['initials'=>'EN', 'name'=>'[English Teacher]',       'role'=>'Subject Teacher',                 'dept'=>'English',          'section'=>'ss', 'filter'=>'arts'],
-      ['initials'=>'LT', 'name'=>'[Literature Teacher]',    'role'=>'Subject Teacher',                 'dept'=>'Literature',       'section'=>'ss', 'filter'=>'arts'],
-      ['initials'=>'GT', 'name'=>'[Government Teacher]',    'role'=>'Subject Teacher',                 'dept'=>'Government',       'section'=>'ss', 'filter'=>'arts'],
+      ['initials'=>'HA','name'=>'[HOD Arts]',             'role'=>'H.O.D Arts',                     'dept'=>'Arts',            'section'=>'ss','filter'=>'arts'],
+      ['initials'=>'EN','name'=>'[English Teacher]',      'role'=>'Subject Teacher',                 'dept'=>'English',         'section'=>'ss','filter'=>'arts'],
+      ['initials'=>'LT','name'=>'[Literature Teacher]',   'role'=>'Subject Teacher',                 'dept'=>'Literature',      'section'=>'ss','filter'=>'arts'],
+      ['initials'=>'GT','name'=>'[Government Teacher]',   'role'=>'Subject Teacher',                 'dept'=>'Government',      'section'=>'ss','filter'=>'arts'],
 
       /* ── COMMERCIAL ── */
-      ['initials'=>'HC', 'name'=>'[HOD Commercial]',        'role'=>'H.O.D Commercial',               'dept'=>'Commercial',       'section'=>'ss', 'filter'=>'commercial'],
-      ['initials'=>'AC', 'name'=>'[Accounting Teacher]',    'role'=>'Subject Teacher',                 'dept'=>'Accounting',       'section'=>'ss', 'filter'=>'commercial'],
-      ['initials'=>'EC', 'name'=>'[Economics Teacher]',     'role'=>'Subject Teacher',                 'dept'=>'Economics',        'section'=>'ss', 'filter'=>'commercial'],
+      ['initials'=>'HC','name'=>'[HOD Commercial]',       'role'=>'H.O.D Commercial',               'dept'=>'Commercial',      'section'=>'ss','filter'=>'commercial'],
+      ['initials'=>'AC','name'=>'[Accounting Teacher]',   'role'=>'Subject Teacher',                 'dept'=>'Accounting',      'section'=>'ss','filter'=>'commercial'],
+      ['initials'=>'EC','name'=>'[Economics Teacher]',    'role'=>'Subject Teacher',                 'dept'=>'Economics',       'section'=>'ss','filter'=>'commercial'],
 
       /* ── GENERAL STUDIES (JSS) ── */
-      ['initials'=>'HG', 'name'=>'[HOD General Studies]',  'role'=>'H.O.D General Studies',           'dept'=>'General Studies',  'section'=>'js', 'filter'=>'general'],
-      ['initials'=>'BS', 'name'=>'[Basic Science Teacher]', 'role'=>'Subject Teacher',                 'dept'=>'Basic Science',    'section'=>'js', 'filter'=>'general'],
-      ['initials'=>'IC', 'name'=>'[ICT Coordinator]',       'role'=>'ICT Coordinator',                 'dept'=>'Computer Studies', 'section'=>'ss', 'filter'=>'general'],
+      ['initials'=>'HG','name'=>'[HOD General Studies]', 'role'=>'H.O.D General Studies',           'dept'=>'General Studies', 'section'=>'js','filter'=>'general'],
+      ['initials'=>'BS','name'=>'[Basic Science Teacher]','role'=>'Subject Teacher',                 'dept'=>'Basic Science',   'section'=>'js','filter'=>'general'],
+      ['initials'=>'IC','name'=>'[ICT Coordinator]',      'role'=>'ICT Coordinator',                 'dept'=>'Computer Studies','section'=>'ss','filter'=>'general'],
     ];
     ?>
 
@@ -432,8 +429,8 @@ require_once '../src/includes/header.php';
       </div>
       <div class="club-card reveal">
         <span class="club-card__icon" aria-hidden="true">✝️</span>
-        <h3>Christian Students Fellowship</h3>
-        <p>Weekly fellowship meetings, praise and worship sessions, and spiritual development activities.</p>
+        <h3>Scripture Union</h3>
+        <p>Weekly Scripture Union meetings, Bible study sessions, praise and worship, and Christian character development activities.</p>
         <span class="club-card__tag">Faith</span>
       </div>
       <div class="club-card reveal">
