@@ -149,11 +149,6 @@ require_once '../src/includes/header.php';
       <h3>Send Us a Message</h3>
       <p>Fill the form below and we will respond within one working day.</p>
 
-      <!--
-        Phase 2: add action="<?php echo BASE_PATH; ?>src/api/submit_contact.php"
-        and method="POST" to a wrapping form element.
-      -->
-
       <div class="form-row">
         <div class="form-group">
           <label class="form-label" for="ctcFirst">First Name</label>
@@ -231,8 +226,7 @@ require_once '../src/includes/header.php';
         <h2 class="stitle">Find <span>Ibeku High School</span></h2>
         <p class="ssub">We are located in Umuahia, the capital of Abia State, South-East Nigeria.</p>
       </div>
-      
-        <a href="https://www.google.com/maps/search/Ibeku+High+School+Umuahia+Abia+State+Nigeria" target="_blank" rel="noopener noreferrer" class="btn--directions">🗺 Get Directions on Google Maps</a>
+      <a href="https://www.google.com/maps/search/Ibeku+High+School+Umuahia+Abia+State+Nigeria" target="_blank" rel="noopener noreferrer" class="btn--directions">🗺 Get Directions on Google Maps</a>
     </div>
 
     <div class="map-container reveal">
@@ -258,8 +252,7 @@ require_once '../src/includes/header.php';
           <strong>Ibeku High School</strong> &nbsp;—&nbsp;
           Umuahia, Abia State, Nigeria
         </p>
-        
-          <a href="https://www.google.com/maps/dir/?api=1&destination=Ibeku+High+School+Umuahia+Abia+State+Nigeria" target="_blank" rel="noopener noreferrer" class="btn--directions">📍 Open in Google Maps</a>
+        <a href="https://www.google.com/maps/dir/?api=1&destination=Ibeku+High+School+Umuahia+Abia+State+Nigeria" target="_blank" rel="noopener noreferrer" class="btn--directions">📍 Open in Google Maps</a>
       </div>
     </div>
 
@@ -376,7 +369,7 @@ require_once '../src/includes/header.php';
 <?php require_once '../src/includes/footer.php'; ?>
 
 <script>
-/* Contact form submit — Phase 2: replace with fetch() to src/api/submit_contact.php */
+/* Contact form submit — sends to src/api/submit_contact.php */
 function submitContactForm() {
   var required = ['ctcFirst', 'ctcLast', 'ctcEmail', 'ctcSubject', 'ctcMessage'];
   var allFilled = required.every(function (id) {
@@ -389,7 +382,34 @@ function submitContactForm() {
     return;
   }
 
-  document.getElementById('ctcSuccess').style.display = 'block';
-  document.getElementById('ctcSuccess').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  var formData = new FormData();
+  formData.append('first_name', document.getElementById('ctcFirst').value.trim());
+  formData.append('last_name',  document.getElementById('ctcLast').value.trim());
+  formData.append('email',      document.getElementById('ctcEmail').value.trim());
+  formData.append('phone',      document.getElementById('ctcPhone').value.trim());
+  formData.append('subject',    document.getElementById('ctcSubject').value);
+  formData.append('message',    document.getElementById('ctcMessage').value.trim());
+
+  fetch('/ibeku-high-school/src/api/submit_contact.php', { method: 'POST', body: formData })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.success) {
+        var successEl = document.getElementById('ctcSuccess');
+        successEl.querySelector('span').textContent = data.message;
+        successEl.style.display = 'block';
+        successEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        required.forEach(function (id) { document.getElementById(id).value = ''; });
+        document.getElementById('ctcPhone').value = '';
+      } else if (data.errors) {
+        var firstError = Object.values(data.errors)[0];
+        alert(firstError);
+      } else {
+        alert(data.message || 'Something went wrong. Please try again.');
+      }
+    })
+    .catch(function (err) {
+      console.error('Contact form error:', err);
+      alert('A connection error occurred. Please try again.');
+    });
 }
 </script>
