@@ -25,6 +25,9 @@ var DEMO_RESULTS = {
     position: '3rd',
     total:    28,
     avg:      '76.3%',
+    formTeacherComment: '',
+    principalComment:   '',
+    resumption:         'To be announced',
     subjects: [
       { name: 'English Language', score: 78,  grade: 'B3' },
       { name: 'Mathematics',      score: 85,  grade: 'A1' },
@@ -42,6 +45,9 @@ var DEMO_RESULTS = {
     position: '1st',
     total:    32,
     avg:      '83.5%',
+    formTeacherComment: '',
+    principalComment:   '',
+    resumption:         'To be announced',
     subjects: [
       { name: 'English Language', score: 92,  grade: 'A1' },
       { name: 'Mathematics',      score: 88,  grade: 'A1' },
@@ -95,13 +101,16 @@ function renderResultFull(student, subjects) {
 
   /* Cache for print function */
   window._lastResult = {
-    name:     student.name,
-    cls:      student.cls,
-    term:     student.term,
-    session:  student.session,
-    position: student.position,
-    total:    student.total,
-    avg:      student.avg,
+    name:               student.name,
+    cls:                student.cls,
+    term:               student.term,
+    session:            student.session,
+    position:           student.position,
+    total:              student.total,
+    avg:                student.avg,
+    formTeacherComment: student.formTeacherComment || '',
+    principalComment:   student.principalComment   || '',
+    resumption:         student.resumption          || 'To be announced',
     subjects: subjects.map(function (s) {
       return {
         name:  s.name,
@@ -213,10 +222,14 @@ function printResult() {
   setText('rsPrintPosition',  result.position + ' out of ' + result.total);
   setText('rsPrintAvg',       result.avg);
   setText('rsPrintSubjCount', String(result.subjects.length));
-  setText('rsPrintResumption','To be announced');
+  setText('rsPrintResumption', result.resumption || 'To be announced');
   setText('rsPrintDate', new Date().toLocaleDateString('en-GB', {
     day: '2-digit', month: 'long', year: 'numeric'
   }));
+
+  /* ── Comments — populate the comment boxes on the print sheet ── */
+  setText('rsPrintTeacherComment',   result.formTeacherComment || '');
+  setText('rsPrintPrincipalComment', result.principalComment   || '');
 
   var totalScore = result.subjects.reduce(function (sum, s) {
     return sum + s.score;

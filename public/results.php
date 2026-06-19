@@ -247,7 +247,7 @@ require_once '../src/includes/header.php';
         <div class="rs-comments">
           <div class="rs-comment-box">
             <span class="rs-comment-box__label">Form Teacher's Comment</span>
-            <div class="rs-comment-box__line"></div>
+            <div class="rs-comment-box__line" id="rsPrintTeacherComment"></div>
             <div class="rs-comment-box__line"></div>
             <div class="rs-comment-box__sig">
               <span>Signature: _______________</span>
@@ -256,7 +256,7 @@ require_once '../src/includes/header.php';
           </div>
           <div class="rs-comment-box">
             <span class="rs-comment-box__label">Principal's Comment</span>
-            <div class="rs-comment-box__line"></div>
+            <div class="rs-comment-box__line" id="rsPrintPrincipalComment"></div>
             <div class="rs-comment-box__line"></div>
             <div class="rs-comment-box__sig">
               <span>Signature: _______________</span>
