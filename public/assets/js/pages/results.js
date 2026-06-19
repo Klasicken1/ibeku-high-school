@@ -7,16 +7,14 @@
      2. Demo ID fill buttons
      3. Print result slip
      4. FAQ accordion
-
-   Phase 2: replace lookupResultFull() body with fetch() API call
    ============================================================ */
 
 'use strict';
 
 
 /* ============================================================
-   DEMO DATA
-   Phase 2: remove this entire block — real data comes from DB
+   DEMO DATA — fallback only, used by printResult() if no live
+   result is cached (e.g. page reload before printing)
    ============================================================ */
 var DEMO_RESULTS = {
   'IHS/2024/0421': {
@@ -81,9 +79,10 @@ function renderResultFull(student, subjects) {
   if (subjEl) {
     subjEl.innerHTML = subjects.map(function (s) {
       var letter = s.grade.charAt(0);
+      var total  = s.total !== undefined ? s.total : s.score;
       return '<div class="result-row">' +
         '<span class="result-row__subject">' + esc(s.name) + '</span>' +
-        '<span class="result-row__grade grade--' + letter + '">' + s.score + ' &mdash; ' + esc(s.grade) + '</span>' +
+        '<span class="result-row__grade grade--' + letter + '">' + total + ' &mdash; ' + esc(s.grade) + '</span>' +
         '</div>';
     }).join('');
   }
@@ -93,13 +92,35 @@ function renderResultFull(student, subjects) {
   if (panel)    panel.classList.add('show');
   if (notFound) notFound.style.display = 'none';
   if (panel)    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  /* Cache for print function */
+  window._lastResult = {
+    name:     student.name,
+    cls:      student.cls,
+    term:     student.term,
+    session:  student.session,
+    position: student.position,
+    total:    student.total,
+    avg:      student.avg,
+    subjects: subjects.map(function (s) {
+      return {
+        name:  s.name,
+        score: s.total !== undefined ? s.total : s.score,
+        grade: s.grade
+      };
+    })
+  };
 }
 
-function showNotFoundFull() {
+function showNotFoundFull(message) {
   var panel    = document.getElementById('rcPanel');
   var notFound = document.getElementById('rcNotFound');
   if (panel)    panel.classList.remove('show');
-  if (notFound) notFound.style.display = 'block';
+  if (notFound) {
+    notFound.style.display = 'block';
+    var msgEl = notFound.querySelector('span');
+    if (msgEl && message) msgEl.textContent = message;
+  }
 }
 
 function resetOutputFull() {
@@ -109,30 +130,31 @@ function resetOutputFull() {
   if (notFound) notFound.style.display = 'none';
 }
 
-/*
- * PHASE 2 UPGRADE — replace this function body with:
- *
- *   var formData = new FormData();
- *   formData.append('admission_number', admissionNo);
- *   formData.append('class',            studentClass);
- *   formData.append('term',             term);
- *   var btn = document.getElementById('checkBtn');
- *   if (btn) { btn.textContent = 'Checking…'; btn.disabled = true; }
- *   fetch('/src/api/check_result.php', { method: 'POST', body: formData })
- *     .then(function(r) { return r.json(); })
- *     .then(function(data) {
- *       if (data.found) renderResultFull(data.student, data.subjects);
- *       else            showNotFoundFull();
- *     })
- *     .catch(showNotFoundFull)
- *     .finally(function() {
- *       if (btn) { btn.textContent = 'Check My Results →'; btn.disabled = false; }
- *     });
- */
 function lookupResultFull(admissionNo) {
-  var result = DEMO_RESULTS[admissionNo];
-  if (result) renderResultFull(result, result.subjects);
-  else        showNotFoundFull();
+  var btn = document.getElementById('checkBtn');
+  if (btn) { btn.textContent = 'Checking…'; btn.disabled = true; }
+
+  var cls = document.getElementById('rcClass');
+  var trm = document.getElementById('rcTerm');
+
+  var formData = new FormData();
+  formData.append('admission_number', admissionNo);
+  formData.append('class',            cls ? cls.value : '');
+  formData.append('term',             trm ? trm.value : '');
+
+  fetch('/ibeku-high-school/src/api/check_result.php', { method: 'POST', body: formData })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.found) renderResultFull(data.student, data.subjects);
+      else            showNotFoundFull(data.message);
+    })
+    .catch(function (err) {
+      console.error('Result checker error:', err);
+      showNotFoundFull('A connection error occurred. Please try again.');
+    })
+    .finally(function () {
+      if (btn) { btn.textContent = 'Check My Results →'; btn.disabled = false; }
+    });
 }
 
 function checkResultFull() {
@@ -170,41 +192,37 @@ function printResult() {
     return;
   }
 
-  var admNo  = idInput ? idInput.value.trim().toUpperCase() : '';
-  var result = DEMO_RESULTS[admNo];
+  var admNo = idInput ? idInput.value.trim().toUpperCase() : '';
+
+  /* Use live API result if available, fall back to demo data */
+  var result = window._lastResult || DEMO_RESULTS[admNo];
 
   if (!result) {
     alert('No result loaded. Please check a result first.');
     return;
   }
 
-  /* ── Populate header ── */
-  setText('rsPrintTitle',
-    result.term.toUpperCase() + ' ACADEMIC REPORT');
+  setText('rsPrintTitle', result.term.toUpperCase() + ' ACADEMIC REPORT');
 
-  /* ── Populate student info ── */
-  setText('rsPrintName',     result.name);
-  setText('rsPrintAdmNo',    admNo);
-  setText('rsPrintClass',    result.cls);
-  setText('rsPrintSession',  result.session);
-  setText('rsPrintTerm',     result.term.replace(result.session, '').trim());
-  setText('rsPrintTotal',    String(result.total));
-  setText('rsPrintPosition', result.position + ' out of ' + result.total);
-  setText('rsPrintAvg',      result.avg);
-  setText('rsPrintSubjCount',String(result.subjects.length));
-  setText('rsPrintResumption', 'To be announced');
+  setText('rsPrintName',      result.name);
+  setText('rsPrintAdmNo',     admNo);
+  setText('rsPrintClass',     result.cls);
+  setText('rsPrintSession',   result.session);
+  setText('rsPrintTerm',      result.term.replace(result.session, '').trim());
+  setText('rsPrintTotal',     String(result.total));
+  setText('rsPrintPosition',  result.position + ' out of ' + result.total);
+  setText('rsPrintAvg',       result.avg);
+  setText('rsPrintSubjCount', String(result.subjects.length));
+  setText('rsPrintResumption','To be announced');
   setText('rsPrintDate', new Date().toLocaleDateString('en-GB', {
     day: '2-digit', month: 'long', year: 'numeric'
   }));
 
-  /* ── Total score ── */
   var totalScore = result.subjects.reduce(function (sum, s) {
     return sum + s.score;
   }, 0);
-  setText('rsPrintTotalScore',
-    totalScore + ' / ' + (result.subjects.length * 100));
+  setText('rsPrintTotalScore', totalScore + ' / ' + (result.subjects.length * 100));
 
-  /* ── Subject table rows — 15 / 15 / 70 distribution ── */
   var tbody = document.getElementById('rsPrintSubjects');
   if (tbody) {
     tbody.innerHTML = result.subjects.map(function (s) {
@@ -213,10 +231,10 @@ function printResult() {
       var exam   = s.score - test1 - test2;
       var letter = s.grade.charAt(0);
       return '<tr>' +
-        '<td>' + esc(s.name)         + '</td>' +
-        '<td>' + test1               + '</td>' +
-        '<td>' + test2               + '</td>' +
-        '<td>' + exam                + '</td>' +
+        '<td>' + esc(s.name)              + '</td>' +
+        '<td>' + test1                    + '</td>' +
+        '<td>' + test2                    + '</td>' +
+        '<td>' + exam                     + '</td>' +
         '<td><strong>' + s.score + '</strong></td>' +
         '<td><strong>' + esc(s.grade) + '</strong></td>' +
         '<td>' + remarkFromGrade(s.grade) + '</td>' +
