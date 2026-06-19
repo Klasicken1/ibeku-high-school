@@ -160,11 +160,6 @@ $announcements = [
     <div class="featured-article__card">
 
       <div class="featured-article__img">
-        <!--
-          REPLACE WITH REAL IMAGE:
-          <img src="<?php echo BASE_PATH; ?>assets/images/news/<?php echo $featured['slug']; ?>.jpg"
-               alt="<?php echo htmlspecialchars($featured['title']); ?>"/>
-        -->
         <div class="featured-article__img-placeholder" aria-hidden="true">
           <?php echo $featured['icon']; ?>
         </div>
@@ -207,11 +202,6 @@ $announcements = [
 
         <div class="news-card__thumb" aria-hidden="true">
           <?php echo $article['icon']; ?>
-          <!--
-            REPLACE WITH REAL IMAGE:
-            <img src="<?php echo BASE_PATH; ?>assets/images/news/<?php echo $article['slug']; ?>.jpg"
-                 alt="<?php echo htmlspecialchars($article['title']); ?>"/>
-          -->
         </div>
 
         <div class="news-card__body">
@@ -335,15 +325,35 @@ $announcements = [
   }
 }());
 
-/* ── Newsletter ── */
+/* ── Newsletter — sends to src/api/subscribe.php ── */
 function subscribeNewsletter() {
   var input   = document.getElementById('nlNewsEmail');
   var success = document.getElementById('nlSuccess');
+
   if (!input || !input.value.trim()) {
     alert('Please enter your email address.');
     return;
   }
-  /* Phase 2: fetch() to src/api/subscribe.php */
-  if (success) success.style.display = 'block';
+
+  var formData = new FormData();
+  formData.append('email', input.value.trim());
+
+  fetch('/ibeku-high-school/src/api/subscribe.php', { method: 'POST', body: formData })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.success) {
+        if (success) {
+          success.textContent = '✅ ' + data.message;
+          success.style.display = 'block';
+        }
+        input.value = '';
+      } else {
+        alert(data.message || 'Something went wrong. Please try again.');
+      }
+    })
+    .catch(function (err) {
+      console.error('Subscribe error:', err);
+      alert('A connection error occurred. Please try again.');
+    });
 }
 </script>
