@@ -284,10 +284,6 @@ require_once '../src/includes/header.php';
       </div>
       <div class="fees-table">
         <?php
-        /*
-         * UPDATE: Replace with real fee amounts confirmed by school management.
-         * Phase 2: these will be loaded from the database and managed via admin panel.
-         */
         $fees = [
           ['Application Form',          '₦2,000'],
           ['Acceptance Fee (new students)', '₦5,000'],
@@ -317,10 +313,6 @@ require_once '../src/includes/header.php';
       </div>
       <div class="dates-table">
         <?php
-        /*
-         * UPDATE: Replace with real dates confirmed by school management.
-         * Phase 2: managed via admin panel.
-         */
         $dates = [
           ['Application Forms Available',   'January 2025'],
           ['Application Deadline — JSS 1',  'March 2025'],
@@ -369,7 +361,6 @@ require_once '../src/includes/header.php';
           </div>
         </div>
         <div class="contact-option">
-          <!-- UPDATE: Replace with real phone number -->
           <span class="contact-option__icon" aria-hidden="true">📞</span>
           <div class="contact-option__text">
             <strong>Call the School Office</strong>
@@ -377,7 +368,6 @@ require_once '../src/includes/header.php';
           </div>
         </div>
         <div class="contact-option">
-          <!-- UPDATE: Replace with real email -->
           <span class="contact-option__icon" aria-hidden="true">✉️</span>
           <div class="contact-option__text">
             <strong>Email Admissions</strong>
@@ -398,12 +388,6 @@ require_once '../src/includes/header.php';
     <div class="application-form-card reveal">
       <h3>Admissions Enquiry</h3>
       <p>Complete this form and our admissions team will be in touch within 48 hours.</p>
-
-      <!--
-        Phase 2: add action="<?php echo BASE_PATH; ?>src/api/submit_admission.php"
-        and method="POST" to this form element, and replace the button onclick
-        with a real form submit handler.
-      -->
 
       <span class="form-section-label">Parent / Guardian Information</span>
 
@@ -585,7 +569,7 @@ require_once '../src/includes/header.php';
 <?php require_once '../src/includes/footer.php'; ?>
 
 <script>
-/* Admissions form submit — Phase 2: replace with real API call */
+/* Admissions form submit — sends to src/api/submit_admission.php */
 function submitAdmissionForm() {
   var required = ['admParentFirst','admParentLast','admEmail','admPhone',
                   'admStudentFirst','admStudentLast','admClass'];
@@ -599,9 +583,51 @@ function submitAdmissionForm() {
     return;
   }
 
-  /* Phase 2: replace above with fetch() to src/api/submit_admission.php */
-  document.getElementById('admSuccess').style.display = 'block';
-  document.getElementById('admSuccess').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  var formData = new FormData();
+  formData.append('parent_first',    document.getElementById('admParentFirst').value.trim());
+  formData.append('parent_last',     document.getElementById('admParentLast').value.trim());
+  formData.append('parent_email',    document.getElementById('admEmail').value.trim());
+  formData.append('parent_phone',    document.getElementById('admPhone').value.trim());
+  formData.append('student_first',   document.getElementById('admStudentFirst').value.trim());
+  formData.append('student_last',    document.getElementById('admStudentLast').value.trim());
+  formData.append('dob',             document.getElementById('admDob').value);
+  formData.append('gender',          document.getElementById('admGender').value);
+  formData.append('entry_class',     document.getElementById('admClass').value);
+  formData.append('session',         document.getElementById('admSession').value);
+  formData.append('previous_school', document.getElementById('admPrevSchool').value.trim());
+  formData.append('message',         document.getElementById('admMessage').value.trim());
+
+  var btn = document.querySelector('.btn--apply');
+  if (btn) { btn.textContent = 'Submitting…'; btn.disabled = true; }
+
+  fetch('/ibeku-high-school/src/api/submit_admission.php', { method: 'POST', body: formData })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.success) {
+        var successEl = document.getElementById('admSuccess');
+        successEl.querySelector('span').textContent = data.message;
+        successEl.style.display = 'block';
+        successEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        required.forEach(function (id) { document.getElementById(id).value = ''; });
+        document.getElementById('admDob').value = '';
+        document.getElementById('admGender').value = '';
+        document.getElementById('admSession').value = '';
+        document.getElementById('admPrevSchool').value = '';
+        document.getElementById('admMessage').value = '';
+      } else if (data.errors) {
+        var firstError = Object.values(data.errors)[0];
+        alert(firstError);
+      } else {
+        alert(data.message || 'Something went wrong. Please try again.');
+      }
+    })
+    .catch(function (err) {
+      console.error('Admission form error:', err);
+      alert('A connection error occurred. Please try again.');
+    })
+    .finally(function () {
+      if (btn) { btn.textContent = 'Submit Admissions Enquiry →'; btn.disabled = false; }
+    });
 }
 
 /* FAQ accordion */
