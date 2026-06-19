@@ -11,6 +11,35 @@ Format: [version] — date — description
 - Added README, .gitignore, .env.example
 - Began Phase 1: Static frontend
 
+## [2.0.0] — 2026-06-19
+
+### Added — Phase 2 Complete (Backend)
+- Full MySQL database schema — 14 tables covering users, students, subjects,
+  results, result_scores, news, gallery, events, timetables, admissions,
+  subscribers, contact_messages, hall_of_fame, prefects
+- Seed data — 9 staff users across all role types, 10 students, 25 subjects,
+  sample results, news, events, gallery items, prefects, admissions enquiries
+- PDO database connection layer (src/config/database.php) with .env config
+  loading, grade calculator, and safe output escaping
+- check_result.php — live result checker API, replacing demo JS data with
+  real database queries
+- submit_contact.php — contact form API with full server-side validation,
+  saves to contact_messages table
+- submit_admission.php — admissions enquiry API with validation, saves to
+  admissions table
+- subscribe.php — newsletter signup API with duplicate detection and
+  resubscription handling
+- All four frontend forms (results, contact, admissions, newsletter) wired
+  to live APIs via fetch()
+- Printable result sheet now pulls live form teacher and principal comments
+  from the database
+
+### Fixed
+- Result checker silent failure caused by missing variable declaration in
+  renderResultFull()
+- MySQL port 3306 conflict between XAMPP and a standalone MySQL80 service
+- Multi-line anchor tags in contact.php map section breaking HTML render
+
 ## [1.0.0] — 2026-05-31
 
 ### Added — Phase 1 Complete
