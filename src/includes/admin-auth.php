@@ -19,7 +19,9 @@
    ──────────────────────────────────────────────────────
    ============================================================ */
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 /* ── Role hierarchy — higher index = more permissions ── */
 define('ROLE_HIERARCHY', [
@@ -45,7 +47,7 @@ function isLoggedIn(): bool {
 /* ── Redirect to login if not authenticated ── */
 function requireLogin(): void {
     if (!isLoggedIn()) {
-        header('Location: ' . BASE_PATH . 'admin/login.php');
+        header('Location: ' . (defined('BASE_PATH') ? BASE_PATH . 'admin/login.php' : 'login.php'));
         exit;
     }
 }
@@ -66,7 +68,7 @@ function requireRole(array $roles, ?string $section = null): void {
     /* Check role */
     if (!in_array($userRole, $roles, true)) {
         $_SESSION['admin_error'] = 'You do not have permission to access that page.';
-        header('Location: ' . BASE_PATH . 'admin/index.php');
+        header('Location: ' . (defined('BASE_PATH') ? BASE_PATH . 'admin/index.php' : 'index.php'));
         exit;
     }
 
@@ -74,7 +76,7 @@ function requireRole(array $roles, ?string $section = null): void {
     if ($section !== null) {
         if ($userSection !== $section && $userSection !== 'both') {
             $_SESSION['admin_error'] = 'You can only access your own section.';
-            header('Location: ' . BASE_PATH . 'admin/index.php');
+            header('Location: ' . (defined('BASE_PATH') ? BASE_PATH . 'admin/index.php' : 'index.php'));
             exit;
         }
     }
