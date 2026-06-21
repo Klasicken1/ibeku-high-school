@@ -9,78 +9,61 @@ $pageDesc    = 'Latest news, announcements, and updates from Ibeku High School, 
 $currentPage = 'news';
 $pageCss     = 'news';
 
-require_once '../src/includes/header.php';
+require_once __DIR__ . '/../src/includes/header.php';
+require_once __DIR__ . '/../src/config/database.php';
+
+$pdo = getDB();
+
+/* ── Category display labels and emoji fallback (when no image uploaded) ── */
+$categoryLabels = [
+    'achievement'  => 'Achievement',
+    'academic'     => 'Academic',
+    'ict'          => 'ICT',
+    'sports'       => 'Sports',
+    'announcement' => 'Announcement',
+    'culture'      => 'Culture',
+    'general'      => 'General',
+];
+
+$categoryIcons = [
+    'achievement'  => '🏆',
+    'academic'     => '📚',
+    'ict'          => '💻',
+    'sports'       => '⚽',
+    'announcement' => '📢',
+    'culture'      => '🎭',
+    'general'      => '📰',
+];
+
+/* ── Featured article ── */
+$featured = $pdo->query(
+    "SELECT * FROM news WHERE is_published = 1 AND featured = 1
+     ORDER BY published_at DESC LIMIT 1"
+)->fetch();
+
+/* Fallback: if nothing is marked featured, use the most recent published article */
+if (!$featured) {
+    $featured = $pdo->query(
+        "SELECT * FROM news WHERE is_published = 1
+         ORDER BY published_at DESC LIMIT 1"
+    )->fetch();
+}
+
+/* ── Remaining articles (everything except the featured one) ── */
+$articlesStmt = $pdo->prepare(
+    "SELECT * FROM news WHERE is_published = 1 AND id != ?
+     ORDER BY published_at DESC"
+);
+$articlesStmt->execute([$featured['id'] ?? 0]);
+$articles = $articlesStmt->fetchAll();
 
 /*
- * NEWS DATA
- * Phase 2: replace these arrays with database queries:
- * SELECT * FROM news WHERE published = 1 ORDER BY created_at DESC
- *
- * Category options: achievement, academic, ict, sports, announcement, culture, general
+ * ANNOUNCEMENTS
+ * Note: these remain a hardcoded array for now — the schema does
+ * not yet have a dedicated announcements table with urgency badges.
+ * TODO Phase 4: build an announcements table + admin CRUD, same
+ * pattern as news, if the school wants these editable too.
  */
-
-$featured = [
-  'cat'     => 'achievement',
-  'cat_label' => 'Achievement',
-  'icon'    => '🏆',
-  'title'   => 'IHS Students Win Abia State Science Quiz Championship for the Third Consecutive Year',
-  'excerpt' => 'The Ibeku High School science quiz team has once again made the school proud, winning the Abia State Secondary School Science Quiz Championship for the third consecutive year — an unprecedented achievement in the history of the competition. The team, made up of SSS 2 students, defeated schools from across all local government areas to retain the title.',
-  'date'    => 'December 10, 2024',
-  'author'  => 'IHS Communications',
-  'slug'    => 'science-quiz-championship-2024',
-];
-
-$articles = [
-  [
-    'cat' => 'academic', 'cat_label' => 'Academic',
-    'icon' => '📋',
-    'title' => 'First Term 2024/2025 Examinations Timetable Released',
-    'excerpt' => 'The First Term examination timetable for the 2024/2025 academic session has been released. Students should collect copies from their form teachers.',
-    'date' => 'November 28, 2024',
-    'slug' => 'first-term-timetable-2024',
-  ],
-  [
-    'cat' => 'ict', 'cat_label' => 'ICT',
-    'icon' => '💻',
-    'title' => 'Computer Lab Fully Refurbished Through Alumni Donation',
-    'excerpt' => 'The school computer laboratory has been fully refurbished with new desktop computers and internet connectivity, funded through a generous donation from the IHS Old Students Association.',
-    'date' => 'November 15, 2024',
-    'slug' => 'computer-lab-refurbishment',
-  ],
-  [
-    'cat' => 'sports', 'cat_label' => 'Sports',
-    'icon' => '⚽',
-    'title' => 'IHS Football Team Wins Umuahia Zonal Championship',
-    'excerpt' => 'The Ibeku High School football team has won the Umuahia Zonal Secondary School Football Championship, defeating seven other schools in the competition.',
-    'date' => 'November 5, 2024',
-    'slug' => 'football-zonal-championship',
-  ],
-  [
-    'cat' => 'announcement', 'cat_label' => 'Announcement',
-    'icon' => '📢',
-    'title' => 'Second Term Resumption Date Announced',
-    'excerpt' => 'The school management wishes to inform all students and parents that the Second Term of the 2024/2025 academic session will resume on Monday, January 13, 2025.',
-    'date' => 'December 18, 2024',
-    'slug' => 'second-term-resumption-date',
-  ],
-  [
-    'cat' => 'culture', 'cat_label' => 'Culture',
-    'icon' => '🎭',
-    'title' => 'Annual Cultural Day Celebration Holds December 6th',
-    'excerpt' => 'The annual Ibeku High School Cultural Day celebration is scheduled for Friday, December 6, 2024. Students are encouraged to come in their cultural attires.',
-    'date' => 'November 25, 2024',
-    'slug' => 'cultural-day-2024',
-  ],
-  [
-    'cat' => 'academic', 'cat_label' => 'Academic',
-    'icon' => '📚',
-    'title' => 'First Term 2024/2025 Results Now Available Online',
-    'excerpt' => 'First Term examination results for the 2024/2025 academic session are now available on the school website. Students can check results using their Admission Number.',
-    'date' => 'December 22, 2024',
-    'slug' => 'first-term-results-available',
-  ],
-];
-
 $announcements = [
   [
     'badge' => 'urgent', 'badge_label' => 'URGENT',
@@ -155,33 +138,40 @@ $announcements = [
 <!-- ═══════════════════════════════════════════
      FEATURED ARTICLE
      ═══════════════════════════════════════════ -->
+<?php if ($featured): ?>
 <div class="featured-article" id="featured">
   <div class="featured-article__inner reveal">
     <div class="featured-article__card">
 
       <div class="featured-article__img">
+        <?php if (!empty($featured['image'])): ?>
+        <img src="<?php echo BASE_PATH; ?>assets/images/news/<?php echo htmlspecialchars($featured['image']); ?>"
+             alt="<?php echo htmlspecialchars($featured['title']); ?>"
+             style="width:100%;height:100%;object-fit:cover;"/>
+        <?php else: ?>
         <div class="featured-article__img-placeholder" aria-hidden="true">
-          <?php echo $featured['icon']; ?>
+          <?php echo $categoryIcons[$featured['category']] ?? '📰'; ?>
         </div>
+        <?php endif; ?>
         <span class="featured-article__badge">⭐ Featured Story</span>
       </div>
 
       <div class="featured-article__body">
-        <span class="featured-article__cat cat--<?php echo $featured['cat']; ?>">
-          <?php echo htmlspecialchars($featured['cat_label']); ?>
+        <span class="featured-article__cat cat--<?php echo $featured['category']; ?>">
+          <?php echo htmlspecialchars($categoryLabels[$featured['category']] ?? 'General'); ?>
         </span>
         <h2><?php echo htmlspecialchars($featured['title']); ?></h2>
         <div class="featured-article__meta">
-          <span class="featured-article__date">📅 <?php echo htmlspecialchars($featured['date']); ?></span>
-          <span class="featured-article__author">✍️ <?php echo htmlspecialchars($featured['author']); ?></span>
+          <span class="featured-article__date">📅 <?php echo date('F j, Y', strtotime($featured['published_at'])); ?></span>
         </div>
-        <p><?php echo htmlspecialchars($featured['excerpt']); ?></p>
+        <p><?php echo htmlspecialchars($featured['excerpt'] ?? ''); ?></p>
         <a href="<?php echo BASE_PATH; ?>news-single.php?slug=<?php echo urlencode($featured['slug']); ?>" class="featured-article__read-more">Read Full Story →</a>
       </div>
 
     </div>
   </div>
 </div>
+<?php endif; ?>
 
 
 <!-- ═══════════════════════════════════════════
@@ -198,20 +188,26 @@ $announcements = [
     <div class="news-grid" id="newsGrid">
 
       <?php foreach ($articles as $article): ?>
-      <article class="news-card reveal" data-cat="<?php echo htmlspecialchars($article['cat']); ?>" data-title="<?php echo htmlspecialchars(strtolower($article['title'])); ?>">
+      <article class="news-card reveal" data-cat="<?php echo htmlspecialchars($article['category']); ?>" data-title="<?php echo htmlspecialchars(strtolower($article['title'])); ?>">
 
         <div class="news-card__thumb" aria-hidden="true">
-          <?php echo $article['icon']; ?>
+          <?php if (!empty($article['image'])): ?>
+          <img src="<?php echo BASE_PATH; ?>assets/images/news/<?php echo htmlspecialchars($article['image']); ?>"
+               alt="<?php echo htmlspecialchars($article['title']); ?>"
+               style="width:100%;height:100%;object-fit:cover;"/>
+          <?php else: ?>
+          <?php echo $categoryIcons[$article['category']] ?? '📰'; ?>
+          <?php endif; ?>
         </div>
 
         <div class="news-card__body">
-          <span class="news-card__cat cat--<?php echo $article['cat']; ?>">
-            <?php echo htmlspecialchars($article['cat_label']); ?>
+          <span class="news-card__cat cat--<?php echo $article['category']; ?>">
+            <?php echo htmlspecialchars($categoryLabels[$article['category']] ?? 'General'); ?>
           </span>
           <h3><?php echo htmlspecialchars($article['title']); ?></h3>
-          <p><?php echo htmlspecialchars($article['excerpt']); ?></p>
+          <p><?php echo htmlspecialchars($article['excerpt'] ?? ''); ?></p>
           <div class="news-card__footer">
-            <span class="news-card__date"><?php echo htmlspecialchars($article['date']); ?></span>
+            <span class="news-card__date"><?php echo date('F j, Y', strtotime($article['published_at'])); ?></span>
             <a href="<?php echo BASE_PATH; ?>news-single.php?slug=<?php echo urlencode($article['slug']); ?>" class="news-card__link">Read more →</a>
           </div>
         </div>
@@ -220,7 +216,7 @@ $announcements = [
       <?php endforeach; ?>
 
       <!-- Shown when no articles match the filter/search -->
-      <div class="news-no-results" id="newsNoResults">
+      <div class="news-no-results" id="newsNoResults" style="<?php echo empty($articles) ? '' : 'display:none'; ?>">
         <p>No articles found</p>
         <span>Try a different category or search term.</span>
       </div>
@@ -283,7 +279,7 @@ $announcements = [
 </section>
 
 
-<?php require_once '../src/includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../src/includes/footer.php'; ?>
 
 <script>
 /* ── Category filter ── */
