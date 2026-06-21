@@ -645,3 +645,9 @@
   .awards-grid           { grid-template-columns: 1fr; }
   .resources-grid        { grid-template-columns: 1fr; }
 }
+
+.timetable-card__updated {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}

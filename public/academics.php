@@ -166,66 +166,77 @@ require_once '../src/includes/header.php';
       </div>
     </div>
 
+    <?php
+    /*
+     * TIMETABLE DATA
+     * Reads public/assets/timetables/meta.json — written by the
+     * admin timetable upload pages (timetables-ss.php / timetables-js.php).
+     * Falls back to a default session label if meta.json doesn't exist yet.
+     */
+    $metaPath = __DIR__ . '/assets/timetables/meta.json';
+
+    $timetableMeta = ['session' => '2024/2025', 'files' => []];
+    if (file_exists($metaPath)) {
+        $decoded = json_decode(file_get_contents($metaPath), true);
+        if (is_array($decoded)) {
+            $timetableMeta = $decoded;
+        }
+    }
+
+    $sessionLabel = htmlspecialchars($timetableMeta['session'] ?? '2024/2025');
+
+    $timetables = [
+      [
+        'level'   => 'JSS 1',
+        'file'    => 'timetable-jss1.pdf',
+        'section' => 'jss',
+        'desc'    => 'Full week schedule for JSS 1 students covering all 8 periods per day.',
+      ],
+      [
+        'level'   => 'JSS 2',
+        'file'    => 'timetable-jss2.pdf',
+        'section' => 'jss',
+        'desc'    => 'Full week schedule for JSS 2 students covering all 8 periods per day.',
+      ],
+      [
+        'level'   => 'JSS 3',
+        'file'    => 'timetable-jss3.pdf',
+        'section' => 'jss',
+        'desc'    => 'Full week schedule for JSS 3 students covering all 8 periods per day.',
+      ],
+      [
+        'level'   => 'SSS 1',
+        'file'    => 'timetable-sss1.pdf',
+        'section' => 'sss',
+        'desc'    => 'Full week schedule for SSS 1 students across all three departments.',
+      ],
+      [
+        'level'   => 'SSS 2',
+        'file'    => 'timetable-sss2.pdf',
+        'section' => 'sss',
+        'desc'    => 'Full week schedule for SSS 2 students across all three departments.',
+      ],
+      [
+        'level'   => 'SSS 3',
+        'file'    => 'timetable-sss3.pdf',
+        'section' => 'sss',
+        'desc'    => 'Full week schedule for SSS 3 students across all three departments.',
+      ],
+    ];
+    ?>
+
     <div class="timetable-grid">
 
       <?php
-      /*
-       * TIMETABLE DATA
-       * Phase 3: the Dean of Studies uploads PDFs via the admin panel.
-       * The filename convention never changes — only the file content is replaced.
-       * File path: public/assets/timetables/timetable-{level}.pdf
-       */
-      $timetables = [
-        [
-          'level'   => 'JSS 1',
-          'file'    => 'timetable-jss1.pdf',
-          'section' => 'jss',
-          'term'    => '2024/2025 Academic Session',
-          'desc'    => 'Full week schedule for JSS 1 students covering all 8 periods per day.',
-        ],
-        [
-          'level'   => 'JSS 2',
-          'file'    => 'timetable-jss2.pdf',
-          'section' => 'jss',
-          'term'    => '2024/2025 Academic Session',
-          'desc'    => 'Full week schedule for JSS 2 students covering all 8 periods per day.',
-        ],
-        [
-          'level'   => 'JSS 3',
-          'file'    => 'timetable-jss3.pdf',
-          'section' => 'jss',
-          'term'    => '2024/2025 Academic Session',
-          'desc'    => 'Full week schedule for JSS 3 students covering all 8 periods per day.',
-        ],
-        [
-          'level'   => 'SSS 1',
-          'file'    => 'timetable-sss1.pdf',
-          'section' => 'sss',
-          'term'    => '2024/2025 Academic Session',
-          'desc'    => 'Full week schedule for SSS 1 students across all three departments.',
-        ],
-        [
-          'level'   => 'SSS 2',
-          'file'    => 'timetable-sss2.pdf',
-          'section' => 'sss',
-          'term'    => '2024/2025 Academic Session',
-          'desc'    => 'Full week schedule for SSS 2 students across all three departments.',
-        ],
-        [
-          'level'   => 'SSS 3',
-          'file'    => 'timetable-sss3.pdf',
-          'section' => 'sss',
-          'term'    => '2024/2025 Academic Session',
-          'desc'    => 'Full week schedule for SSS 3 students across all three departments.',
-        ],
-      ];
-
       foreach ($timetables as $tt):
-        $isJss      = $tt['section'] === 'jss';
+        $isJss       = $tt['section'] === 'jss';
         $headerClass = $isJss ? 'timetable-card__header--jss' : 'timetable-card__header--sss';
         $btnClass    = $isJss ? '' : 'btn--download--purple';
         $filePath    = BASE_PATH . 'assets/timetables/' . $tt['file'];
         $fileExists  = file_exists(__DIR__ . '/assets/timetables/' . $tt['file']);
+
+        $classSlug   = strtolower(str_replace(' ', '', $tt['level']));
+        $lastUpdated = $timetableMeta['files'][$classSlug] ?? null;
       ?>
       <div class="timetable-card reveal">
         <div class="timetable-card__header <?php echo $headerClass; ?>">
@@ -237,13 +248,16 @@ require_once '../src/includes/header.php';
         <div class="timetable-card__body">
           <p class="timetable-card__meta">
             <?php echo htmlspecialchars($tt['desc']); ?><br/>
-            <strong style="color:var(--purple)"><?php echo htmlspecialchars($tt['term']); ?></strong>
+            <strong style="color:var(--purple)"><?php echo $sessionLabel; ?> Academic Session</strong>
           </p>
           <?php if ($fileExists): ?>
           <div class="timetable-card__status timetable-card__status--available">
             <span class="timetable-card__dot"></span>
             Current timetable available
           </div>
+          <?php if ($lastUpdated): ?>
+          <p class="timetable-card__updated">Last updated: <?php echo date('F j, Y', strtotime($lastUpdated)); ?></p>
+          <?php endif; ?>
           <a href="<?php echo htmlspecialchars($filePath); ?>" class="btn--download <?php echo $btnClass; ?>" download="<?php echo htmlspecialchars($tt['level']); ?>-Timetable-IHS.pdf" target="_blank" rel="noopener noreferrer">
             &#11015; Download <?php echo htmlspecialchars($tt['level']); ?> Timetable (PDF)
           </a>
@@ -261,8 +275,6 @@ require_once '../src/includes/header.php';
       <?php endforeach; ?>
 
     </div>
-
-    
 
   </div>
 </section>
@@ -293,58 +305,31 @@ require_once '../src/includes/header.php';
     </div>
 
     <?php
-    /*
-     * STAFF DATA
-     * Phase 2: replace this array with a database query:
-     * SELECT * FROM staff WHERE is_active = 1 ORDER BY section, role_order
-     *
-     * Role hierarchy order:
-     * principal > vp_admin > vp_academics > vp_general > dean > counselor > hod > form_teacher > subject_teacher
-     */
     $staff = [
-      /* ── PRINCIPALS — paired SS + JS ── */
       ['initials'=>'SP','name'=>'[SS Principal]',         'role'=>'Principal',                       'dept'=>'Senior Secondary','section'=>'ss','filter'=>'admin-ss'],
       ['initials'=>'JP','name'=>'[JS Principal]',         'role'=>'Principal',                       'dept'=>'Junior Secondary','section'=>'js','filter'=>'admin-js'],
-
-      /* ── VP ADMINISTRATION — paired ── */
       ['initials'=>'VA','name'=>'[VP Admin SS]',          'role'=>'Vice Principal (Administration)', 'dept'=>'Senior Secondary','section'=>'ss','filter'=>'admin-ss'],
       ['initials'=>'JA','name'=>'[VP Admin JS]',          'role'=>'Vice Principal (Administration)', 'dept'=>'Junior Secondary','section'=>'js','filter'=>'admin-js'],
-
-      /* ── VP ACADEMICS — paired ── */
       ['initials'=>'VC','name'=>'[VP Academics SS]',      'role'=>'Vice Principal (Academics)',      'dept'=>'Senior Secondary','section'=>'ss','filter'=>'admin-ss'],
       ['initials'=>'JC','name'=>'[VP Academics JS]',      'role'=>'Vice Principal (Academics)',      'dept'=>'Junior Secondary','section'=>'js','filter'=>'admin-js'],
-
-      /* ── VP GENERAL DUTIES — paired ── */
       ['initials'=>'VG','name'=>'[VP General Duties SS]', 'role'=>'Vice Principal (General Duties)', 'dept'=>'Senior Secondary','section'=>'ss','filter'=>'admin-ss'],
       ['initials'=>'JG','name'=>'[VP General Duties JS]', 'role'=>'Vice Principal (General Duties)', 'dept'=>'Junior Secondary','section'=>'js','filter'=>'admin-js'],
-
-      /* ── DEAN OF STUDIES — paired ── */
       ['initials'=>'DS','name'=>'[Dean of Studies SS]',   'role'=>'Dean of Studies',                 'dept'=>'Senior Secondary','section'=>'ss','filter'=>'admin-ss'],
       ['initials'=>'JD','name'=>'[Dean of Studies JS]',   'role'=>'Dean of Studies',                 'dept'=>'Junior Secondary','section'=>'js','filter'=>'admin-js'],
-
-      /* ── GUIDANCE COUNSELLOR — paired ── */
       ['initials'=>'GC','name'=>'[Guidance Counsellor SS]','role'=>'Guidance Counsellor',            'dept'=>'Senior Secondary','section'=>'ss','filter'=>'admin-ss'],
       ['initials'=>'JL','name'=>'[Guidance Counsellor JS]','role'=>'Guidance Counsellor',            'dept'=>'Junior Secondary','section'=>'js','filter'=>'admin-js'],
-
-      /* ── SCIENCES ── */
       ['initials'=>'HS','name'=>'[HOD Sciences]',         'role'=>'H.O.D Sciences',                 'dept'=>'Sciences',        'section'=>'ss','filter'=>'sciences'],
       ['initials'=>'PH','name'=>'[Physics Teacher]',      'role'=>'Subject Teacher',                 'dept'=>'Physics',         'section'=>'ss','filter'=>'sciences'],
       ['initials'=>'CH','name'=>'[Chemistry Teacher]',    'role'=>'Subject Teacher',                 'dept'=>'Chemistry',       'section'=>'ss','filter'=>'sciences'],
       ['initials'=>'BI','name'=>'[Biology Teacher]',      'role'=>'Subject Teacher',                 'dept'=>'Biology',         'section'=>'ss','filter'=>'sciences'],
       ['initials'=>'MT','name'=>'[Mathematics Teacher]',  'role'=>'Subject Teacher',                 'dept'=>'Mathematics',     'section'=>'ss','filter'=>'sciences'],
-
-      /* ── ARTS ── */
       ['initials'=>'HA','name'=>'[HOD Arts]',             'role'=>'H.O.D Arts',                     'dept'=>'Arts',            'section'=>'ss','filter'=>'arts'],
       ['initials'=>'EN','name'=>'[English Teacher]',      'role'=>'Subject Teacher',                 'dept'=>'English',         'section'=>'ss','filter'=>'arts'],
       ['initials'=>'LT','name'=>'[Literature Teacher]',   'role'=>'Subject Teacher',                 'dept'=>'Literature',      'section'=>'ss','filter'=>'arts'],
       ['initials'=>'GT','name'=>'[Government Teacher]',   'role'=>'Subject Teacher',                 'dept'=>'Government',      'section'=>'ss','filter'=>'arts'],
-
-      /* ── COMMERCIAL ── */
       ['initials'=>'HC','name'=>'[HOD Commercial]',       'role'=>'H.O.D Commercial',               'dept'=>'Commercial',      'section'=>'ss','filter'=>'commercial'],
       ['initials'=>'AC','name'=>'[Accounting Teacher]',   'role'=>'Subject Teacher',                 'dept'=>'Accounting',      'section'=>'ss','filter'=>'commercial'],
       ['initials'=>'EC','name'=>'[Economics Teacher]',    'role'=>'Subject Teacher',                 'dept'=>'Economics',       'section'=>'ss','filter'=>'commercial'],
-
-      /* ── GENERAL STUDIES (JSS) ── */
       ['initials'=>'HG','name'=>'[HOD General Studies]', 'role'=>'H.O.D General Studies',           'dept'=>'General Studies', 'section'=>'js','filter'=>'general'],
       ['initials'=>'BS','name'=>'[Basic Science Teacher]','role'=>'Subject Teacher',                 'dept'=>'Basic Science',   'section'=>'js','filter'=>'general'],
       ['initials'=>'IC','name'=>'[ICT Coordinator]',      'role'=>'ICT Coordinator',                 'dept'=>'Computer Studies','section'=>'ss','filter'=>'general'],
@@ -355,11 +340,6 @@ require_once '../src/includes/header.php';
       <?php foreach ($staff as $s): ?>
       <div class="staff-full-card reveal" data-filter="<?php echo htmlspecialchars($s['filter']); ?>">
         <div class="staff-full-card__photo">
-          <!--
-            REPLACE WITH REAL PHOTO:
-            <img src="<?php echo BASE_PATH; ?>assets/images/staff/<?php echo strtolower(str_replace(' ', '-', $s['name'])); ?>.jpg"
-                 alt="<?php echo htmlspecialchars($s['name']); ?>"/>
-          -->
           <div class="staff-full-card__initials"><?php echo htmlspecialchars($s['initials']); ?></div>
         </div>
         <div class="staff-full-card__body">
