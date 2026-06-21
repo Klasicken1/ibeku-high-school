@@ -17,6 +17,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once dirname(__DIR__, 2) . '/src/config/database.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-auth.php';
+require_once dirname(__DIR__, 2) . '/src/includes/admin-sidebar.php';
 
 requireRole(['superadmin', 'subject_teacher', 'form_teacher', 'vp_academics']);
 
@@ -90,7 +91,7 @@ if ($selectedClass && $selectedSubject && array_key_exists($selectedClass, $clas
 <title>Enter Results — Admin — Ibeku High School</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/css/admin-timetables.css">
+<link rel="stylesheet" href="../assets/css/admin-layout.css">
 <style>
   .filter-bar {
     background:#fff; border:1px solid #e8e6f0; border-radius:14px;
@@ -164,130 +165,127 @@ if ($selectedClass && $selectedSubject && array_key_exists($selectedClass, $clas
 </head>
 <body>
 
-  <div class="topbar">
-    <div class="topbar__brand">
-      <div class="topbar__logo">IHS</div>
-      <h1>Ibeku High School — Admin Panel</h1>
-    </div>
-    <a href="index.php" class="back-link">← Back to Dashboard</a>
-  </div>
+  <?php renderAdminSidebar($admin, 'results-entry'); ?>
 
-  <div class="main">
+  <div class="admin-content">
+    <div class="admin-content__inner">
 
-    <div class="page-header">
-      <h2>Enter Results</h2>
-      <p>Select a class, subject, session, and term to enter or update student scores. Results stay in draft until published.</p>
-    </div>
-
-    <?php if ($admin['role'] === 'subject_teacher'): ?>
-    <div class="role-note">
-      You are signed in as a Subject Teacher for <strong><?php echo htmlspecialchars($admin['dept'] ?? 'no subject assigned'); ?></strong>.
-      You can only save scores for that subject — selecting another subject in the dropdown is for viewing only and will be rejected on save.
-    </div>
-    <?php endif; ?>
-
-    <form method="GET" class="filter-bar" id="filterForm">
-      <div class="filter-group">
-        <label for="class">Class</label>
-        <select name="class" id="class" required>
-          <option value="">Select class</option>
-          <?php foreach ($classOptions as $key => $label): ?>
-          <option value="<?php echo $key; ?>" <?php echo $selectedClass === $key ? 'selected' : ''; ?>><?php echo $label; ?></option>
-          <?php endforeach; ?>
-        </select>
+      <div class="page-header">
+        <h2>Enter Results</h2>
+        <p>Select a class, subject, session, and term to enter or update student scores. Results stay in draft until published.</p>
       </div>
 
-      <div class="filter-group">
-        <label for="subject_id">Subject</label>
-        <select name="subject_id" id="subject_id" required>
-          <option value="">Select subject</option>
-          <?php foreach ($subjects as $subj): ?>
-          <option value="<?php echo $subj['id']; ?>" <?php echo $selectedSubject === (int) $subj['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($subj['name']); ?></option>
-          <?php endforeach; ?>
-        </select>
+      <?php if ($admin['role'] === 'subject_teacher'): ?>
+      <div class="role-note">
+        You are signed in as a Subject Teacher for <strong><?php echo htmlspecialchars($admin['dept'] ?? 'no subject assigned'); ?></strong>.
+        You can only save scores for that subject — selecting another subject in the dropdown is for viewing only and will be rejected on save.
       </div>
-
-      <div class="filter-group">
-        <label for="session">Session</label>
-        <input type="text" name="session" id="session" value="<?php echo htmlspecialchars($selectedSession); ?>" pattern="\d{4}/\d{4}" placeholder="2025/2026" required/>
-      </div>
-
-      <div class="filter-group">
-        <label for="term">Term</label>
-        <select name="term" id="term" required>
-          <option value="first"  <?php echo $selectedTerm === 'first'  ? 'selected' : ''; ?>>First Term</option>
-          <option value="second" <?php echo $selectedTerm === 'second' ? 'selected' : ''; ?>>Second Term</option>
-          <option value="third"  <?php echo $selectedTerm === 'third'  ? 'selected' : ''; ?>>Third Term</option>
-        </select>
-      </div>
-
-      <button type="submit" class="btn-filter">Load Class</button>
-    </form>
-
-    <?php if ($selectedClass && $selectedSubject): ?>
-
-      <?php if (empty($students)): ?>
-      <div class="entry-table-wrap">
-        <div class="empty-state">No active students found in <?php echo htmlspecialchars($selectedClass); ?>.</div>
-      </div>
-      <?php else: ?>
-
-      <div class="entry-table-wrap">
-        <table class="entry-table" id="scoreTable">
-          <thead>
-            <tr>
-              <th>Admission No.</th>
-              <th>Student Name</th>
-              <th class="score-col">1st Test (15)</th>
-              <th class="score-col">2nd Test (15)</th>
-              <th class="score-col">Exam (70)</th>
-              <th class="score-col">Total</th>
-              <th class="score-col">Grade</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($students as $student):
-              $existing = $existingScores[$student['id']] ?? null;
-              $ca1  = $existing['ca1_score']  ?? '';
-              $ca2  = $existing['ca2_score']  ?? '';
-              $exam = $existing['exam_score'] ?? '';
-              $fullName = trim($student['first_name'] . ' ' . ($student['other_name'] ? $student['other_name'] . ' ' : '') . $student['last_name']);
-            ?>
-            <tr data-student-id="<?php echo $student['id']; ?>">
-              <td><?php echo htmlspecialchars($student['admission_number']); ?></td>
-              <td><?php echo htmlspecialchars($fullName); ?></td>
-              <td class="score-col">
-                <input type="number" class="score-input ca1-input" min="0" max="15" step="0.5" value="<?php echo htmlspecialchars((string) $ca1); ?>"/>
-              </td>
-              <td class="score-col">
-                <input type="number" class="score-input ca2-input" min="0" max="15" step="0.5" value="<?php echo htmlspecialchars((string) $ca2); ?>"/>
-              </td>
-              <td class="score-col">
-                <input type="number" class="score-input exam-input" min="0" max="70" step="0.5" value="<?php echo htmlspecialchars((string) $exam); ?>"/>
-              </td>
-              <td class="total-cell total-display">0</td>
-              <td class="grade-cell"><span class="grade-pill grade-display">—</span></td>
-            </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-
-        <div class="save-bar">
-          <span class="save-status" id="saveStatus"></span>
-          <button type="button" class="btn-save" id="saveBtn">Save All Scores</button>
-        </div>
-      </div>
-
       <?php endif; ?>
 
-    <?php else: ?>
-    <div class="entry-table-wrap">
-      <div class="empty-state">Select a class and subject above, then click "Load Class" to begin entering scores.</div>
-    </div>
-    <?php endif; ?>
+      <form method="GET" class="filter-bar" id="filterForm">
+        <div class="filter-group">
+          <label for="class">Class</label>
+          <select name="class" id="class" required>
+            <option value="">Select class</option>
+            <?php foreach ($classOptions as $key => $label): ?>
+            <option value="<?php echo $key; ?>" <?php echo $selectedClass === $key ? 'selected' : ''; ?>><?php echo $label; ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
 
+        <div class="filter-group">
+          <label for="subject_id">Subject</label>
+          <select name="subject_id" id="subject_id" required>
+            <option value="">Select subject</option>
+            <?php foreach ($subjects as $subj): ?>
+            <option value="<?php echo $subj['id']; ?>" <?php echo $selectedSubject === (int) $subj['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($subj['name']); ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="session">Session</label>
+          <input type="text" name="session" id="session" value="<?php echo htmlspecialchars($selectedSession); ?>" pattern="\d{4}/\d{4}" placeholder="2025/2026" required/>
+        </div>
+
+        <div class="filter-group">
+          <label for="term">Term</label>
+          <select name="term" id="term" required>
+            <option value="first"  <?php echo $selectedTerm === 'first'  ? 'selected' : ''; ?>>First Term</option>
+            <option value="second" <?php echo $selectedTerm === 'second' ? 'selected' : ''; ?>>Second Term</option>
+            <option value="third"  <?php echo $selectedTerm === 'third'  ? 'selected' : ''; ?>>Third Term</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn-filter">Load Class</button>
+      </form>
+
+      <?php if ($selectedClass && $selectedSubject): ?>
+
+        <?php if (empty($students)): ?>
+        <div class="entry-table-wrap">
+          <div class="empty-state">No active students found in <?php echo htmlspecialchars($selectedClass); ?>.</div>
+        </div>
+        <?php else: ?>
+
+        <div class="entry-table-wrap">
+          <table class="entry-table" id="scoreTable">
+            <thead>
+              <tr>
+                <th>Admission No.</th>
+                <th>Student Name</th>
+                <th class="score-col">1st Test (15)</th>
+                <th class="score-col">2nd Test (15)</th>
+                <th class="score-col">Exam (70)</th>
+                <th class="score-col">Total</th>
+                <th class="score-col">Grade</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($students as $student):
+                $existing = $existingScores[$student['id']] ?? null;
+                $ca1  = $existing['ca1_score']  ?? '';
+                $ca2  = $existing['ca2_score']  ?? '';
+                $exam = $existing['exam_score'] ?? '';
+                $fullName = trim($student['first_name'] . ' ' . ($student['other_name'] ? $student['other_name'] . ' ' : '') . $student['last_name']);
+              ?>
+              <tr data-student-id="<?php echo $student['id']; ?>">
+                <td><?php echo htmlspecialchars($student['admission_number']); ?></td>
+                <td><?php echo htmlspecialchars($fullName); ?></td>
+                <td class="score-col">
+                  <input type="number" class="score-input ca1-input" min="0" max="15" step="0.5" value="<?php echo htmlspecialchars((string) $ca1); ?>"/>
+                </td>
+                <td class="score-col">
+                  <input type="number" class="score-input ca2-input" min="0" max="15" step="0.5" value="<?php echo htmlspecialchars((string) $ca2); ?>"/>
+                </td>
+                <td class="score-col">
+                  <input type="number" class="score-input exam-input" min="0" max="70" step="0.5" value="<?php echo htmlspecialchars((string) $exam); ?>"/>
+                </td>
+                <td class="total-cell total-display">0</td>
+                <td class="grade-cell"><span class="grade-pill grade-display">—</span></td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+
+          <div class="save-bar">
+            <span class="save-status" id="saveStatus"></span>
+            <button type="button" class="btn-save" id="saveBtn">Save All Scores</button>
+          </div>
+        </div>
+
+        <?php endif; ?>
+
+      <?php else: ?>
+      <div class="entry-table-wrap">
+        <div class="empty-state">Select a class and subject above, then click "Load Class" to begin entering scores.</div>
+      </div>
+      <?php endif; ?>
+
+    </div>
   </div>
 
+  <script src="../assets/js/admin.js"></script>
   <script>
     /* ── Live grade calculation as teacher types ── */
     function gradeFromTotal(total) {

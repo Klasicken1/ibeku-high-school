@@ -15,6 +15,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once dirname(__DIR__, 2) . '/src/includes/admin-auth.php';
+require_once dirname(__DIR__, 2) . '/src/includes/admin-sidebar.php';
 
 requireRole(['superadmin', 'dean'], 'js');
 
@@ -123,74 +124,88 @@ foreach ($classes as $key => $label) {
 <title>Manage JS Timetables — Admin — Ibeku High School</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="<?php echo dirname($_SERVER['SCRIPT_NAME']); ?>/../assets/css/admin-timetables.css">
+<link rel="stylesheet" href="../assets/css/admin-layout.css">
+<style>
+  .timetable-card { background:#fff; border:1px solid #e8e6f0; border-radius:14px; padding:22px 24px; margin-bottom:16px; }
+  .timetable-card__top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
+  .timetable-card__top h3 { font-size:16px; color:#3d1a6e; margin-bottom:4px; }
+  .status-badge { font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; text-transform:uppercase; }
+  .status-badge--available { background:#e6f9ed; color:#1a7a3a; }
+  .status-badge--missing   { background:#fff3e6; color:#8a4a00; }
+  .file-meta { font-size:12.5px; color:#6b6b80; margin-bottom:14px; }
+  form.upload-form { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .file-input-wrap { flex:1; min-width:220px; border:1.5px dashed #c8c4dc; border-radius:8px; padding:9px 12px; font-size:13px; color:#6b6b80; }
+  input[type="file"] { font-size:12.5px; width:100%; }
+  .text-field { border:none; width:100%; font-size:13.5px; outline:none; background:transparent; font-family:'DM Sans', sans-serif; color:#1a1a2e; }
+  .btn-upload { background:#3d1a6e; color:#fff; border:none; padding:10px 22px; border-radius:8px; font-size:13.5px; font-weight:600; cursor:pointer; transition:background .2s; white-space:nowrap; }
+  .btn-upload:hover { background:#5a2d9e; }
+  .view-link { font-size:12.5px; color:#4a90d9; text-decoration:none; margin-left:4px; }
+  .view-link:hover { text-decoration:underline; }
+</style>
 </head>
 <body>
 
-  <div class="topbar">
-    <div class="topbar__brand">
-      <div class="topbar__logo">IHS</div>
-      <h1>Ibeku High School — Admin Panel</h1>
+  <?php renderAdminSidebar($admin, 'timetables-js'); ?>
+
+  <div class="admin-content">
+    <div class="admin-content__inner">
+
+      <div class="page-header">
+        <h2>Junior Secondary Timetables</h2>
+        <p>Upload a new PDF to replace the current timetable for each class. The public Academics page updates immediately.</p>
+      </div>
+
+      <?php if ($message): ?>
+      <div class="alert alert--<?php echo $messageType; ?>"><?php echo htmlspecialchars($message); ?></div>
+      <?php endif; ?>
+
+      <div class="timetable-card">
+        <div class="timetable-card__top">
+          <h3>Academic Session Label</h3>
+        </div>
+        <div class="file-meta">This text appears on the public Academics page above all 6 timetable downloads (shared with the SS Dean).</div>
+        <form class="upload-form" method="POST">
+          <input type="hidden" name="update_session" value="1"/>
+          <div class="file-input-wrap" style="flex:0 0 160px">
+            <input type="text" name="session_label" value="<?php echo htmlspecialchars($meta['session']); ?>" placeholder="2025/2026" pattern="\d{4}/\d{4}" required class="text-field"/>
+          </div>
+          <button type="submit" class="btn-upload">Save Session</button>
+        </form>
+      </div>
+
+      <?php foreach ($fileStatus as $key => $info): ?>
+      <div class="timetable-card">
+        <div class="timetable-card__top">
+          <div>
+            <h3><?php echo htmlspecialchars($info['label']); ?> Timetable</h3>
+          </div>
+          <span class="status-badge status-badge--<?php echo $info['exists'] ? 'available' : 'missing'; ?>">
+            <?php echo $info['exists'] ? 'Available' : 'Not Uploaded'; ?>
+          </span>
+        </div>
+
+        <div class="file-meta">
+          <?php if ($info['exists']): ?>
+            Last updated <?php echo htmlspecialchars($info['modified'] ?? 'unknown'); ?> &middot; <?php echo htmlspecialchars($info['size']); ?>
+            <a href="<?php echo dirname($_SERVER['SCRIPT_NAME'], 2); ?>/assets/timetables/timetable-<?php echo $key; ?>.pdf" target="_blank" class="view-link">View current PDF →</a>
+          <?php else: ?>
+            No timetable uploaded yet for this class.
+          <?php endif; ?>
+        </div>
+
+        <form class="upload-form" method="POST" enctype="multipart/form-data">
+          <input type="hidden" name="class_key" value="<?php echo htmlspecialchars($key); ?>"/>
+          <div class="file-input-wrap">
+            <input type="file" name="timetable_pdf" accept="application/pdf" required/>
+          </div>
+          <button type="submit" class="btn-upload">Upload &amp; Replace</button>
+        </form>
+      </div>
+      <?php endforeach; ?>
+
     </div>
-    <a href="index.php" class="back-link">← Back to Dashboard</a>
   </div>
 
-  <div class="main">
-
-    <div class="page-header">
-      <h2>Junior Secondary Timetables</h2>
-      <p>Upload a new PDF to replace the current timetable for each class. The public Academics page updates immediately.</p>
-    </div>
-
-    <?php if ($message): ?>
-    <div class="alert alert--<?php echo $messageType; ?>"><?php echo htmlspecialchars($message); ?></div>
-    <?php endif; ?>
-
-    <div class="timetable-card">
-      <div class="timetable-card__top">
-        <h3>Academic Session Label</h3>
-      </div>
-      <div class="file-meta">This text appears on the public Academics page above all 6 timetable downloads (shared with the SS Dean).</div>
-      <form class="upload-form" method="POST">
-        <input type="hidden" name="update_session" value="1"/>
-        <div class="file-input-wrap" style="flex:0 0 160px">
-          <input type="text" name="session_label" value="<?php echo htmlspecialchars($meta['session']); ?>" placeholder="2025/2026" pattern="\d{4}/\d{4}" required class="text-field"/>
-        </div>
-        <button type="submit" class="btn-upload">Save Session</button>
-      </form>
-    </div>
-
-    <?php foreach ($fileStatus as $key => $info): ?>
-    <div class="timetable-card">
-      <div class="timetable-card__top">
-        <div>
-          <h3><?php echo htmlspecialchars($info['label']); ?> Timetable</h3>
-        </div>
-        <span class="status-badge status-badge--<?php echo $info['exists'] ? 'available' : 'missing'; ?>">
-          <?php echo $info['exists'] ? 'Available' : 'Not Uploaded'; ?>
-        </span>
-      </div>
-
-      <div class="file-meta">
-        <?php if ($info['exists']): ?>
-          Last updated <?php echo htmlspecialchars($info['modified'] ?? 'unknown'); ?> &middot; <?php echo htmlspecialchars($info['size']); ?>
-          <a href="<?php echo dirname($_SERVER['SCRIPT_NAME'], 2); ?>/assets/timetables/timetable-<?php echo $key; ?>.pdf" target="_blank" class="view-link">View current PDF →</a>
-        <?php else: ?>
-          No timetable uploaded yet for this class.
-        <?php endif; ?>
-      </div>
-
-      <form class="upload-form" method="POST" enctype="multipart/form-data">
-        <input type="hidden" name="class_key" value="<?php echo htmlspecialchars($key); ?>"/>
-        <div class="file-input-wrap">
-          <input type="file" name="timetable_pdf" accept="application/pdf" required/>
-        </div>
-        <button type="submit" class="btn-upload">Upload &amp; Replace</button>
-      </form>
-    </div>
-    <?php endforeach; ?>
-
-  </div>
-
+  <script src="../assets/js/admin.js"></script>
 </body>
 </html>
