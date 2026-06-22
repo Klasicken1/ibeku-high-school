@@ -7,6 +7,11 @@
    Subject Teachers see all subjects in the dropdown for context,
    but save_result_scores.php enforces server-side that they can
    only save scores for the subject matching their department.
+
+   Grade Level/Class dropdowns pull live from the class_arms
+   table — single source of truth shared with class-arms.php and
+   users-create.php. Students are filtered by grade_level AND
+   class (two separate columns on the students table).
    ============================================================ */
 
 declare(strict_types=1);
@@ -29,37 +34,49 @@ $lockedSection = ($admin['role'] !== 'superadmin' && $admin['section'] !== 'both
     ? $admin['section']
     : null;
 
-$allClasses = ['JSS1' => 'JSS 1', 'JSS2' => 'JSS 2', 'JSS3' => 'JSS 3',
-               'SSS1' => 'SSS 1', 'SSS2' => 'SSS 2', 'SSS3' => 'SSS 3'];
+$allGradeLevels = ['JSS1' => 'JSS 1', 'JSS2' => 'JSS 2', 'JSS3' => 'JSS 3',
+                    'SSS1' => 'SSS 1', 'SSS2' => 'SSS 2', 'SSS3' => 'SSS 3'];
 
-$classOptions = $allClasses;
+$gradeLevelOptions = $allGradeLevels;
 if ($lockedSection === 'js') {
-    $classOptions = array_filter($allClasses, fn($k) => str_starts_with($k, 'JSS'), ARRAY_FILTER_USE_KEY);
+    $gradeLevelOptions = array_filter($allGradeLevels, fn($k) => str_starts_with($k, 'JSS'), ARRAY_FILTER_USE_KEY);
 } elseif ($lockedSection === 'ss') {
-    $classOptions = array_filter($allClasses, fn($k) => str_starts_with($k, 'SSS'), ARRAY_FILTER_USE_KEY);
+    $gradeLevelOptions = array_filter($allGradeLevels, fn($k) => str_starts_with($k, 'SSS'), ARRAY_FILTER_USE_KEY);
+}
+
+/* ── Load active classes, grouped by grade level — single source of truth
+   shared with class-arms.php and users-create.php ── */
+$allClasses = $pdo->query(
+    "SELECT grade_level, class FROM class_arms WHERE is_active = 1 ORDER BY grade_level ASC, class ASC"
+)->fetchAll();
+
+$classesByGradeLevel = [];
+foreach ($allClasses as $row) {
+    $classesByGradeLevel[$row['grade_level']][] = $row['class'];
 }
 
 /* ── Load all subjects for the dropdown ── */
 $subjects = $pdo->query('SELECT id, name FROM subjects WHERE is_active = 1 ORDER BY name ASC')->fetchAll();
 
 /* ── Selected filters (from query string, GET) ── */
-$selectedClass   = $_GET['class']      ?? '';
-$selectedSubject = (int) ($_GET['subject_id'] ?? 0);
-$selectedSession = $_GET['session']    ?? '2025/2026';
-$selectedTerm    = $_GET['term']       ?? 'first';
+$selectedGradeLevel = $_GET['grade_level'] ?? '';
+$selectedClass       = $_GET['class']       ?? '';
+$selectedSubject     = (int) ($_GET['subject_id'] ?? 0);
+$selectedSession     = $_GET['session']    ?? '2025/2026';
+$selectedTerm        = $_GET['term']       ?? 'first';
 
 $students = [];
 $existingScores = [];
 
-if ($selectedClass && $selectedSubject && array_key_exists($selectedClass, $classOptions)) {
-    /* ── Load students in this class ── */
+if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exists($selectedGradeLevel, $gradeLevelOptions)) {
+    /* ── Load students in this grade level AND class ── */
     $studentStmt = $pdo->prepare(
         'SELECT id, admission_number, first_name, last_name, other_name
          FROM   students
-         WHERE  current_class = ? AND is_active = 1
+         WHERE  grade_level = ? AND class = ? AND is_active = 1
          ORDER  BY last_name ASC, first_name ASC'
     );
-    $studentStmt->execute([$selectedClass]);
+    $studentStmt->execute([$selectedGradeLevel, $selectedClass]);
     $students = $studentStmt->fetchAll();
 
     /* ── Load any existing scores for these students, this subject/term/session ── */
@@ -172,7 +189,7 @@ if ($selectedClass && $selectedSubject && array_key_exists($selectedClass, $clas
 
       <div class="page-header">
         <h2>Enter Results</h2>
-        <p>Select a class, subject, session, and term to enter or update student scores. Results stay in draft until published.</p>
+        <p>Select a grade level, class, subject, session, and term to enter or update student scores. Results stay in draft until published.</p>
       </div>
 
       <?php if ($admin['role'] === 'subject_teacher'): ?>
@@ -184,12 +201,24 @@ if ($selectedClass && $selectedSubject && array_key_exists($selectedClass, $clas
 
       <form method="GET" class="filter-bar" id="filterForm">
         <div class="filter-group">
+          <label for="grade_level">Grade Level</label>
+          <select name="grade_level" id="grade_level" required>
+            <option value="">Select grade level</option>
+            <?php foreach ($gradeLevelOptions as $key => $label): ?>
+            <option value="<?php echo $key; ?>" <?php echo $selectedGradeLevel === $key ? 'selected' : ''; ?>><?php echo $label; ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+
+        <div class="filter-group">
           <label for="class">Class</label>
           <select name="class" id="class" required>
             <option value="">Select class</option>
-            <?php foreach ($classOptions as $key => $label): ?>
-            <option value="<?php echo $key; ?>" <?php echo $selectedClass === $key ? 'selected' : ''; ?>><?php echo $label; ?></option>
-            <?php endforeach; ?>
+            <?php if ($selectedGradeLevel && !empty($classesByGradeLevel[$selectedGradeLevel])): ?>
+              <?php foreach ($classesByGradeLevel[$selectedGradeLevel] as $cls): ?>
+              <option value="<?php echo htmlspecialchars($cls); ?>" <?php echo $selectedClass === $cls ? 'selected' : ''; ?>><?php echo htmlspecialchars($cls); ?></option>
+              <?php endforeach; ?>
+            <?php endif; ?>
           </select>
         </div>
 
@@ -220,11 +249,11 @@ if ($selectedClass && $selectedSubject && array_key_exists($selectedClass, $clas
         <button type="submit" class="btn-filter">Load Class</button>
       </form>
 
-      <?php if ($selectedClass && $selectedSubject): ?>
+      <?php if ($selectedGradeLevel && $selectedClass && $selectedSubject): ?>
 
         <?php if (empty($students)): ?>
         <div class="entry-table-wrap">
-          <div class="empty-state">No active students found in <?php echo htmlspecialchars($selectedClass); ?>.</div>
+          <div class="empty-state">No active students found in <?php echo htmlspecialchars($selectedGradeLevel . ' ' . $selectedClass); ?>.</div>
         </div>
         <?php else: ?>
 
@@ -278,7 +307,7 @@ if ($selectedClass && $selectedSubject && array_key_exists($selectedClass, $clas
 
       <?php else: ?>
       <div class="entry-table-wrap">
-        <div class="empty-state">Select a class and subject above, then click "Load Class" to begin entering scores.</div>
+        <div class="empty-state">Select a grade level, class, and subject above, then click "Load Class" to begin entering scores.</div>
       </div>
       <?php endif; ?>
 
@@ -287,6 +316,27 @@ if ($selectedClass && $selectedSubject && array_key_exists($selectedClass, $clas
 
   <script src="../assets/js/admin.js"></script>
   <script>
+    /* ── Classes data passed from PHP — single source of truth from class_arms table ── */
+    var classesByGradeLevel = <?php echo json_encode($classesByGradeLevel); ?>;
+
+    var gradeLevelSelect = document.getElementById('grade_level');
+    var classSelect       = document.getElementById('class');
+
+    /* ── Repopulate the Class dropdown when Grade Level changes ── */
+    gradeLevelSelect.addEventListener('change', function () {
+      var gradeLevelKey = gradeLevelSelect.value;
+      classSelect.innerHTML = '<option value="">Select class</option>';
+
+      if (gradeLevelKey && classesByGradeLevel[gradeLevelKey]) {
+        classesByGradeLevel[gradeLevelKey].forEach(function (cls) {
+          var opt = document.createElement('option');
+          opt.value = cls;
+          opt.textContent = cls;
+          classSelect.appendChild(opt);
+        });
+      }
+    });
+
     /* ── Live grade calculation as teacher types ── */
     function gradeFromTotal(total) {
       if (total >= 75) return { grade: 'A1', letter: 'A' };
@@ -327,10 +377,11 @@ if ($selectedClass && $selectedSubject && array_key_exists($selectedClass, $clas
         var rows = document.querySelectorAll('#scoreTable tbody tr');
         var formData = new FormData();
 
-        formData.append('class',      <?php echo json_encode($selectedClass); ?>);
-        formData.append('subject_id', <?php echo json_encode($selectedSubject); ?>);
-        formData.append('session',    <?php echo json_encode($selectedSession); ?>);
-        formData.append('term',       <?php echo json_encode($selectedTerm); ?>);
+        formData.append('grade_level', <?php echo json_encode($selectedGradeLevel); ?>);
+        formData.append('class',       <?php echo json_encode($selectedClass); ?>);
+        formData.append('subject_id',  <?php echo json_encode($selectedSubject); ?>);
+        formData.append('session',     <?php echo json_encode($selectedSession); ?>);
+        formData.append('term',        <?php echo json_encode($selectedTerm); ?>);
 
         rows.forEach(function (row) {
           formData.append('student_id[]',  row.dataset.studentId);

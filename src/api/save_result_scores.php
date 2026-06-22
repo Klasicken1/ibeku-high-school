@@ -8,7 +8,7 @@
      score_ca1[]    — array of 1st test scores (max 15)
      score_ca2[]    — array of 2nd test scores (max 15)
      score_exam[]   — array of exam scores (max 70)
-     class          — e.g. SSS2
+     grade_level    — e.g. SSS2
      subject_id     — which subject these scores belong to
      session        — e.g. 2025/2026
      term           — first/second/third
@@ -51,7 +51,7 @@ if (!in_array($admin['role'], $allowedRoles, true)) {
 }
 
 /* ── Read and validate top-level inputs ── */
-$class      = trim($_POST['class']      ?? '');
+$gradeLevel = trim($_POST['grade_level'] ?? '');
 $subjectId  = (int) ($_POST['subject_id'] ?? 0);
 $session    = trim($_POST['session']    ?? '');
 $term       = trim($_POST['term']       ?? '');
@@ -61,11 +61,11 @@ $ca1Scores  = $_POST['score_ca1']   ?? [];
 $ca2Scores  = $_POST['score_ca2']   ?? [];
 $examScores = $_POST['score_exam']  ?? [];
 
-$validClasses = ['JSS1','JSS2','JSS3','SSS1','SSS2','SSS3'];
-$validTerms   = ['first','second','third'];
+$validGradeLevels = ['JSS1','JSS2','JSS3','SSS1','SSS2','SSS3'];
+$validTerms       = ['first','second','third'];
 
-if (!in_array($class, $validClasses, true)) {
-    echo json_encode(['success' => false, 'message' => 'Invalid class.']);
+if (!in_array($gradeLevel, $validGradeLevels, true)) {
+    echo json_encode(['success' => false, 'message' => 'Invalid grade level.']);
     exit;
 }
 if ($subjectId <= 0) {
@@ -104,9 +104,9 @@ try {
         }
     }
 
-    /* ── Section check: a Dean/teacher assigned to JS can't touch SS classes etc. ── */
-    $classSection = str_starts_with($class, 'JSS') ? 'js' : 'ss';
-    if ($admin['role'] !== 'superadmin' && $admin['section'] !== 'both' && $admin['section'] !== $classSection) {
+    /* ── Section check: a Dean/teacher assigned to JS can't touch SS grade levels etc. ── */
+    $gradeLevelSection = str_starts_with($gradeLevel, 'JSS') ? 'js' : 'ss';
+    if ($admin['role'] !== 'superadmin' && $admin['section'] !== 'both' && $admin['section'] !== $gradeLevelSection) {
         http_response_code(403);
         echo json_encode(['success' => false, 'message' => 'You cannot enter results for the other section.']);
         exit;
@@ -136,10 +136,10 @@ try {
 
         if (!$resultId) {
             $insertResult = $pdo->prepare(
-                'INSERT INTO results (student_id, session, term, class, is_published)
+                'INSERT INTO results (student_id, session, term, grade_level, is_published)
                  VALUES (?, ?, ?, ?, 0)'
             );
-            $insertResult->execute([$studentId, $session, $term, $class]);
+            $insertResult->execute([$studentId, $session, $term, $gradeLevel]);
             $resultId = (int) $pdo->lastInsertId();
         }
 

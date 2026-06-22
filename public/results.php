@@ -55,15 +55,15 @@ require_once '../src/includes/header.php';
         <div class="checker-step">
           <div class="checker-step__num">2</div>
           <div class="checker-step__text">
-            <h4>Select Your Class</h4>
-            <p>Choose the class you were in during the term you want to check — JSS 1 through SSS 3.</p>
+            <h4>Select Your Grade Level &amp; Class</h4>
+            <p>Choose the grade level and class you were in during the term you want to check — e.g. JSS 1 B.</p>
           </div>
         </div>
         <div class="checker-step">
           <div class="checker-step__num">3</div>
           <div class="checker-step__text">
-            <h4>Select the Term</h4>
-            <p>Choose the examination term — First, Second, or Third Term — and the academic session.</p>
+            <h4>Select the Session &amp; Term</h4>
+            <p>Choose the academic session and examination term — First, Second, or Third Term.</p>
           </div>
         </div>
         <div class="checker-step">
@@ -75,12 +75,11 @@ require_once '../src/includes/header.php';
         </div>
       </div>
 
-      <!-- Demo IDs -->
+      <!-- Demo ID -->
       <div class="checker-demo-ids">
-        <p><strong>Try the demo</strong> — click an ID below to test the checker:</p>
+        <p><strong>Try the demo</strong> — click the ID below to test the checker:</p>
         <div class="checker-demo-ids__ids">
-          <button class="demo-id" onclick="fillDemo('IHS/2024/0421')">IHS/2024/0421</button>
-          <button class="demo-id" onclick="fillDemo('IHS/2024/0105')">IHS/2024/0105</button>
+          <button class="demo-id" onclick="fillDemo('IHS/2024/0623')">IHS/2024/0623</button>
         </div>
       </div>
     </div>
@@ -102,28 +101,43 @@ require_once '../src/includes/header.php';
         />
       </div>
 
-      <div class="form-row" style="margin-bottom:0">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="rcGradeLevel">Grade Level</label>
+          <select class="form-input" id="rcGradeLevel">
+            <option value="">Select grade level</option>
+            <option value="JSS1">JSS 1</option>
+            <option value="JSS2">JSS 2</option>
+            <option value="JSS3">JSS 3</option>
+            <option value="SSS1">SSS 1</option>
+            <option value="SSS2">SSS 2</option>
+            <option value="SSS3">SSS 3</option>
+          </select>
+        </div>
         <div class="form-group">
           <label class="form-label" for="rcClass">Class</label>
           <select class="form-input" id="rcClass">
             <option value="">Select class</option>
-            <option>JSS 1</option>
-            <option>JSS 2</option>
-            <option>JSS 3</option>
-            <option>SSS 1</option>
-            <option>SSS 2</option>
-            <option>SSS 3</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-bottom:0">
+        <div class="form-group">
+          <label class="form-label" for="rcSession">Session</label>
+          <select class="form-input" id="rcSession">
+            <option value="">Select session</option>
+            <option value="2025/2026">2025/2026</option>
+            <option value="2024/2025">2024/2025</option>
           </select>
         </div>
         <div class="form-group">
           <label class="form-label" for="rcTerm">Term</label>
           <select class="form-input" id="rcTerm">
             <option value="">Select term</option>
-            <option>First Term 2024/2025</option>
-            <option>Second Term 2024/2025</option>
-            <option>Third Term 2023/2024</option>
-            <option>Second Term 2023/2024</option>
-            <option>First Term 2023/2024</option>
+            <option value="first">First Term</option>
+            <option value="second">Second Term</option>
+            <option value="third">Third Term</option>
           </select>
         </div>
       </div>
@@ -230,16 +244,16 @@ require_once '../src/includes/header.php';
             <span class="rs-summary__value" id="rsPrintPosition"></span>
           </div>
           <div class="rs-summary__item">
+            <span class="rs-summary__label">Position in Grade Level</span>
+            <span class="rs-summary__value" id="rsPrintGradeLevelPosition"></span>
+          </div>
+          <div class="rs-summary__item">
             <span class="rs-summary__label">Total Score</span>
             <span class="rs-summary__value" id="rsPrintTotalScore"></span>
           </div>
           <div class="rs-summary__item">
             <span class="rs-summary__label">Average</span>
             <span class="rs-summary__value" id="rsPrintAvg"></span>
-          </div>
-          <div class="rs-summary__item">
-            <span class="rs-summary__label">No. of Subjects</span>
-            <span class="rs-summary__value" id="rsPrintSubjCount"></span>
           </div>
         </div>
 
@@ -314,8 +328,8 @@ require_once '../src/includes/header.php';
       <div class="how-card reveal">
         <div class="how-card__num">2</div>
         <span class="how-card__icon" aria-hidden="true">🎓</span>
-        <h3>Select Class &amp; Term</h3>
-        <p>Choose your class level and the examination term you want to view results for.</p>
+        <h3>Select Grade Level &amp; Term</h3>
+        <p>Choose your grade level and the examination term you want to view results for.</p>
       </div>
       <div class="how-card reveal">
         <div class="how-card__num">3</div>
