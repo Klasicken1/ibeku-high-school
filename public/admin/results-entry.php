@@ -6,11 +6,12 @@
    Accessible to: superadmin, subject_teacher, form_teacher, vp_academics
    Subject Teachers see only their section's subjects and can
    only save scores for their assigned subject (enforced here
-   and in save_result_scores.php).
+   and in save_result_scores.php). If the superadmin has
+   assigned specific classes via teacher_class_assignments,
+   only those classes appear in the dropdown.
 
    Form Teachers are locked to their assigned class only — both
-   in the UI (grade level and class dropdowns are forced) and
-   server-side in save_result_scores.php.
+   in the UI and server-side in save_result_scores.php.
 
    Grade Level/Class dropdowns pull live from the class_arms
    table — single source of truth shared with class-arms.php
@@ -47,8 +48,7 @@ if ($lockedSection === 'js') {
     $gradeLevelOptions = array_filter($allGradeLevels, fn($k) => str_starts_with($k, 'SSS'), ARRAY_FILTER_USE_KEY);
 }
 
-/* ── Form teacher restriction: locked to their own assigned class only ──
-   class_assigned is stored as e.g. "SSS2A" — parse into grade_level + class ── */
+/* ── Form teacher restriction: locked to their own assigned class only ── */
 $formTeacherGradeLevel = null;
 $formTeacherClass      = null;
 
@@ -56,7 +56,6 @@ if ($admin['role'] === 'form_teacher' && !empty($admin['class_assigned'])) {
     if (preg_match('/^(JSS[123]|SSS[123])([A-Z0-9]+)$/', $admin['class_assigned'], $m)) {
         $formTeacherGradeLevel = $m[1];
         $formTeacherClass      = $m[2];
-        /* Lock grade level options to only their assigned grade level */
         $gradeLevelOptions = array_filter(
             $allGradeLevels,
             fn($k) => $k === $formTeacherGradeLevel,
@@ -65,26 +64,53 @@ if ($admin['role'] === 'form_teacher' && !empty($admin['class_assigned'])) {
     }
 }
 
-/* ── Load active classes, grouped by grade level — single source of truth
-   shared with class-arms.php and users-create.php ── */
-$allClasses = $pdo->query(
+/* ── Load active classes, grouped by grade level ── */
+$allClassRows = $pdo->query(
     "SELECT grade_level, class FROM class_arms WHERE is_active = 1 ORDER BY grade_level ASC, class ASC"
 )->fetchAll();
 
 $classesByGradeLevel = [];
-foreach ($allClasses as $row) {
+foreach ($allClassRows as $row) {
     $classesByGradeLevel[$row['grade_level']][] = $row['class'];
 }
 
-/* For form teachers, further restrict the classes map to only their assigned class */
+/* ── Form teachers: restrict to their single assigned class ── */
 if ($formTeacherGradeLevel !== null) {
     $classesByGradeLevel = [
         $formTeacherGradeLevel => [$formTeacherClass]
     ];
 }
 
-/* ── Load subjects filtered by section — SS users see SS/both subjects only,
-   JS users see JS/both subjects only, superadmin sees all ── */
+/* ── Subject teacher class restriction: if the superadmin has assigned specific
+   classes via teacher_class_assignments, only show those.
+   If no assignments exist, they see all classes in their section (open access). ── */
+$subjectTeacherAssignedClasses = null; // null = no restriction
+
+if ($admin['role'] === 'subject_teacher') {
+    $assignStmt = $pdo->prepare(
+        'SELECT grade_level, class FROM teacher_class_assignments WHERE teacher_id = ? ORDER BY grade_level ASC, class ASC'
+    );
+    $assignStmt->execute([$admin['id']]);
+    $rows = $assignStmt->fetchAll();
+
+    if (!empty($rows)) {
+        /* Specific assignments exist — restrict dropdown to these only */
+        $subjectTeacherAssignedClasses = [];
+        foreach ($rows as $row) {
+            $subjectTeacherAssignedClasses[$row['grade_level']][] = $row['class'];
+        }
+        /* Also restrict grade level options to only assigned grade levels */
+        $gradeLevelOptions = array_filter(
+            $allGradeLevels,
+            fn($k) => array_key_exists($k, $subjectTeacherAssignedClasses),
+            ARRAY_FILTER_USE_KEY
+        );
+        $classesByGradeLevel = $subjectTeacherAssignedClasses;
+    }
+    /* else: no rows = no restriction, keep full section-filtered list */
+}
+
+/* ── Load subjects filtered by section ── */
 if ($lockedSection === 'ss') {
     $subjectStmt = $pdo->prepare("SELECT id, name FROM subjects WHERE is_active = 1 AND section IN ('ss','both') ORDER BY name ASC");
     $subjectStmt->execute();
@@ -96,14 +122,14 @@ if ($lockedSection === 'ss') {
 }
 $subjects = $subjectStmt->fetchAll();
 
-/* ── Selected filters (from query string, GET) ── */
+/* ── Selected filters ── */
 $selectedGradeLevel = $_GET['grade_level'] ?? '';
 $selectedClass       = $_GET['class']       ?? '';
 $selectedSubject     = (int) ($_GET['subject_id'] ?? 0);
 $selectedSession     = $_GET['session']    ?? '2025/2026';
 $selectedTerm        = $_GET['term']       ?? 'first';
 
-/* ── For form teachers, enforce their assigned class on the GET params too ── */
+/* ── For form teachers, force their class ── */
 if ($formTeacherGradeLevel !== null) {
     $selectedGradeLevel = $formTeacherGradeLevel;
     $selectedClass      = $formTeacherClass;
@@ -113,7 +139,6 @@ $students = [];
 $existingScores = [];
 
 if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exists($selectedGradeLevel, $gradeLevelOptions)) {
-    /* ── Load students in this grade level AND class ── */
     $studentStmt = $pdo->prepare(
         'SELECT id, admission_number, first_name, last_name, other_name
          FROM   students
@@ -123,7 +148,6 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
     $studentStmt->execute([$selectedGradeLevel, $selectedClass]);
     $students = $studentStmt->fetchAll();
 
-    /* ── Load any existing scores for these students, this subject/term/session ── */
     if (!empty($students)) {
         $studentIds = array_column($students, 'id');
         $placeholders = implode(',', array_fill(0, count($studentIds), '?'));
@@ -133,9 +157,7 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
              FROM   results r
              JOIN   result_scores rs ON rs.result_id = r.id
              WHERE  r.student_id IN ($placeholders)
-             AND    r.session = ?
-             AND    r.term    = ?
-             AND    rs.subject_id = ?"
+             AND    r.session = ? AND r.term = ? AND rs.subject_id = ?"
         );
         $scoreStmt->execute([...$studentIds, $selectedSession, $selectedTerm, $selectedSubject]);
         foreach ($scoreStmt->fetchAll() as $row) {
@@ -165,10 +187,7 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
     padding:8px 10px; border:1.5px solid #e2e0ea; border-radius:7px;
     font-size:13px; font-family:'DM Sans', sans-serif;
   }
-  .btn-filter {
-    background:#4a90d9; color:#fff; border:none; padding:9px 22px;
-    border-radius:7px; font-size:13px; font-weight:600; cursor:pointer;
-  }
+  .btn-filter { background:#4a90d9; color:#fff; border:none; padding:9px 22px; border-radius:7px; font-size:13px; font-weight:600; cursor:pointer; }
   .btn-filter:hover { background:#3a7dc4; }
 
   .entry-table-wrap { background:#fff; border:1px solid #e8e6f0; border-radius:14px; overflow:hidden; }
@@ -191,10 +210,7 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
 
   .total-cell { font-weight:700; color:#3d1a6e; text-align:center; }
   .grade-cell { text-align:center; }
-  .grade-pill {
-    display:inline-block; padding:2px 10px; border-radius:20px;
-    font-size:11px; font-weight:700;
-  }
+  .grade-pill { display:inline-block; padding:2px 10px; border-radius:20px; font-size:11px; font-weight:700; }
   .grade-A { background:#e6f9ed; color:#1a7a3a; }
   .grade-B { background:#e6f0ff; color:#1a5a9a; }
   .grade-C { background:#fffbe6; color:#8a6a00; }
@@ -202,14 +218,8 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
   .grade-E { background:#ffe6e6; color:#8a1a00; }
   .grade-F { background:#ffcccc; color:#cc0000; }
 
-  .save-bar {
-    padding:18px 22px; border-top:1px solid #f0eef6;
-    display:flex; justify-content:space-between; align-items:center;
-  }
-  .btn-save {
-    background:#3d1a6e; color:#fff; border:none; padding:11px 28px;
-    border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;
-  }
+  .save-bar { padding:18px 22px; border-top:1px solid #f0eef6; display:flex; justify-content:space-between; align-items:center; }
+  .btn-save { background:#3d1a6e; color:#fff; border:none; padding:11px 28px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
   .btn-save:hover { background:#5a2d9e; }
   .btn-save:disabled { background:#c8c4dc; cursor:not-allowed; }
 
@@ -218,10 +228,7 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
   .save-status--error { color:#cc3333; }
 
   .empty-state { padding:50px 20px; text-align:center; color:#6b6b80; font-size:13.5px; }
-  .role-note {
-    background:#f0ecfa; color:#3d1a6e; padding:10px 16px; border-radius:8px;
-    font-size:12.5px; margin-bottom:20px;
-  }
+  .role-note { background:#f0ecfa; color:#3d1a6e; padding:10px 16px; border-radius:8px; font-size:12.5px; margin-bottom:20px; }
 </style>
 </head>
 <body>
@@ -239,7 +246,10 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
       <?php if ($admin['role'] === 'subject_teacher'): ?>
       <div class="role-note">
         You are signed in as a Subject Teacher for <strong><?php echo htmlspecialchars($admin['dept'] ?? 'no subject assigned'); ?></strong>.
-        You can only save scores for that subject — selecting another subject in the dropdown is for viewing only and will be rejected on save.
+        You can only save scores for that subject.
+        <?php if ($subjectTeacherAssignedClasses !== null): ?>
+        Your access is limited to <strong><?php echo array_sum(array_map('count', $subjectTeacherAssignedClasses)); ?></strong> assigned class(es).
+        <?php endif; ?>
       </div>
       <?php endif; ?>
 
@@ -253,7 +263,6 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
       <form method="GET" class="filter-bar" id="filterForm">
 
         <?php if ($formTeacherGradeLevel): ?>
-        <!-- Form teacher: fixed grade level and class, shown as read-only -->
         <div class="filter-group">
           <label>Grade Level</label>
           <input type="text" value="<?php echo htmlspecialchars($allGradeLevels[$formTeacherGradeLevel] ?? $formTeacherGradeLevel); ?>" readonly style="background:#f4f3f9;cursor:not-allowed;padding:8px 10px;border:1.5px solid #e2e0ea;border-radius:7px;font-size:13px;"/>
@@ -315,13 +324,11 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
       </form>
 
       <?php if ($selectedGradeLevel && $selectedClass && $selectedSubject): ?>
-
         <?php if (empty($students)): ?>
         <div class="entry-table-wrap">
           <div class="empty-state">No active students found in <?php echo htmlspecialchars($selectedGradeLevel . ' ' . $selectedClass); ?>.</div>
         </div>
         <?php else: ?>
-
         <div class="entry-table-wrap">
           <table class="entry-table" id="scoreTable">
             <thead>
@@ -355,7 +362,7 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
                 <td class="score-col">
                   <input type="number" class="score-input exam-input" min="0" max="70" step="0.5" value="<?php echo htmlspecialchars((string) $exam); ?>"/>
                 </td>
-                <td class="total-cell total-display">0</td>
+                <td class="total-cell total-display">—</td>
                 <td class="grade-cell"><span class="grade-pill grade-display">—</span></td>
               </tr>
               <?php endforeach; ?>
@@ -367,9 +374,7 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
             <button type="button" class="btn-save" id="saveBtn">Save All Scores</button>
           </div>
         </div>
-
         <?php endif; ?>
-
       <?php else: ?>
       <div class="entry-table-wrap">
         <div class="empty-state">Select a grade level, class, and subject above, then click "Load Class" to begin entering scores.</div>
@@ -381,20 +386,16 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
 
   <script src="../assets/js/admin.js"></script>
   <script>
-    /* ── Classes data passed from PHP — single source of truth from class_arms table ── */
     var classesByGradeLevel = <?php echo json_encode($classesByGradeLevel); ?>;
-
     var gradeLevelSelect = document.getElementById('grade_level');
     var classSelect       = document.getElementById('class');
 
-    /* ── Repopulate the Class dropdown when Grade Level changes (non-form-teacher only) ── */
     if (gradeLevelSelect && classSelect) {
       gradeLevelSelect.addEventListener('change', function () {
-        var gradeLevelKey = gradeLevelSelect.value;
+        var gl = gradeLevelSelect.value;
         classSelect.innerHTML = '<option value="">Select class</option>';
-
-        if (gradeLevelKey && classesByGradeLevel[gradeLevelKey]) {
-          classesByGradeLevel[gradeLevelKey].forEach(function (cls) {
+        if (gl && classesByGradeLevel[gl]) {
+          classesByGradeLevel[gl].forEach(function (cls) {
             var opt = document.createElement('option');
             opt.value = cls;
             opt.textContent = cls;
@@ -404,7 +405,7 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
       });
     }
 
-    /* ── Live grade calculation as teacher types ── */
+    /* ── Live grade calculation with client-side max enforcement ── */
     function gradeFromTotal(total) {
       if (total >= 75) return { grade: 'A1', letter: 'A' };
       if (total >= 70) return { grade: 'B2', letter: 'B' };
@@ -417,7 +418,20 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
       return { grade: 'F9', letter: 'F' };
     }
 
+    function clampInput(input) {
+      var val  = parseFloat(input.value);
+      var max  = parseFloat(input.getAttribute('max'));
+      var min  = parseFloat(input.getAttribute('min') || '0');
+      if (!isNaN(val)) {
+        if (val > max) { input.value = max; input.classList.add('invalid'); }
+        else if (val < min) { input.value = min; input.classList.add('invalid'); }
+        else { input.classList.remove('invalid'); }
+      }
+    }
+
     function recalcRow(row) {
+      row.querySelectorAll('.score-input').forEach(clampInput);
+
       var ca1  = parseFloat(row.querySelector('.ca1-input').value)  || 0;
       var ca2  = parseFloat(row.querySelector('.ca2-input').value)  || 0;
       var exam = parseFloat(row.querySelector('.exam-input').value) || 0;
@@ -441,6 +455,19 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
     var saveBtn = document.getElementById('saveBtn');
     if (saveBtn) {
       saveBtn.addEventListener('click', function () {
+        /* Client-side validation before sending */
+        var hasInvalid = false;
+        document.querySelectorAll('#scoreTable tbody tr').forEach(function (row) {
+          recalcRow(row);
+          if (row.querySelector('.score-input.invalid')) hasInvalid = true;
+        });
+        if (hasInvalid) {
+          var statusEl = document.getElementById('saveStatus');
+          statusEl.textContent = 'Please correct scores highlighted in red before saving.';
+          statusEl.className = 'save-status save-status--error';
+          return;
+        }
+
         var rows = document.querySelectorAll('#scoreTable tbody tr');
         var formData = new FormData();
 

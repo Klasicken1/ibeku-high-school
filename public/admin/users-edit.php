@@ -5,8 +5,13 @@
 
    Accessible to: superadmin only
    Edits an existing staff account — name, role, section,
-   department, class assignment. Password reset is optional:
-   leave both password fields blank to keep the current password.
+   department, class assignment, active status, optional
+   password reset.
+
+   For subject_teacher role: superadmin can assign one or more
+   specific grade_level+class combinations via the
+   teacher_class_assignments junction table. If no assignments
+   are made, the teacher sees all classes in their section.
    ============================================================ */
 
 declare(strict_types=1);
@@ -43,21 +48,27 @@ if (!$user) {
 $message = '';
 $messageType = '';
 
-/* ── Roles that need a department field ── */
 $departmentRoles = ['hod', 'subject_teacher'];
-/* ── Roles that need a class_assigned field ── */
-$classRoles = ['form_teacher'];
+$classRoles      = ['form_teacher'];
 
 /* ── Pull subjects for department dropdown ── */
 $departments = $pdo->query('SELECT DISTINCT name FROM subjects WHERE is_active = 1 ORDER BY name ASC')->fetchAll(PDO::FETCH_COLUMN);
 
 /* ── Pull active classes grouped by grade level ── */
-$allClasses = $pdo->query(
+$allClassRows = $pdo->query(
     "SELECT grade_level, class FROM class_arms WHERE is_active = 1 ORDER BY grade_level ASC, class ASC"
 )->fetchAll();
 $classesByGradeLevel = [];
-foreach ($allClasses as $row) {
+foreach ($allClassRows as $row) {
     $classesByGradeLevel[$row['grade_level']][] = $row['class'];
+}
+
+/* ── Pull existing teacher class assignments for this user ── */
+$existingAssignments = [];
+$assignStmt = $pdo->prepare('SELECT grade_level, class FROM teacher_class_assignments WHERE teacher_id = ? ORDER BY grade_level ASC, class ASC');
+$assignStmt->execute([$userId]);
+foreach ($assignStmt->fetchAll() as $row) {
+    $existingAssignments[] = $row['grade_level'] . '|' . $row['class'];
 }
 
 $roleLabels = [
@@ -75,101 +86,113 @@ $roleLabels = [
 
 /* ── Handle form submission ── */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $fullName       = trim($_POST['full_name']       ?? '');
-    $email          = trim($_POST['email']            ?? '');
-    $role           = trim($_POST['role']             ?? '');
-    $section        = trim($_POST['section']          ?? '');
-    $department     = trim($_POST['department']       ?? '');
-    $gradeLevelOnly = trim($_POST['grade_level_only'] ?? '');
-    $classOnly      = trim($_POST['class_only']        ?? '');
-    $classAssigned  = ($gradeLevelOnly && $classOnly) ? $gradeLevelOnly . $classOnly : '';
-    $isActive       = isset($_POST['is_active']) ? 1 : 0;
-    $newPassword    = $_POST['new_password']     ?? '';
-    $confirmPassword = $_POST['confirm_password'] ?? '';
+    $fullName        = trim($_POST['full_name']        ?? '');
+    $email           = trim($_POST['email']             ?? '');
+    $role            = trim($_POST['role']              ?? '');
+    $section         = trim($_POST['section']           ?? '');
+    $department      = trim($_POST['department']        ?? '');
+    $gradeLevelOnly  = trim($_POST['grade_level_only']  ?? '');
+    $classOnly       = trim($_POST['class_only']         ?? '');
+    $classAssigned   = ($gradeLevelOnly && $classOnly) ? $gradeLevelOnly . $classOnly : '';
+    $isActive        = isset($_POST['is_active']) ? 1 : 0;
+    $newPassword     = $_POST['new_password']      ?? '';
+    $confirmPassword = $_POST['confirm_password']  ?? '';
+    /* Subject teacher class assignments — array of "JSS1|A" strings */
+    $teacherAssignments = $_POST['teacher_assignments'] ?? [];
 
     $validRoles    = array_keys($roleLabels);
     $validSections = ['ss', 'js', 'both'];
 
     if ($fullName === '') {
-        $message = 'Full name is required.';
-        $messageType = 'error';
+        $message = 'Full name is required.'; $messageType = 'error';
     } elseif ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $message = 'A valid email address is required.';
-        $messageType = 'error';
+        $message = 'A valid email address is required.'; $messageType = 'error';
     } elseif (!in_array($role, $validRoles, true)) {
-        $message = 'Please select a valid role.';
-        $messageType = 'error';
+        $message = 'Please select a valid role.'; $messageType = 'error';
     } elseif (!in_array($section, $validSections, true)) {
-        $message = 'Please select a valid section.';
-        $messageType = 'error';
+        $message = 'Please select a valid section.'; $messageType = 'error';
     } elseif ($newPassword !== '' && strlen($newPassword) < 8) {
-        $message = 'New password must be at least 8 characters.';
-        $messageType = 'error';
+        $message = 'New password must be at least 8 characters.'; $messageType = 'error';
     } elseif ($newPassword !== '' && $newPassword !== $confirmPassword) {
-        $message = 'Passwords do not match.';
-        $messageType = 'error';
+        $message = 'Passwords do not match.'; $messageType = 'error';
     } else {
-        /* Check email uniqueness — excluding this user */
         $checkStmt = $pdo->prepare('SELECT id FROM users WHERE email = ? AND id != ? LIMIT 1');
         $checkStmt->execute([$email, $userId]);
 
         if ($checkStmt->fetch()) {
-            $message = 'That email address is already used by another account.';
-            $messageType = 'error';
+            $message = 'That email address is already used by another account.'; $messageType = 'error';
         } else {
-            /* Prevent superadmin from accidentally deactivating their own account */
-            if ($userId === (int) $admin['id'] && !$isActive) {
-                $isActive = 1;
-            }
+            if ($userId === (int) $admin['id'] && !$isActive) $isActive = 1;
 
             $finalDepartment = in_array($role, $departmentRoles, true) ? ($department ?: null) : null;
             $finalClass      = in_array($role, $classRoles, true) ? ($classAssigned ?: null) : null;
 
             try {
-                /* ── Update profile fields ── */
-                $updateStmt = $pdo->prepare(
-                    'UPDATE users SET
-                        full_name = ?, email = ?, role = ?, section = ?,
-                        department = ?, class_assigned = ?, is_active = ?,
-                        updated_at = NOW()
-                     WHERE id = ?'
-                );
-                $updateStmt->execute([
-                    $fullName, $email, $role, $section,
-                    $finalDepartment, $finalClass, $isActive,
-                    $userId,
-                ]);
+                $pdo->beginTransaction();
 
-                /* ── Optionally reset password ── */
+                $pdo->prepare(
+                    'UPDATE users SET full_name=?, email=?, role=?, section=?,
+                     department=?, class_assigned=?, is_active=?, updated_at=NOW()
+                     WHERE id=?'
+                )->execute([$fullName, $email, $role, $section, $finalDepartment, $finalClass, $isActive, $userId]);
+
                 if ($newPassword !== '') {
                     $hash = password_hash($newPassword, PASSWORD_BCRYPT, ['cost' => 12]);
-                    $pdo->prepare('UPDATE users SET password = ? WHERE id = ?')->execute([$hash, $userId]);
+                    $pdo->prepare('UPDATE users SET password=? WHERE id=?')->execute([$hash, $userId]);
                 }
 
-                $message = 'Account updated successfully.';
-                $messageType = 'success';
+                /* ── Sync teacher class assignments ──
+                   Delete all existing, re-insert checked ones.
+                   Only applies when role = subject_teacher. ── */
+                $pdo->prepare('DELETE FROM teacher_class_assignments WHERE teacher_id = ?')->execute([$userId]);
 
-                /* Reload fresh data */
+                if ($role === 'subject_teacher' && !empty($teacherAssignments)) {
+                    $validGradeLevels = ['JSS1','JSS2','JSS3','SSS1','SSS2','SSS3'];
+                    $insertAssign = $pdo->prepare(
+                        'INSERT IGNORE INTO teacher_class_assignments (teacher_id, grade_level, class) VALUES (?, ?, ?)'
+                    );
+                    foreach ($teacherAssignments as $pair) {
+                        $parts = explode('|', (string) $pair);
+                        if (count($parts) === 2 && in_array($parts[0], $validGradeLevels, true) && $parts[1] !== '') {
+                            $insertAssign->execute([$userId, $parts[0], $parts[1]]);
+                        }
+                    }
+                }
+
+                $pdo->commit();
+
+                $message = 'Account updated successfully.'; $messageType = 'success';
+
+                /* Reload */
                 $stmt = $pdo->prepare('SELECT * FROM users WHERE id = ? LIMIT 1');
                 $stmt->execute([$userId]);
                 $user = $stmt->fetch();
 
+                /* Reload assignments */
+                $existingAssignments = [];
+                $assignStmt->execute([$userId]);
+                foreach ($assignStmt->fetchAll() as $row) {
+                    $existingAssignments[] = $row['grade_level'] . '|' . $row['class'];
+                }
+
             } catch (PDOException $e) {
+                $pdo->rollBack();
                 error_log('IHS users-edit error: ' . $e->getMessage());
-                $message = 'A server error occurred while saving.';
-                $messageType = 'error';
+                $message = 'A server error occurred while saving.'; $messageType = 'error';
             }
         }
     }
 }
 
-/* ── Parse existing class_assigned into grade_level + class for the dropdowns ── */
+/* ── Parse existing class_assigned for form teacher dropdown ── */
 $existingGradeLevel = '';
 $existingClassOnly  = '';
 if ($user['class_assigned'] && preg_match('/^(JSS[123]|SSS[123])([A-Z0-9]+)$/', $user['class_assigned'], $m)) {
     $existingGradeLevel = $m[1];
     $existingClassOnly  = $m[2];
 }
+
+$gradeLevelLabels = ['JSS1'=>'JSS 1','JSS2'=>'JSS 2','JSS3'=>'JSS 3','SSS1'=>'SSS 1','SSS2'=>'SSS 2','SSS3'=>'SSS 3'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -199,12 +222,8 @@ if ($user['class_assigned'] && preg_match('/^(JSS[123]|SSS[123])([A-Z0-9]+)$/', 
 
   .char-hint { font-size: 11.5px; color: #9b97b0; margin-top: 4px; }
 
-  .section-divider {
-    border-top: 1px solid #f0eef6; margin: 24px 0 20px; padding-top: 20px;
-  }
-  .section-divider__label {
-    font-size: 13px; font-weight: 700; color: #3d1a6e; margin-bottom: 4px;
-  }
+  .section-divider { border-top: 1px solid #f0eef6; margin: 24px 0 20px; padding-top: 20px; }
+  .section-divider__label { font-size: 13px; font-weight: 700; color: #3d1a6e; margin-bottom: 4px; }
   .section-divider__hint { font-size: 12px; color: #9b97b0; margin-bottom: 16px; }
 
   .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }
@@ -228,6 +247,38 @@ if ($user['class_assigned'] && preg_match('/^(JSS[123]|SSS[123])([A-Z0-9]+)$/', 
     background: #fff3e6; border: 1px solid #ffe0b2; color: #8a4a00;
     padding: 10px 14px; border-radius: 8px; font-size: 12.5px; margin-bottom: 18px;
   }
+
+  /* ── Class assignment grid ── */
+  .assignment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .assignment-checkbox {
+    display: flex; align-items: center; gap: 8px;
+    background: #f4f3f9; border: 1px solid #e2e0ea; border-radius: 8px;
+    padding: 8px 12px; cursor: pointer; font-size: 13px;
+    transition: background .15s, border-color .15s;
+  }
+  .assignment-checkbox:has(input:checked) {
+    background: #f0ecfa; border-color: #3d1a6e; color: #3d1a6e; font-weight: 600;
+  }
+  .assignment-checkbox input { width: 15px; height: 15px; cursor: pointer; }
+
+  .assignment-section-label {
+    font-size: 11px; font-weight: 700; color: #9b97b0;
+    text-transform: uppercase; letter-spacing: .06em;
+    margin: 12px 0 6px;
+  }
+  .assignment-hint { font-size: 11.5px; color: #9b97b0; margin-top: 8px; }
+
+  .btn-select-all {
+    background: #f0ecfa; color: #3d1a6e; border: 1px solid #d8d0ee;
+    padding: 5px 12px; border-radius: 6px; font-size: 11.5px; font-weight: 600;
+    cursor: pointer; margin-right: 6px;
+  }
+  .btn-select-all:hover { background: #e4dcf6; }
 </style>
 </head>
 <body>
@@ -250,7 +301,7 @@ if ($user['class_assigned'] && preg_match('/^(JSS[123]|SSS[123])([A-Z0-9]+)$/', 
       <div class="self-note">You are editing your own account. Your role and active status cannot be changed while you are logged in.</div>
       <?php endif; ?>
 
-      <div class="admin-card" style="max-width:620px">
+      <div class="admin-card" style="max-width:680px">
         <form method="POST" id="editForm">
 
           <div class="form-group">
@@ -302,6 +353,51 @@ if ($user['class_assigned'] && preg_match('/^(JSS[123]|SSS[123])([A-Z0-9]+)$/', 
             <p class="char-hint">Must exactly match a subject name for the results entry permission system.</p>
           </div>
 
+          <!-- ── Subject Teacher Class Assignments ── -->
+          <div class="conditional-field" id="teacherAssignmentsField">
+            <div class="section-divider">
+              <div class="section-divider__label">Class Assignments</div>
+              <div class="section-divider__hint">
+                Tick the classes this teacher is allowed to enter scores for.
+                Leave all unticked to allow access to <em>all</em> classes in their section.
+              </div>
+              <div style="margin-bottom:10px">
+                <button type="button" class="btn-select-all" onclick="selectAllClasses(true)">Select All</button>
+                <button type="button" class="btn-select-all" onclick="selectAllClasses(false)">Clear All</button>
+              </div>
+              <div class="assignment-grid" id="assignmentGrid">
+                <?php
+                $currentSection = $user['section'];
+                foreach ($classesByGradeLevel as $gl => $classes):
+                    $glSection = str_starts_with($gl, 'JSS') ? 'js' : 'ss';
+                    if ($currentSection !== 'both' && $glSection !== $currentSection) continue;
+                ?>
+                <div class="assignment-section-label" style="grid-column:1/-1"><?php echo $gradeLevelLabels[$gl] ?? $gl; ?></div>
+                <?php foreach ($classes as $cls):
+                    $pair    = $gl . '|' . $cls;
+                    $checked = in_array($pair, $existingAssignments, true) ? 'checked' : '';
+                ?>
+                <label class="assignment-checkbox">
+                  <input type="checkbox" name="teacher_assignments[]"
+                         value="<?php echo htmlspecialchars($pair); ?>"
+                         class="teacher-assign-cb"
+                         <?php echo $checked; ?>/>
+                  <?php echo ($gradeLevelLabels[$gl] ?? $gl) . ' ' . $cls; ?>
+                </label>
+                <?php endforeach; ?>
+                <?php endforeach; ?>
+              </div>
+              <p class="assignment-hint">
+                <?php if (!empty($existingAssignments)): ?>
+                  Currently assigned to <strong><?php echo count($existingAssignments); ?></strong> class(es).
+                <?php else: ?>
+                  No specific assignments — teacher can access all classes in their section.
+                <?php endif; ?>
+              </p>
+            </div>
+          </div>
+
+          <!-- ── Form Teacher Class Assignment ── -->
           <div class="form-group conditional-field" id="classField">
             <label class="form-label">Grade Level &amp; Class Assigned</label>
             <div class="form-row">
@@ -329,7 +425,7 @@ if ($user['class_assigned'] && preg_match('/^(JSS[123]|SSS[123])([A-Z0-9]+)$/', 
             <?php endif; ?>
           </div>
 
-          <!-- ── Password reset section ── -->
+          <!-- ── Password reset ── -->
           <div class="section-divider">
             <div class="section-divider__label">Reset Password</div>
             <div class="section-divider__hint">Leave both fields blank to keep the current password unchanged.</div>
@@ -364,32 +460,29 @@ if ($user['class_assigned'] && preg_match('/^(JSS[123]|SSS[123])([A-Z0-9]+)$/', 
     var roleSelect          = document.getElementById('role');
     var sectionSelect        = document.getElementById('section');
     var departmentField      = document.getElementById('departmentField');
+    var teacherAssignmentsField = document.getElementById('teacherAssignmentsField');
     var classField           = document.getElementById('classField');
     var gradeLevelOnlySelect = document.getElementById('grade_level_only');
     var classOnlySelect      = document.getElementById('class_only');
 
-    var departmentRoles = ['hod', 'subject_teacher'];
-    var classRoles      = ['form_teacher'];
+    var departmentRoles        = ['hod', 'subject_teacher'];
+    var teacherAssignmentRoles = ['subject_teacher'];
+    var classRoles             = ['form_teacher'];
 
     var classesByGradeLevel = <?php echo json_encode($classesByGradeLevel); ?>;
-
     var gradeLevelLabels = {
-      JSS1: 'JSS 1', JSS2: 'JSS 2', JSS3: 'JSS 3',
-      SSS1: 'SSS 1', SSS2: 'SSS 2', SSS3: 'SSS 3'
+      JSS1:'JSS 1', JSS2:'JSS 2', JSS3:'JSS 3',
+      SSS1:'SSS 1', SSS2:'SSS 2', SSS3:'SSS 3'
     };
 
-    /* ── Pre-fill existing class assignment ── */
     var existingGradeLevel = <?php echo json_encode($existingGradeLevel); ?>;
     var existingClassOnly  = <?php echo json_encode($existingClassOnly); ?>;
 
     function updateGradeLevelOptions(preselectGradeLevel) {
       var section = sectionSelect.value;
       var prefix  = section === 'js' ? 'JSS' : (section === 'ss' ? 'SSS' : null);
-
       gradeLevelOnlySelect.innerHTML = '<option value="">Select grade level</option>';
-
       if (!prefix) return;
-
       Object.keys(classesByGradeLevel).forEach(function (gl) {
         if (gl.indexOf(prefix) === 0) {
           var opt = document.createElement('option');
@@ -399,16 +492,13 @@ if ($user['class_assigned'] && preg_match('/^(JSS[123]|SSS[123])([A-Z0-9]+)$/', 
           gradeLevelOnlySelect.appendChild(opt);
         }
       });
-
       updateClassOptions(preselectGradeLevel === gradeLevelOnlySelect.value ? existingClassOnly : '');
     }
 
     function updateClassOptions(preselectClass) {
       var gradeLevelKey = gradeLevelOnlySelect.value;
       classOnlySelect.innerHTML = '<option value="">Select class</option>';
-
       if (!gradeLevelKey || !classesByGradeLevel[gradeLevelKey]) return;
-
       classesByGradeLevel[gradeLevelKey].forEach(function (cls) {
         var opt = document.createElement('option');
         opt.value = cls;
@@ -421,12 +511,21 @@ if ($user['class_assigned'] && preg_match('/^(JSS[123]|SSS[123])([A-Z0-9]+)$/', 
     function updateConditionalFields(isInitial) {
       var role = roleSelect.value;
 
+      /* Department field */
       if (departmentRoles.indexOf(role) !== -1) {
         departmentField.classList.add('conditional-field--show');
       } else {
         departmentField.classList.remove('conditional-field--show');
       }
 
+      /* Subject teacher class assignments */
+      if (teacherAssignmentRoles.indexOf(role) !== -1) {
+        teacherAssignmentsField.classList.add('conditional-field--show');
+      } else {
+        teacherAssignmentsField.classList.remove('conditional-field--show');
+      }
+
+      /* Form teacher single class */
       if (classRoles.indexOf(role) !== -1) {
         classField.classList.add('conditional-field--show');
         updateGradeLevelOptions(isInitial ? existingGradeLevel : '');
@@ -437,14 +536,18 @@ if ($user['class_assigned'] && preg_match('/^(JSS[123]|SSS[123])([A-Z0-9]+)$/', 
 
     roleSelect.addEventListener('change', function () { updateConditionalFields(false); });
     sectionSelect.addEventListener('change', function () {
-      if (classRoles.indexOf(roleSelect.value) !== -1) {
-        updateGradeLevelOptions('');
-      }
+      if (classRoles.indexOf(roleSelect.value) !== -1) updateGradeLevelOptions('');
     });
     gradeLevelOnlySelect.addEventListener('change', function () { updateClassOptions(''); });
 
-    /* Run on page load to restore existing state */
     updateConditionalFields(true);
+
+    /* ── Select/clear all class assignment checkboxes ── */
+    function selectAllClasses(checked) {
+      document.querySelectorAll('.teacher-assign-cb').forEach(function (cb) {
+        cb.checked = checked;
+      });
+    }
 
     /* ── Generate password ── */
     document.getElementById('generatePwBtn').addEventListener('click', function () {

@@ -16,7 +16,9 @@
 
    Permission rules enforced server-side:
      subject_teacher — can ONLY save scores for the subject
-       matching their users.department field.
+       matching their users.department field. If specific
+       classes are assigned via teacher_class_assignments,
+       they can ONLY save for those classes.
      form_teacher — can ONLY save scores for students in their
        assigned class (users.class_assigned e.g. "SSS2A").
      section-locked roles — cannot touch the other section's
@@ -58,8 +60,8 @@ if (!in_array($admin['role'], $allowedRoles, true)) {
 $gradeLevel = trim($_POST['grade_level'] ?? '');
 $class      = trim($_POST['class']       ?? '');
 $subjectId  = (int) ($_POST['subject_id'] ?? 0);
-$session    = trim($_POST['session']    ?? '');
-$term       = trim($_POST['term']       ?? '');
+$session    = trim($_POST['session']     ?? '');
+$term       = trim($_POST['term']        ?? '');
 
 $studentIds = $_POST['student_id']  ?? [];
 $ca1Scores  = $_POST['score_ca1']   ?? [];
@@ -109,7 +111,7 @@ try {
         }
     }
 
-    /* ── Section check: a Dean/teacher assigned to JS can't touch SS grade levels etc. ── */
+    /* ── Section check: locked roles cannot touch the other section ── */
     $gradeLevelSection = str_starts_with($gradeLevel, 'JSS') ? 'js' : 'ss';
     if ($admin['role'] !== 'superadmin' && $admin['section'] !== 'both' && $admin['section'] !== $gradeLevelSection) {
         http_response_code(403);
@@ -117,9 +119,7 @@ try {
         exit;
     }
 
-    /* ── Form teacher check: locked to their own assigned class only ──
-       class_assigned is stored as e.g. "SSS2A" — parse into grade_level + class
-       and verify both match what's being submitted. ── */
+    /* ── Form teacher check: locked to their assigned class only ── */
     if ($admin['role'] === 'form_teacher' && !empty($admin['class_assigned'])) {
         if (preg_match('/^(JSS[123]|SSS[123])([A-Z0-9]+)$/', $admin['class_assigned'], $m)) {
             $assignedGradeLevel = $m[1];
@@ -137,6 +137,35 @@ try {
         }
     }
 
+    /* ── Subject teacher class check: if specific classes are assigned via
+       teacher_class_assignments, verify the submitted class is one of them.
+       If no assignments exist, the teacher has open access to all classes
+       in their section (already enforced by the section check above). ── */
+    if ($admin['role'] === 'subject_teacher') {
+        $countStmt = $pdo->prepare(
+            'SELECT COUNT(*) FROM teacher_class_assignments WHERE teacher_id = ?'
+        );
+        $countStmt->execute([$admin['id']]);
+        $assignCount = (int) $countStmt->fetchColumn();
+
+        if ($assignCount > 0) {
+            $checkStmt = $pdo->prepare(
+                'SELECT COUNT(*) FROM teacher_class_assignments
+                 WHERE teacher_id = ? AND grade_level = ? AND class = ?'
+            );
+            $checkStmt->execute([$admin['id'], $gradeLevel, $class]);
+
+            if ((int) $checkStmt->fetchColumn() === 0) {
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'You are not assigned to enter results for this class.',
+                ]);
+                exit;
+            }
+        }
+    }
+
     $pdo->beginTransaction();
 
     $savedCount = 0;
@@ -145,14 +174,15 @@ try {
         $studentId = (int) $studentId;
         if ($studentId <= 0) continue;
 
+        /* Server-side clamp — matches the client-side max attributes */
         $ca1  = isset($ca1Scores[$i])  ? max(0, min(15, (float) $ca1Scores[$i]))  : 0;
         $ca2  = isset($ca2Scores[$i])  ? max(0, min(15, (float) $ca2Scores[$i]))  : 0;
         $exam = isset($examScores[$i]) ? max(0, min(70, (float) $examScores[$i])) : 0;
 
-        $total = $ca1 + $ca2 + $exam;
+        $total     = $ca1 + $ca2 + $exam;
         $gradeInfo = calculateGrade($total);
 
-        /* ── Step 1: find or create the results header row for this student/term ── */
+        /* ── Step 1: find or create the results header row ── */
         $resultStmt = $pdo->prepare(
             'SELECT id FROM results WHERE student_id = ? AND session = ? AND term = ? LIMIT 1'
         );
@@ -199,7 +229,7 @@ try {
     ]);
 
 } catch (PDOException $e) {
-    if ($pdo->inTransaction()) {
+    if (isset($pdo) && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
     error_log('IHS save_result_scores error: ' . $e->getMessage());
