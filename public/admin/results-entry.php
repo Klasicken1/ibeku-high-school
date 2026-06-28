@@ -8,10 +8,13 @@
    but save_result_scores.php enforces server-side that they can
    only save scores for the subject matching their department.
 
+   Form Teachers are locked to their assigned class only — both
+   in the UI (grade level and class dropdowns are forced) and
+   server-side in save_result_scores.php.
+
    Grade Level/Class dropdowns pull live from the class_arms
    table — single source of truth shared with class-arms.php and
-   users-create.php. Students are filtered by grade_level AND
-   class (two separate columns on the students table).
+   users-create.php.
    ============================================================ */
 
 declare(strict_types=1);
@@ -44,6 +47,24 @@ if ($lockedSection === 'js') {
     $gradeLevelOptions = array_filter($allGradeLevels, fn($k) => str_starts_with($k, 'SSS'), ARRAY_FILTER_USE_KEY);
 }
 
+/* ── Form teacher restriction: locked to their own assigned class only ──
+   class_assigned is stored as e.g. "SSS2A" — parse into grade_level + class ── */
+$formTeacherGradeLevel = null;
+$formTeacherClass      = null;
+
+if ($admin['role'] === 'form_teacher' && !empty($admin['class_assigned'])) {
+    if (preg_match('/^(JSS[123]|SSS[123])([A-Z0-9]+)$/', $admin['class_assigned'], $m)) {
+        $formTeacherGradeLevel = $m[1];
+        $formTeacherClass      = $m[2];
+        /* Lock grade level options to only their assigned grade level */
+        $gradeLevelOptions = array_filter(
+            $allGradeLevels,
+            fn($k) => $k === $formTeacherGradeLevel,
+            ARRAY_FILTER_USE_KEY
+        );
+    }
+}
+
 /* ── Load active classes, grouped by grade level — single source of truth
    shared with class-arms.php and users-create.php ── */
 $allClasses = $pdo->query(
@@ -55,6 +76,13 @@ foreach ($allClasses as $row) {
     $classesByGradeLevel[$row['grade_level']][] = $row['class'];
 }
 
+/* For form teachers, further restrict the classes map to only their assigned class */
+if ($formTeacherGradeLevel !== null) {
+    $classesByGradeLevel = [
+        $formTeacherGradeLevel => [$formTeacherClass]
+    ];
+}
+
 /* ── Load all subjects for the dropdown ── */
 $subjects = $pdo->query('SELECT id, name FROM subjects WHERE is_active = 1 ORDER BY name ASC')->fetchAll();
 
@@ -64,6 +92,12 @@ $selectedClass       = $_GET['class']       ?? '';
 $selectedSubject     = (int) ($_GET['subject_id'] ?? 0);
 $selectedSession     = $_GET['session']    ?? '2025/2026';
 $selectedTerm        = $_GET['term']       ?? 'first';
+
+/* ── For form teachers, enforce their assigned class on the GET params too ── */
+if ($formTeacherGradeLevel !== null) {
+    $selectedGradeLevel = $formTeacherGradeLevel;
+    $selectedClass      = $formTeacherClass;
+}
 
 $students = [];
 $existingScores = [];
@@ -199,7 +233,28 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
       </div>
       <?php endif; ?>
 
+      <?php if ($admin['role'] === 'form_teacher' && $formTeacherGradeLevel): ?>
+      <div class="role-note">
+        You are signed in as Form Teacher for <strong><?php echo htmlspecialchars($formTeacherGradeLevel . ' ' . $formTeacherClass); ?></strong>.
+        You can only enter and save scores for students in your assigned class.
+      </div>
+      <?php endif; ?>
+
       <form method="GET" class="filter-bar" id="filterForm">
+
+        <?php if ($formTeacherGradeLevel): ?>
+        <!-- Form teacher: fixed grade level and class, shown as read-only text -->
+        <div class="filter-group">
+          <label>Grade Level</label>
+          <input type="text" class="form-input" value="<?php echo htmlspecialchars($allGradeLevels[$formTeacherGradeLevel] ?? $formTeacherGradeLevel); ?>" readonly style="background:#f4f3f9;cursor:not-allowed"/>
+          <input type="hidden" name="grade_level" value="<?php echo htmlspecialchars($formTeacherGradeLevel); ?>"/>
+        </div>
+        <div class="filter-group">
+          <label>Class</label>
+          <input type="text" class="form-input" value="<?php echo htmlspecialchars($formTeacherClass); ?>" readonly style="background:#f4f3f9;cursor:not-allowed"/>
+          <input type="hidden" name="class" value="<?php echo htmlspecialchars($formTeacherClass); ?>"/>
+        </div>
+        <?php else: ?>
         <div class="filter-group">
           <label for="grade_level">Grade Level</label>
           <select name="grade_level" id="grade_level" required>
@@ -209,7 +264,6 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
             <?php endforeach; ?>
           </select>
         </div>
-
         <div class="filter-group">
           <label for="class">Class</label>
           <select name="class" id="class" required>
@@ -221,6 +275,7 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
             <?php endif; ?>
           </select>
         </div>
+        <?php endif; ?>
 
         <div class="filter-group">
           <label for="subject_id">Subject</label>
@@ -322,20 +377,22 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
     var gradeLevelSelect = document.getElementById('grade_level');
     var classSelect       = document.getElementById('class');
 
-    /* ── Repopulate the Class dropdown when Grade Level changes ── */
-    gradeLevelSelect.addEventListener('change', function () {
-      var gradeLevelKey = gradeLevelSelect.value;
-      classSelect.innerHTML = '<option value="">Select class</option>';
+    /* ── Repopulate the Class dropdown when Grade Level changes (non-form-teacher only) ── */
+    if (gradeLevelSelect && classSelect) {
+      gradeLevelSelect.addEventListener('change', function () {
+        var gradeLevelKey = gradeLevelSelect.value;
+        classSelect.innerHTML = '<option value="">Select class</option>';
 
-      if (gradeLevelKey && classesByGradeLevel[gradeLevelKey]) {
-        classesByGradeLevel[gradeLevelKey].forEach(function (cls) {
-          var opt = document.createElement('option');
-          opt.value = cls;
-          opt.textContent = cls;
-          classSelect.appendChild(opt);
-        });
-      }
-    });
+        if (gradeLevelKey && classesByGradeLevel[gradeLevelKey]) {
+          classesByGradeLevel[gradeLevelKey].forEach(function (cls) {
+            var opt = document.createElement('option');
+            opt.value = cls;
+            opt.textContent = cls;
+            classSelect.appendChild(opt);
+          });
+        }
+      });
+    }
 
     /* ── Live grade calculation as teacher types ── */
     function gradeFromTotal(total) {

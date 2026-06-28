@@ -9,14 +9,18 @@
      score_ca2[]    — array of 2nd test scores (max 15)
      score_exam[]   — array of exam scores (max 70)
      grade_level    — e.g. SSS2
+     class          — e.g. A
      subject_id     — which subject these scores belong to
      session        — e.g. 2025/2026
      term           — first/second/third
 
-   Permission rule enforced server-side:
-     subject_teacher can ONLY save scores for the subject matching
-     their users.department field — even if the form somehow sent
-     a different subject_id, this is rejected here.
+   Permission rules enforced server-side:
+     subject_teacher — can ONLY save scores for the subject
+       matching their users.department field.
+     form_teacher — can ONLY save scores for students in their
+       assigned class (users.class_assigned e.g. "SSS2A").
+     section-locked roles — cannot touch the other section's
+       grade levels.
 
    Returns JSON: { "success": true/false, "message": "...", "saved": N }
    ============================================================ */
@@ -52,6 +56,7 @@ if (!in_array($admin['role'], $allowedRoles, true)) {
 
 /* ── Read and validate top-level inputs ── */
 $gradeLevel = trim($_POST['grade_level'] ?? '');
+$class      = trim($_POST['class']       ?? '');
 $subjectId  = (int) ($_POST['subject_id'] ?? 0);
 $session    = trim($_POST['session']    ?? '');
 $term       = trim($_POST['term']       ?? '');
@@ -112,6 +117,26 @@ try {
         exit;
     }
 
+    /* ── Form teacher check: locked to their own assigned class only ──
+       class_assigned is stored as e.g. "SSS2A" — parse into grade_level + class
+       and verify both match what's being submitted. ── */
+    if ($admin['role'] === 'form_teacher' && !empty($admin['class_assigned'])) {
+        if (preg_match('/^(JSS[123]|SSS[123])([A-Z0-9]+)$/', $admin['class_assigned'], $m)) {
+            $assignedGradeLevel = $m[1];
+            $assignedClass      = $m[2];
+
+            if ($gradeLevel !== $assignedGradeLevel || $class !== $assignedClass) {
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'You can only enter results for your assigned class (' .
+                                 htmlspecialchars($admin['class_assigned']) . ').',
+                ]);
+                exit;
+            }
+        }
+    }
+
     $pdo->beginTransaction();
 
     $savedCount = 0;
@@ -136,10 +161,10 @@ try {
 
         if (!$resultId) {
             $insertResult = $pdo->prepare(
-                'INSERT INTO results (student_id, session, term, grade_level, is_published)
-                 VALUES (?, ?, ?, ?, 0)'
+                'INSERT INTO results (student_id, session, term, grade_level, class, is_published)
+                 VALUES (?, ?, ?, ?, ?, 0)'
             );
-            $insertResult->execute([$studentId, $session, $term, $gradeLevel]);
+            $insertResult->execute([$studentId, $session, $term, $gradeLevel, $class ?: null]);
             $resultId = (int) $pdo->lastInsertId();
         }
 
