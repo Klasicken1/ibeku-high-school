@@ -85,12 +85,12 @@ function requireRole(array $roles, ?string $section = null): void {
 /* ── Get current user info ── */
 function currentAdmin(): array {
     return [
-        'id'      => $_SESSION['admin_id']      ?? null,
-        'name'    => $_SESSION['admin_name']     ?? 'Unknown',
-        'role'    => $_SESSION['admin_role']     ?? null,
-        'section' => $_SESSION['admin_section']  ?? null,
-        'dept'    => $_SESSION['admin_dept']     ?? null,
-        'class'   => $_SESSION['admin_class']    ?? null,
+        'id'             => $_SESSION['admin_id']      ?? null,
+        'name'           => $_SESSION['admin_name']    ?? 'Unknown',
+        'role'           => $_SESSION['admin_role']    ?? null,
+        'section'        => $_SESSION['admin_section'] ?? null,
+        'dept'           => $_SESSION['admin_dept']    ?? null,
+        'class_assigned' => $_SESSION['admin_class']   ?? null,
     ];
 }
 

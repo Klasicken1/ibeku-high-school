@@ -4,17 +4,17 @@
    File: public/admin/results-entry.php
 
    Accessible to: superadmin, subject_teacher, form_teacher, vp_academics
-   Subject Teachers see all subjects in the dropdown for context,
-   but save_result_scores.php enforces server-side that they can
-   only save scores for the subject matching their department.
+   Subject Teachers see only their section's subjects and can
+   only save scores for their assigned subject (enforced here
+   and in save_result_scores.php).
 
    Form Teachers are locked to their assigned class only — both
    in the UI (grade level and class dropdowns are forced) and
    server-side in save_result_scores.php.
 
    Grade Level/Class dropdowns pull live from the class_arms
-   table — single source of truth shared with class-arms.php and
-   users-create.php.
+   table — single source of truth shared with class-arms.php
+   and users-create.php.
    ============================================================ */
 
 declare(strict_types=1);
@@ -83,8 +83,18 @@ if ($formTeacherGradeLevel !== null) {
     ];
 }
 
-/* ── Load all subjects for the dropdown ── */
-$subjects = $pdo->query('SELECT id, name FROM subjects WHERE is_active = 1 ORDER BY name ASC')->fetchAll();
+/* ── Load subjects filtered by section — SS users see SS/both subjects only,
+   JS users see JS/both subjects only, superadmin sees all ── */
+if ($lockedSection === 'ss') {
+    $subjectStmt = $pdo->prepare("SELECT id, name FROM subjects WHERE is_active = 1 AND section IN ('ss','both') ORDER BY name ASC");
+    $subjectStmt->execute();
+} elseif ($lockedSection === 'js') {
+    $subjectStmt = $pdo->prepare("SELECT id, name FROM subjects WHERE is_active = 1 AND section IN ('js','both') ORDER BY name ASC");
+    $subjectStmt->execute();
+} else {
+    $subjectStmt = $pdo->query("SELECT id, name FROM subjects WHERE is_active = 1 ORDER BY name ASC");
+}
+$subjects = $subjectStmt->fetchAll();
 
 /* ── Selected filters (from query string, GET) ── */
 $selectedGradeLevel = $_GET['grade_level'] ?? '';
@@ -243,15 +253,15 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
       <form method="GET" class="filter-bar" id="filterForm">
 
         <?php if ($formTeacherGradeLevel): ?>
-        <!-- Form teacher: fixed grade level and class, shown as read-only text -->
+        <!-- Form teacher: fixed grade level and class, shown as read-only -->
         <div class="filter-group">
           <label>Grade Level</label>
-          <input type="text" class="form-input" value="<?php echo htmlspecialchars($allGradeLevels[$formTeacherGradeLevel] ?? $formTeacherGradeLevel); ?>" readonly style="background:#f4f3f9;cursor:not-allowed"/>
+          <input type="text" value="<?php echo htmlspecialchars($allGradeLevels[$formTeacherGradeLevel] ?? $formTeacherGradeLevel); ?>" readonly style="background:#f4f3f9;cursor:not-allowed;padding:8px 10px;border:1.5px solid #e2e0ea;border-radius:7px;font-size:13px;"/>
           <input type="hidden" name="grade_level" value="<?php echo htmlspecialchars($formTeacherGradeLevel); ?>"/>
         </div>
         <div class="filter-group">
           <label>Class</label>
-          <input type="text" class="form-input" value="<?php echo htmlspecialchars($formTeacherClass); ?>" readonly style="background:#f4f3f9;cursor:not-allowed"/>
+          <input type="text" value="<?php echo htmlspecialchars($formTeacherClass); ?>" readonly style="background:#f4f3f9;cursor:not-allowed;padding:8px 10px;border:1.5px solid #e2e0ea;border-radius:7px;font-size:13px;"/>
           <input type="hidden" name="class" value="<?php echo htmlspecialchars($formTeacherClass); ?>"/>
         </div>
         <?php else: ?>

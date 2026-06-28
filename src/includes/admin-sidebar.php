@@ -17,21 +17,24 @@ function renderAdminSidebar(array $admin, string $currentPage = ''): void {
 
     /* Each item: [page_key, href, icon, label, allowed_roles or null=everyone] */
     $navItems = [
-        ['dashboard', 'index.php', '🏠', 'Dashboard', null],
+        ['dashboard',      'index.php',          '🏠', 'Dashboard',      null],
 
-        ['timetables-ss', 'timetables-ss.php', '📅', 'SS Timetables', ['superadmin', 'dean']],
-        ['timetables-js', 'timetables-js.php', '📅', 'JS Timetables', ['superadmin', 'dean']],
+        ['timetables-ss',  'timetables-ss.php',  '📅', 'SS Timetables',  ['superadmin', 'dean']],
+        ['timetables-js',  'timetables-js.php',  '📅', 'JS Timetables',  ['superadmin', 'dean']],
 
-        ['results-entry', 'results-entry.php', '📊', 'Enter Results', ['superadmin', 'subject_teacher', 'form_teacher', 'vp_academics']],
+        ['results-entry',  'results-entry.php',  '📊', 'Enter Results',  ['superadmin', 'subject_teacher', 'form_teacher', 'vp_academics']],
+        ['results-publish','results-publish.php','✅', 'Publish Results',['superadmin', 'vp_academics']],
 
-        ['news-create', 'news-create.php', '📰', 'Create News', ['superadmin', 'principal', 'vp_general']],
-        ['news', 'news.php', '📋', 'All News', ['superadmin', 'principal', 'vp_general']],
+        ['news-create',    'news-create.php',    '📰', 'Create News',    ['superadmin', 'principal', 'vp_general']],
+        ['news',           'news.php',           '📋', 'All News',       ['superadmin', 'principal', 'vp_general']],
 
-        ['admissions', 'admissions.php', '🎓', 'Admissions', null],
-        ['gallery', 'gallery.php', '🖼️', 'Gallery', null],
+        ['admissions',     'admissions.php',     '🎓', 'Admissions',     null],
+        ['gallery',        'gallery.php',        '🖼️', 'Gallery',        null],
 
-        ['users', 'users.php', '👥', 'Manage Users', ['superadmin']],
-        ['settings', 'settings.php', '⚙️', 'Settings', ['superadmin']],
+        ['users',          'users.php',          '👥', 'Manage Users',   ['superadmin']],
+        ['class-arms',     'class-arms.php',     '🏫', 'Manage Classes', ['superadmin']],
+        ['subjects',       'subjects.php',       '📚', 'Manage Subjects',['superadmin']],
+        ['settings',       'settings.php',       '⚙️', 'Settings',       ['superadmin']],
     ];
     ?>
 
