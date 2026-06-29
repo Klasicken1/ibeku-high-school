@@ -12,6 +12,10 @@
    specific grade_level+class combinations via the
    teacher_class_assignments junction table. If no assignments
    are made, the teacher sees all classes in their section.
+
+   Account closure: superadmin can close accounts for staff who
+   have retired, transferred, deceased, or otherwise left.
+   Closed accounts are deactivated and the reason is recorded.
    ============================================================ */
 
 declare(strict_types=1);
@@ -45,7 +49,7 @@ if (!$user) {
     exit;
 }
 
-$message = '';
+$message     = '';
 $messageType = '';
 
 $departmentRoles = ['hod', 'subject_teacher'];
@@ -71,6 +75,14 @@ foreach ($assignStmt->fetchAll() as $row) {
     $existingAssignments[] = $row['grade_level'] . '|' . $row['class'];
 }
 
+/* ── Load the name of who closed this account (if applicable) ── */
+$closedByName = null;
+if ($user['closed_by']) {
+    $closedByStmt = $pdo->prepare('SELECT full_name FROM users WHERE id = ? LIMIT 1');
+    $closedByStmt->execute([$user['closed_by']]);
+    $closedByName = $closedByStmt->fetchColumn();
+}
+
 $roleLabels = [
     'principal'       => 'Principal',
     'vp_admin'        => 'Vice Principal (Administration)',
@@ -84,101 +96,173 @@ $roleLabels = [
     'superadmin'      => 'System Administrator',
 ];
 
+$closureReasonLabels = [
+    'retired'     => 'Retired',
+    'transferred' => 'Transferred',
+    'deceased'    => 'Deceased',
+    'expelled'    => 'Dismissed / Expelled',
+    'graduated'   => 'Contract Ended',
+    'other'       => 'Other',
+];
+
 /* ── Handle form submission ── */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $fullName        = trim($_POST['full_name']        ?? '');
-    $email           = trim($_POST['email']             ?? '');
-    $role            = trim($_POST['role']              ?? '');
-    $section         = trim($_POST['section']           ?? '');
-    $department      = trim($_POST['department']        ?? '');
-    $gradeLevelOnly  = trim($_POST['grade_level_only']  ?? '');
-    $classOnly       = trim($_POST['class_only']         ?? '');
-    $classAssigned   = ($gradeLevelOnly && $classOnly) ? $gradeLevelOnly . $classOnly : '';
-    $isActive        = isset($_POST['is_active']) ? 1 : 0;
-    $newPassword     = $_POST['new_password']      ?? '';
-    $confirmPassword = $_POST['confirm_password']  ?? '';
-    /* Subject teacher class assignments — array of "JSS1|A" strings */
-    $teacherAssignments = $_POST['teacher_assignments'] ?? [];
+    $action = trim($_POST['form_action'] ?? 'update');
 
-    $validRoles    = array_keys($roleLabels);
-    $validSections = ['ss', 'js', 'both'];
-
-    if ($fullName === '') {
-        $message = 'Full name is required.'; $messageType = 'error';
-    } elseif ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $message = 'A valid email address is required.'; $messageType = 'error';
-    } elseif (!in_array($role, $validRoles, true)) {
-        $message = 'Please select a valid role.'; $messageType = 'error';
-    } elseif (!in_array($section, $validSections, true)) {
-        $message = 'Please select a valid section.'; $messageType = 'error';
-    } elseif ($newPassword !== '' && strlen($newPassword) < 8) {
-        $message = 'New password must be at least 8 characters.'; $messageType = 'error';
-    } elseif ($newPassword !== '' && $newPassword !== $confirmPassword) {
-        $message = 'Passwords do not match.'; $messageType = 'error';
-    } else {
-        $checkStmt = $pdo->prepare('SELECT id FROM users WHERE email = ? AND id != ? LIMIT 1');
-        $checkStmt->execute([$email, $userId]);
-
-        if ($checkStmt->fetch()) {
-            $message = 'That email address is already used by another account.'; $messageType = 'error';
+    /* ── Account closure action ── */
+    if ($action === 'close_account') {
+        if ($userId === (int) $admin['id']) {
+            $message = 'You cannot close your own account.'; $messageType = 'error';
         } else {
-            if ($userId === (int) $admin['id'] && !$isActive) $isActive = 1;
+            $closureReason     = trim($_POST['closure_reason']     ?? '');
+            $closureReasonText = trim($_POST['closure_reason_text'] ?? '');
+            $validReasons = array_keys($closureReasonLabels);
 
-            $finalDepartment = in_array($role, $departmentRoles, true) ? ($department ?: null) : null;
-            $finalClass      = in_array($role, $classRoles, true) ? ($classAssigned ?: null) : null;
+            if (!in_array($closureReason, $validReasons, true)) {
+                $message = 'Please select a valid closure reason.'; $messageType = 'error';
+            } else {
+                try {
+                    $pdo->prepare(
+                        'UPDATE users SET
+                            is_active = 0,
+                            closed_reason = ?,
+                            closed_at = NOW(),
+                            closed_by = ?,
+                            updated_at = NOW()
+                         WHERE id = ?'
+                    )->execute([$closureReason, $admin['id'], $userId]);
 
+                    $message = 'Account closed successfully.'; $messageType = 'success';
+
+                    $stmt->execute([$userId]);
+                    $user = $stmt->fetch();
+
+                    $closedByName = $admin['name'];
+
+                } catch (PDOException $e) {
+                    error_log('IHS users-edit close error: ' . $e->getMessage());
+                    $message = 'A server error occurred.'; $messageType = 'error';
+                }
+            }
+        }
+
+    } elseif ($action === 'reopen_account') {
+        /* ── Reopen a closed account ── */
+        if ($userId === (int) $admin['id']) {
+            $message = 'Cannot reopen your own account.'; $messageType = 'error';
+        } else {
             try {
-                $pdo->beginTransaction();
-
                 $pdo->prepare(
-                    'UPDATE users SET full_name=?, email=?, role=?, section=?,
-                     department=?, class_assigned=?, is_active=?, updated_at=NOW()
-                     WHERE id=?'
-                )->execute([$fullName, $email, $role, $section, $finalDepartment, $finalClass, $isActive, $userId]);
+                    'UPDATE users SET
+                        is_active = 1,
+                        closed_reason = NULL,
+                        closed_at = NULL,
+                        closed_by = NULL,
+                        updated_at = NOW()
+                     WHERE id = ?'
+                )->execute([$userId]);
 
-                if ($newPassword !== '') {
-                    $hash = password_hash($newPassword, PASSWORD_BCRYPT, ['cost' => 12]);
-                    $pdo->prepare('UPDATE users SET password=? WHERE id=?')->execute([$hash, $userId]);
-                }
-
-                /* ── Sync teacher class assignments ──
-                   Delete all existing, re-insert checked ones.
-                   Only applies when role = subject_teacher. ── */
-                $pdo->prepare('DELETE FROM teacher_class_assignments WHERE teacher_id = ?')->execute([$userId]);
-
-                if ($role === 'subject_teacher' && !empty($teacherAssignments)) {
-                    $validGradeLevels = ['JSS1','JSS2','JSS3','SSS1','SSS2','SSS3'];
-                    $insertAssign = $pdo->prepare(
-                        'INSERT IGNORE INTO teacher_class_assignments (teacher_id, grade_level, class) VALUES (?, ?, ?)'
-                    );
-                    foreach ($teacherAssignments as $pair) {
-                        $parts = explode('|', (string) $pair);
-                        if (count($parts) === 2 && in_array($parts[0], $validGradeLevels, true) && $parts[1] !== '') {
-                            $insertAssign->execute([$userId, $parts[0], $parts[1]]);
-                        }
-                    }
-                }
-
-                $pdo->commit();
-
-                $message = 'Account updated successfully.'; $messageType = 'success';
-
-                /* Reload */
-                $stmt = $pdo->prepare('SELECT * FROM users WHERE id = ? LIMIT 1');
+                $message = 'Account reopened successfully.'; $messageType = 'success';
                 $stmt->execute([$userId]);
                 $user = $stmt->fetch();
-
-                /* Reload assignments */
-                $existingAssignments = [];
-                $assignStmt->execute([$userId]);
-                foreach ($assignStmt->fetchAll() as $row) {
-                    $existingAssignments[] = $row['grade_level'] . '|' . $row['class'];
-                }
+                $closedByName = null;
 
             } catch (PDOException $e) {
-                $pdo->rollBack();
-                error_log('IHS users-edit error: ' . $e->getMessage());
-                $message = 'A server error occurred while saving.'; $messageType = 'error';
+                error_log('IHS users-edit reopen error: ' . $e->getMessage());
+                $message = 'A server error occurred.'; $messageType = 'error';
+            }
+        }
+
+    } else {
+        /* ── Standard profile update ── */
+        $fullName        = trim($_POST['full_name']        ?? '');
+        $email           = trim($_POST['email']             ?? '');
+        $role            = trim($_POST['role']              ?? '');
+        $section         = trim($_POST['section']           ?? '');
+        $department      = trim($_POST['department']        ?? '');
+        $gradeLevelOnly  = trim($_POST['grade_level_only']  ?? '');
+        $classOnly       = trim($_POST['class_only']         ?? '');
+        $classAssigned   = ($gradeLevelOnly && $classOnly) ? $gradeLevelOnly . $classOnly : '';
+        $isActive        = isset($_POST['is_active']) ? 1 : 0;
+        $newPassword     = $_POST['new_password']      ?? '';
+        $confirmPassword = $_POST['confirm_password']  ?? '';
+        $teacherAssignments = $_POST['teacher_assignments'] ?? [];
+
+        $validRoles    = array_keys($roleLabels);
+        $validSections = ['ss', 'js', 'both'];
+
+        if ($fullName === '') {
+            $message = 'Full name is required.'; $messageType = 'error';
+        } elseif ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $message = 'A valid email address is required.'; $messageType = 'error';
+        } elseif (!in_array($role, $validRoles, true)) {
+            $message = 'Please select a valid role.'; $messageType = 'error';
+        } elseif (!in_array($section, $validSections, true)) {
+            $message = 'Please select a valid section.'; $messageType = 'error';
+        } elseif ($newPassword !== '' && strlen($newPassword) < 8) {
+            $message = 'New password must be at least 8 characters.'; $messageType = 'error';
+        } elseif ($newPassword !== '' && $newPassword !== $confirmPassword) {
+            $message = 'Passwords do not match.'; $messageType = 'error';
+        } else {
+            $checkStmt = $pdo->prepare('SELECT id FROM users WHERE email = ? AND id != ? LIMIT 1');
+            $checkStmt->execute([$email, $userId]);
+
+            if ($checkStmt->fetch()) {
+                $message = 'That email address is already used by another account.'; $messageType = 'error';
+            } else {
+                if ($userId === (int) $admin['id'] && !$isActive) $isActive = 1;
+
+                $finalDepartment = in_array($role, $departmentRoles, true) ? ($department ?: null) : null;
+                $finalClass      = in_array($role, $classRoles, true) ? ($classAssigned ?: null) : null;
+
+                try {
+                    $pdo->beginTransaction();
+
+                    $pdo->prepare(
+                        'UPDATE users SET full_name=?, email=?, role=?, section=?,
+                         department=?, class_assigned=?, is_active=?, updated_at=NOW()
+                         WHERE id=?'
+                    )->execute([$fullName, $email, $role, $section, $finalDepartment, $finalClass, $isActive, $userId]);
+
+                    if ($newPassword !== '') {
+                        $hash = password_hash($newPassword, PASSWORD_BCRYPT, ['cost' => 12]);
+                        $pdo->prepare('UPDATE users SET password=? WHERE id=?')->execute([$hash, $userId]);
+                    }
+
+                    /* ── Sync teacher class assignments ── */
+                    $pdo->prepare('DELETE FROM teacher_class_assignments WHERE teacher_id = ?')->execute([$userId]);
+
+                    if ($role === 'subject_teacher' && !empty($teacherAssignments)) {
+                        $validGradeLevels = ['JSS1','JSS2','JSS3','SSS1','SSS2','SSS3'];
+                        $insertAssign = $pdo->prepare(
+                            'INSERT IGNORE INTO teacher_class_assignments (teacher_id, grade_level, class) VALUES (?, ?, ?)'
+                        );
+                        foreach ($teacherAssignments as $pair) {
+                            $parts = explode('|', (string) $pair);
+                            if (count($parts) === 2 && in_array($parts[0], $validGradeLevels, true) && $parts[1] !== '') {
+                                $insertAssign->execute([$userId, $parts[0], $parts[1]]);
+                            }
+                        }
+                    }
+
+                    $pdo->commit();
+
+                    $message = 'Account updated successfully.'; $messageType = 'success';
+
+                    $stmt->execute([$userId]);
+                    $user = $stmt->fetch();
+
+                    $existingAssignments = [];
+                    $assignStmt->execute([$userId]);
+                    foreach ($assignStmt->fetchAll() as $row) {
+                        $existingAssignments[] = $row['grade_level'] . '|' . $row['class'];
+                    }
+
+                } catch (PDOException $e) {
+                    $pdo->rollBack();
+                    error_log('IHS users-edit error: ' . $e->getMessage());
+                    $message = 'A server error occurred while saving.'; $messageType = 'error';
+                }
             }
         }
     }
@@ -193,6 +277,8 @@ if ($user['class_assigned'] && preg_match('/^(JSS[123]|SSS[123])([A-Z0-9]+)$/', 
 }
 
 $gradeLevelLabels = ['JSS1'=>'JSS 1','JSS2'=>'JSS 2','JSS3'=>'JSS 3','SSS1'=>'SSS 1','SSS2'=>'SSS 2','SSS3'=>'SSS 3'];
+
+$isClosed = !empty($user['closed_reason']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -230,11 +316,15 @@ $gradeLevelLabels = ['JSS1'=>'JSS 1','JSS2'=>'JSS 2','JSS3'=>'JSS 3','SSS1'=>'SS
   .checkbox-row input { width: 16px; height: 16px; }
   .checkbox-row label { font-size: 13.5px; color: #1a1a2e; }
 
-  .btn-group { display: flex; gap: 12px; margin-top: 22px; }
+  .btn-group { display: flex; gap: 12px; margin-top: 22px; flex-wrap:wrap; }
   .btn-save { background: #3d1a6e; color: #fff; border: none; padding: 11px 28px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; }
   .btn-save:hover { background: #5a2d9e; }
   .btn-cancel { background: #f0ecfa; color: #3d1a6e; border: 1.5px solid #d8d0ee; padding: 11px 24px; border-radius: 8px; font-size: 13.5px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
   .btn-cancel:hover { background: #e4dcf6; }
+  .btn-danger { background: #ffe6e6; color: #cc3333; border: 1.5px solid #ffcccc; padding: 11px 24px; border-radius: 8px; font-size: 13.5px; font-weight: 700; cursor: pointer; }
+  .btn-danger:hover { background: #ffcccc; }
+  .btn-reopen { background: #e6f9ed; color: #1a7a3a; border: 1.5px solid #b8eecb; padding: 11px 24px; border-radius: 8px; font-size: 13.5px; font-weight: 700; cursor: pointer; }
+  .btn-reopen:hover { background: #b8eecb; }
 
   .generate-pw-btn {
     background: #f0ecfa; color: #3d1a6e; border: 1px solid #d8d0ee;
@@ -247,13 +337,18 @@ $gradeLevelLabels = ['JSS1'=>'JSS 1','JSS2'=>'JSS 2','JSS3'=>'JSS 3','SSS1'=>'SS
     background: #fff3e6; border: 1px solid #ffe0b2; color: #8a4a00;
     padding: 10px 14px; border-radius: 8px; font-size: 12.5px; margin-bottom: 18px;
   }
+  .closed-notice {
+    background: #ffe6e6; border: 1px solid #ffcccc; color: #cc3333;
+    padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 18px;
+    line-height: 1.7;
+  }
+  .closed-notice strong { display: block; font-size: 13.5px; margin-bottom: 2px; }
 
   /* ── Class assignment grid ── */
   .assignment-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 8px;
-    margin-top: 10px;
+    gap: 8px; margin-top: 10px;
   }
   .assignment-checkbox {
     display: flex; align-items: center; gap: 8px;
@@ -265,20 +360,36 @@ $gradeLevelLabels = ['JSS1'=>'JSS 1','JSS2'=>'JSS 2','JSS3'=>'JSS 3','SSS1'=>'SS
     background: #f0ecfa; border-color: #3d1a6e; color: #3d1a6e; font-weight: 600;
   }
   .assignment-checkbox input { width: 15px; height: 15px; cursor: pointer; }
-
   .assignment-section-label {
     font-size: 11px; font-weight: 700; color: #9b97b0;
-    text-transform: uppercase; letter-spacing: .06em;
-    margin: 12px 0 6px;
+    text-transform: uppercase; letter-spacing: .06em; margin: 12px 0 6px;
   }
   .assignment-hint { font-size: 11.5px; color: #9b97b0; margin-top: 8px; }
-
   .btn-select-all {
     background: #f0ecfa; color: #3d1a6e; border: 1px solid #d8d0ee;
     padding: 5px 12px; border-radius: 6px; font-size: 11.5px; font-weight: 600;
     cursor: pointer; margin-right: 6px;
   }
   .btn-select-all:hover { background: #e4dcf6; }
+
+  /* ── Closure modal ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.45); z-index: 999;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay--show { display: flex; }
+  .modal-box {
+    background: #fff; border-radius: 16px; padding: 28px 28px 22px;
+    max-width: 440px; width: 100%; margin: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.2);
+  }
+  .modal-box h3 { font-size: 16px; color: #3d1a6e; margin-bottom: 6px; }
+  .modal-box p { font-size: 13px; color: #6b6b80; margin-bottom: 18px; }
+  .modal-box .form-group { margin-bottom: 14px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .modal-actions .btn-danger { flex: 1; text-align: center; border: none; }
+  .modal-actions .btn-cancel { flex: 1; text-align: center; }
 </style>
 </head>
 <body>
@@ -301,8 +412,22 @@ $gradeLevelLabels = ['JSS1'=>'JSS 1','JSS2'=>'JSS 2','JSS3'=>'JSS 3','SSS1'=>'SS
       <div class="self-note">You are editing your own account. Your role and active status cannot be changed while you are logged in.</div>
       <?php endif; ?>
 
+      <?php if ($isClosed): ?>
+      <div class="closed-notice">
+        <strong>⛔ This account has been closed</strong>
+        Reason: <?php echo htmlspecialchars($closureReasonLabels[$user['closed_reason']] ?? $user['closed_reason']); ?>
+        <?php if ($user['closed_at']): ?>
+        &nbsp;·&nbsp; <?php echo date('d M Y', strtotime($user['closed_at'])); ?>
+        <?php endif; ?>
+        <?php if ($closedByName): ?>
+        &nbsp;·&nbsp; Closed by <?php echo htmlspecialchars($closedByName); ?>
+        <?php endif; ?>
+      </div>
+      <?php endif; ?>
+
       <div class="admin-card" style="max-width:680px">
         <form method="POST" id="editForm">
+          <input type="hidden" name="form_action" value="update"/>
 
           <div class="form-group">
             <label class="form-label" for="full_name">Full Name</label>
@@ -447,6 +572,17 @@ $gradeLevelLabels = ['JSS1'=>'JSS 1','JSS2'=>'JSS 2','JSS3'=>'JSS 3','SSS1'=>'SS
           <div class="btn-group">
             <button type="submit" class="btn-save">Save Changes</button>
             <a href="users.php" class="btn-cancel">Cancel</a>
+            <?php if ($userId !== (int) $admin['id']): ?>
+              <?php if (!$isClosed): ?>
+              <button type="button" class="btn-danger" onclick="document.getElementById('closeModal').classList.add('modal-overlay--show')">
+                Close Account
+              </button>
+              <?php else: ?>
+              <button type="button" class="btn-reopen" onclick="reopenAccount()">
+                Reopen Account
+              </button>
+              <?php endif; ?>
+            <?php endif; ?>
           </div>
 
         </form>
@@ -455,15 +591,50 @@ $gradeLevelLabels = ['JSS1'=>'JSS 1','JSS2'=>'JSS 2','JSS3'=>'JSS 3','SSS1'=>'SS
     </div>
   </div>
 
+  <!-- ── Account Closure Modal ── -->
+  <div class="modal-overlay" id="closeModal">
+    <div class="modal-box">
+      <h3>Close Staff Account</h3>
+      <p>This will deactivate the account and record the reason. The staff member will no longer be able to log in. You can reopen the account later if needed.</p>
+
+      <form method="POST" id="closeForm">
+        <input type="hidden" name="form_action" value="close_account"/>
+
+        <div class="form-group">
+          <label class="form-label">Reason for Closure *</label>
+          <select class="form-select" name="closure_reason" required>
+            <option value="">Select reason</option>
+            <?php foreach ($closureReasonLabels as $val => $lbl): ?>
+            <option value="<?php echo $val; ?>"><?php echo $lbl; ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button type="submit" class="btn-danger">Confirm — Close Account</button>
+          <button type="button" class="btn-cancel"
+                  onclick="document.getElementById('closeModal').classList.remove('modal-overlay--show')">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Reopen Account Form (hidden) ── -->
+  <form method="POST" id="reopenForm" style="display:none">
+    <input type="hidden" name="form_action" value="reopen_account"/>
+  </form>
+
   <script src="../assets/js/admin.js"></script>
   <script>
-    var roleSelect          = document.getElementById('role');
-    var sectionSelect        = document.getElementById('section');
-    var departmentField      = document.getElementById('departmentField');
+    var roleSelect              = document.getElementById('role');
+    var sectionSelect           = document.getElementById('section');
+    var departmentField         = document.getElementById('departmentField');
     var teacherAssignmentsField = document.getElementById('teacherAssignmentsField');
-    var classField           = document.getElementById('classField');
-    var gradeLevelOnlySelect = document.getElementById('grade_level_only');
-    var classOnlySelect      = document.getElementById('class_only');
+    var classField              = document.getElementById('classField');
+    var gradeLevelOnlySelect    = document.getElementById('grade_level_only');
+    var classOnlySelect         = document.getElementById('class_only');
 
     var departmentRoles        = ['hod', 'subject_teacher'];
     var teacherAssignmentRoles = ['subject_teacher'];
@@ -510,22 +681,16 @@ $gradeLevelLabels = ['JSS1'=>'JSS 1','JSS2'=>'JSS 2','JSS3'=>'JSS 3','SSS1'=>'SS
 
     function updateConditionalFields(isInitial) {
       var role = roleSelect.value;
-
-      /* Department field */
       if (departmentRoles.indexOf(role) !== -1) {
         departmentField.classList.add('conditional-field--show');
       } else {
         departmentField.classList.remove('conditional-field--show');
       }
-
-      /* Subject teacher class assignments */
       if (teacherAssignmentRoles.indexOf(role) !== -1) {
         teacherAssignmentsField.classList.add('conditional-field--show');
       } else {
         teacherAssignmentsField.classList.remove('conditional-field--show');
       }
-
-      /* Form teacher single class */
       if (classRoles.indexOf(role) !== -1) {
         classField.classList.add('conditional-field--show');
         updateGradeLevelOptions(isInitial ? existingGradeLevel : '');
@@ -542,14 +707,12 @@ $gradeLevelLabels = ['JSS1'=>'JSS 1','JSS2'=>'JSS 2','JSS3'=>'JSS 3','SSS1'=>'SS
 
     updateConditionalFields(true);
 
-    /* ── Select/clear all class assignment checkboxes ── */
     function selectAllClasses(checked) {
       document.querySelectorAll('.teacher-assign-cb').forEach(function (cb) {
         cb.checked = checked;
       });
     }
 
-    /* ── Generate password ── */
     document.getElementById('generatePwBtn').addEventListener('click', function () {
       var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
       var pw = '';
@@ -558,6 +721,17 @@ $gradeLevelLabels = ['JSS1'=>'JSS 1','JSS2'=>'JSS 2','JSS3'=>'JSS 3','SSS1'=>'SS
       }
       document.getElementById('new_password').value    = pw;
       document.getElementById('confirm_password').value = pw;
+    });
+
+    function reopenAccount() {
+      if (confirm('Reopen this account? The staff member will be able to log in again.')) {
+        document.getElementById('reopenForm').submit();
+      }
+    }
+
+    /* Close modal when clicking overlay background */
+    document.getElementById('closeModal').addEventListener('click', function (e) {
+      if (e.target === this) this.classList.remove('modal-overlay--show');
     });
   </script>
 

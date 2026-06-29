@@ -4,23 +4,15 @@
 
    Handles:
      1. Full-page result checker — Grade Level + Class dropdowns
-        (display confirmation only; the actual lookup is by
-        admission number alone, per check_result.php's contract)
      2. Demo ID fill button
-     3. Print result slip — shows both class position and (if
-        available) cumulative grade level position
-     4. FAQ accordion
+     3. Student status notice (expulsion, graduation etc.)
+     4. Student history timeline
+     5. Print result slip — class + grade level positions
+     6. FAQ accordion
    ============================================================ */
 
 'use strict';
 
-/* ============================================================
-   CLASSES BY GRADE LEVEL — hardcoded mirror of the seeded
-   class_arms table. NOTE: if a superadmin adds/removes classes
-   via class-arms.php, this list will go stale. TODO Phase 4:
-   replace with a small public read-only endpoint that the
-   frontend fetches on page load instead of hardcoding.
-   ============================================================ */
 var CLASSES_BY_GRADE_LEVEL = {
   JSS1: ['A', 'B', 'C', 'D', 'E'],
   JSS2: ['A', 'B', 'C', 'D', 'E'],
@@ -59,23 +51,81 @@ function fillDemo(admissionNumber) {
   if (input) { input.value = admissionNumber; input.focus(); }
 }
 
-function renderResultFull(student, subjects) {
+/* ── Status notice colours ── */
+var STATUS_CONFIG = {
+  expelled:    { label: 'Expelled',    bg: '#ffe6e6', color: '#cc3333', icon: '🚫' },
+  graduated:   { label: 'Graduated',   bg: '#e6f0ff', color: '#1a5a9a', icon: '🎓' },
+  deceased:    { label: 'Deceased',    bg: '#f4f3f9', color: '#6b6b80', icon: '✝' },
+  transferred: { label: 'Transferred', bg: '#fff3e6', color: '#8a4a00', icon: '🔄' },
+};
+
+var EVENT_CONFIG = {
+  promotion:     { label: 'Promoted',     color: '#1a7a3a', icon: '⬆️' },
+  retention:     { label: 'Retained',     color: '#8a6a00', icon: '🔄' },
+  demotion:      { label: 'Demoted',      color: '#cc3333', icon: '⬇️' },
+  expulsion:     { label: 'Expelled',     color: '#cc0000', icon: '🚫' },
+  graduation:    { label: 'Graduated',    color: '#1a5a9a', icon: '🎓' },
+  reinstatement: { label: 'Reinstated',   color: '#3d1a6e', icon: '✅' },
+};
+
+function renderResultFull(student, subjects, history) {
   setText('rcPanelName', student.name);
   setText('rcPanelTerm', student.term + ' ' + student.session);
 
+  /* ── Status notice for non-active students ── */
+  var existingNotice = document.getElementById('rcStatusNotice');
+  if (existingNotice) existingNotice.remove();
+
+  if (student.status && student.status !== 'active') {
+    var cfg = STATUS_CONFIG[student.status] || { label: student.status, bg: '#f4f3f9', color: '#6b6b80', icon: 'ℹ️' };
+    var notice = document.createElement('div');
+    notice.id = 'rcStatusNotice';
+    notice.style.cssText = [
+      'background:' + cfg.bg,
+      'color:' + cfg.color,
+      'border:1px solid ' + cfg.color + '33',
+      'border-radius:10px',
+      'padding:12px 16px',
+      'font-size:13px',
+      'font-weight:600',
+      'margin-bottom:14px',
+      'display:flex',
+      'align-items:center',
+      'gap:10px',
+    ].join(';');
+    var iconSpan = '<span style="font-size:18px">' + cfg.icon + '</span>';
+    var textDiv  = '<div><div>' + cfg.label + '</div>';
+    if (student.status_reason) {
+      textDiv += '<div style="font-weight:400;margin-top:2px;font-size:12.5px">' + esc(student.status_reason) + '</div>';
+    }
+    if (student.status_changed_at) {
+      textDiv += '<div style="font-weight:400;margin-top:2px;font-size:12px;opacity:.8">' + esc(student.status_changed_at) + '</div>';
+    }
+    textDiv += '</div>';
+    notice.innerHTML = iconSpan + textDiv;
+
+    var panel = document.getElementById('rcPanel');
+    var header = panel ? panel.querySelector('.result-panel__header') : null;
+    if (header) header.insertAdjacentElement('afterend', notice);
+  }
+
+  /* ── Meta row (class, position, average) ── */
   var metaEl = document.getElementById('rcPanelMeta');
   if (metaEl) {
-    var positionText = student.class_position ? (student.class_position + ' of ' + student.class_total_students) : 'N/A';
+    var positionText = student.class_position
+      ? (student.class_position + ' of ' + student.class_total_students)
+      : 'N/A';
     if (student.grade_level_position) {
-      positionText += ' (' + student.grade_level_position + ' of ' + student.grade_level_total_students + ' in ' + student.grade_level_only + ' overall)';
+      positionText += ' (' + student.grade_level_position + ' of ' +
+        student.grade_level_total_students + ' in ' + student.grade_level_only + ' overall)';
     }
-
     metaEl.innerHTML =
       '<div class="result-panel__meta-item"><p>Class</p><strong>'    + esc(student.class)    + '</strong></div>' +
       '<div class="result-panel__meta-item"><p>Position</p><strong>' + esc(positionText)      + '</strong></div>' +
       '<div class="result-panel__meta-item"><p>Average</p><strong>'  + esc(String(student.average_score)) + '%</strong></div>';
   }
 
+  /* ── Subject scores ── */
   var subjEl = document.getElementById('rcPanelSubjects');
   if (subjEl) {
     subjEl.innerHTML = subjects.map(function (s) {
@@ -87,14 +137,68 @@ function renderResultFull(student, subjects) {
     }).join('');
   }
 
+  /* ── History timeline ── */
+  var existingHistory = document.getElementById('rcHistorySection');
+  if (existingHistory) existingHistory.remove();
+
+  if (history && history.length > 0) {
+    var historySection = document.createElement('div');
+    historySection.id = 'rcHistorySection';
+    historySection.style.cssText = 'margin-top:16px;border-top:1px solid #f0eef6;padding-top:14px';
+
+    var histTitle = document.createElement('div');
+    histTitle.style.cssText = 'font-size:12px;font-weight:700;color:#3d1a6e;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px';
+    histTitle.textContent = 'Academic History';
+    historySection.appendChild(histTitle);
+
+    var timeline = document.createElement('div');
+    timeline.style.cssText = 'display:flex;flex-direction:column;gap:8px';
+
+    history.forEach(function (event) {
+      var cfg = EVENT_CONFIG[event.event_type] || { label: event.event_type, color: '#6b6b80', icon: '•' };
+      var row = document.createElement('div');
+      row.style.cssText = [
+        'display:flex',
+        'gap:10px',
+        'align-items:flex-start',
+        'background:#faf9fd',
+        'border-radius:8px',
+        'padding:8px 12px',
+        'font-size:12.5px',
+      ].join(';');
+
+      var icon = '<span style="font-size:14px;flex-shrink:0">' + cfg.icon + '</span>';
+      var detail = '<div style="flex:1">';
+      detail += '<span style="font-weight:700;color:' + cfg.color + '">' + cfg.label + '</span>';
+      if (event.from && event.to && event.from !== event.to) {
+        detail += ' <span style="color:#6b6b80">' + esc(event.from) + ' → ' + esc(event.to) + '</span>';
+      }
+      if (event.reason) {
+        detail += '<div style="color:#9b97b0;margin-top:2px">' + esc(event.reason) + '</div>';
+      }
+      detail += '</div>';
+      var date = '<span style="color:#9b97b0;font-size:11.5px;flex-shrink:0">' + esc(event.date) + '</span>';
+
+      row.innerHTML = icon + detail + date;
+      timeline.appendChild(row);
+    });
+
+    historySection.appendChild(timeline);
+
+    var panel = document.getElementById('rcPanel');
+    var footer = panel ? panel.querySelector('.result-panel__footer') : null;
+    if (footer) footer.insertAdjacentElement('beforebegin', historySection);
+    else if (panel) panel.appendChild(historySection);
+  }
+
   var panel    = document.getElementById('rcPanel');
   var notFound = document.getElementById('rcNotFound');
   if (panel)    panel.classList.add('show');
   if (notFound) notFound.style.display = 'none';
   if (panel)    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-  /* Cache full payload for print function */
-  window._lastResult = { student: student, subjects: subjects };
+  /* Cache for print */
+  window._lastResult = { student: student, subjects: subjects, history: history };
 }
 
 function showNotFoundFull(message) {
@@ -113,6 +217,12 @@ function resetOutputFull() {
   var notFound = document.getElementById('rcNotFound');
   if (panel)    panel.classList.remove('show');
   if (notFound) notFound.style.display = 'none';
+
+  /* Remove injected elements */
+  var notice  = document.getElementById('rcStatusNotice');
+  var history = document.getElementById('rcHistorySection');
+  if (notice)  notice.remove();
+  if (history) history.remove();
 }
 
 function lookupResultFull(admissionNo) {
@@ -130,7 +240,7 @@ function lookupResultFull(admissionNo) {
   fetch('/ibeku-high-school/src/api/check_result.php', { method: 'POST', body: formData })
     .then(function (r) { return r.json(); })
     .then(function (data) {
-      if (data.success) renderResultFull(data.student, data.subjects);
+      if (data.success) renderResultFull(data.student, data.subjects, data.history || []);
       else              showNotFoundFull(data.message);
     })
     .catch(function (err) {
@@ -192,7 +302,6 @@ function printResult() {
   var subjects = cached.subjects;
 
   setText('rsPrintTitle', (student.term + ' ' + student.session).toUpperCase() + ' ACADEMIC REPORT');
-
   setText('rsPrintName',     student.name);
   setText('rsPrintAdmNo',    student.admission_number);
   setText('rsPrintClass',    student.class);
@@ -200,7 +309,9 @@ function printResult() {
   setText('rsPrintTerm',     student.term);
   setText('rsPrintTotal',    String(student.class_total_students || ''));
 
-  var positionText = student.class_position ? (student.class_position + ' out of ' + student.class_total_students) : 'N/A';
+  var positionText = student.class_position
+    ? (student.class_position + ' out of ' + student.class_total_students)
+    : 'N/A';
   setText('rsPrintPosition', positionText);
 
   var gradeLevelPositionText = student.grade_level_position
@@ -208,25 +319,23 @@ function printResult() {
     : 'Not yet calculated';
   setText('rsPrintGradeLevelPosition', gradeLevelPositionText);
 
-  setText('rsPrintAvg', student.average_score !== null ? student.average_score + '%' : '—');
-  setText('rsPrintResumption', student.next_term_resumption || 'To be announced');
+  setText('rsPrintAvg',              student.average_score !== null ? student.average_score + '%' : '—');
+  setText('rsPrintResumption',       student.next_term_resumption || 'To be announced');
+  setText('rsPrintTeacherComment',   student.form_teacher_comment || '');
+  setText('rsPrintPrincipalComment', student.principal_comment    || '');
+  setText('rsPrintTotalScore',       (student.total_score || 0) + ' / ' + (subjects.length * 100));
   setText('rsPrintDate', new Date().toLocaleDateString('en-GB', {
     day: '2-digit', month: 'long', year: 'numeric'
   }));
-
-  setText('rsPrintTeacherComment',   student.form_teacher_comment || '');
-  setText('rsPrintPrincipalComment', student.principal_comment    || '');
-
-  setText('rsPrintTotalScore', (student.total_score || 0) + ' / ' + (subjects.length * 100));
 
   var tbody = document.getElementById('rsPrintSubjects');
   if (tbody) {
     tbody.innerHTML = subjects.map(function (s) {
       return '<tr>' +
-        '<td>' + esc(s.name)              + '</td>' +
-        '<td>' + s.ca1                    + '</td>' +
-        '<td>' + s.ca2                    + '</td>' +
-        '<td>' + s.exam                   + '</td>' +
+        '<td>' + esc(s.name)  + '</td>' +
+        '<td>' + s.ca1        + '</td>' +
+        '<td>' + s.ca2        + '</td>' +
+        '<td>' + s.exam       + '</td>' +
         '<td><strong>' + s.score + '</strong></td>' +
         '<td><strong>' + esc(s.grade) + '</strong></td>' +
         '<td>' + esc(s.remark || remarkFromGrade(s.grade)) + '</td>' +
