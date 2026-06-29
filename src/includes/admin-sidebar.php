@@ -20,6 +20,9 @@ function renderAdminSidebar(array $admin, string $currentPage = ''): void {
         ['news-create',      'news-create.php',      '📰', 'Create News',       ['superadmin', 'principal', 'vp_general']],
         ['news',             'news.php',             '📋', 'All News',          ['superadmin', 'principal', 'vp_general']],
 
+        ['students',         'students.php',         '🎒', 'Students',          ['superadmin', 'principal', 'vp_admin', 'form_teacher']],
+        ['students-promote', 'students-promote.php', '⬆️', 'Promote Students',  ['superadmin', 'principal', 'form_teacher']],
+
         ['admissions',       'admissions.php',       '🎓', 'Admissions',        null],
         ['gallery',          'gallery.php',          '🖼️', 'Gallery',           null],
 
