@@ -2,39 +2,31 @@
 /* ============================================================
    IBEKU HIGH SCHOOL — ADMIN SIDEBAR (SHARED PARTIAL)
    File: src/includes/admin-sidebar.php
-
-   Include after currentAdmin() is available. Renders nav links
-   filtered by the logged-in admin's role — mirrors the same
-   role checks used on the dashboard quick-actions grid.
-
-   Usage in any admin/*.php page:
-     require_once dirname(__DIR__, 2) . '/src/includes/admin-sidebar.php';
-     renderAdminSidebar($admin, 'results-entry'); // 2nd arg = current page key, for active state
    ============================================================ */
 
 function renderAdminSidebar(array $admin, string $currentPage = ''): void {
     $role = $admin['role'];
 
-    /* Each item: [page_key, href, icon, label, allowed_roles or null=everyone] */
     $navItems = [
-        ['dashboard',      'index.php',          '🏠', 'Dashboard',      null],
+        ['dashboard',        'index.php',            '🏠', 'Dashboard',         null],
 
-        ['timetables-ss',  'timetables-ss.php',  '📅', 'SS Timetables',  ['superadmin', 'dean']],
-        ['timetables-js',  'timetables-js.php',  '📅', 'JS Timetables',  ['superadmin', 'dean']],
+        ['timetables-ss',    'timetables-ss.php',    '📅', 'SS Timetables',     ['superadmin', 'dean']],
+        ['timetables-js',    'timetables-js.php',    '📅', 'JS Timetables',     ['superadmin', 'dean']],
 
-        ['results-entry',  'results-entry.php',  '📊', 'Enter Results',  ['superadmin', 'subject_teacher', 'form_teacher', 'vp_academics']],
-        ['results-publish','results-publish.php','✅', 'Publish Results',['superadmin', 'vp_academics']],
+        ['results-entry',    'results-entry.php',    '📊', 'Enter Results',     ['superadmin', 'subject_teacher', 'form_teacher', 'vp_academics']],
+        ['results-approve',  'results-approve.php',  '🔍', 'Approve Results',   ['superadmin', 'form_teacher']],
+        ['results-publish',  'results-publish.php',  '✅', 'Publish Results',   ['superadmin', 'vp_academics']],
 
-        ['news-create',    'news-create.php',    '📰', 'Create News',    ['superadmin', 'principal', 'vp_general']],
-        ['news',           'news.php',           '📋', 'All News',       ['superadmin', 'principal', 'vp_general']],
+        ['news-create',      'news-create.php',      '📰', 'Create News',       ['superadmin', 'principal', 'vp_general']],
+        ['news',             'news.php',             '📋', 'All News',          ['superadmin', 'principal', 'vp_general']],
 
-        ['admissions',     'admissions.php',     '🎓', 'Admissions',     null],
-        ['gallery',        'gallery.php',        '🖼️', 'Gallery',        null],
+        ['admissions',       'admissions.php',       '🎓', 'Admissions',        null],
+        ['gallery',          'gallery.php',          '🖼️', 'Gallery',           null],
 
-        ['users',          'users.php',          '👥', 'Manage Users',   ['superadmin']],
-        ['class-arms',     'class-arms.php',     '🏫', 'Manage Classes', ['superadmin']],
-        ['subjects',       'subjects.php',       '📚', 'Manage Subjects',['superadmin']],
-        ['settings',       'settings.php',       '⚙️', 'Settings',       ['superadmin']],
+        ['users',            'users.php',            '👥', 'Manage Users',      ['superadmin']],
+        ['class-arms',       'class-arms.php',       '🏫', 'Manage Classes',    ['superadmin']],
+        ['subjects',         'subjects.php',         '📚', 'Manage Subjects',   ['superadmin']],
+        ['settings',         'settings.php',         '⚙️', 'Settings',          ['superadmin']],
     ];
     ?>
 

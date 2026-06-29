@@ -6,29 +6,28 @@
    Accepts POST request with:
      mode         — 'class' | 'grade_level_cumulative' | 'bulk'
      grade_level  — e.g. JSS1
-     class        — required for mode=class, ignored otherwise
-     section      — required for mode=bulk ('js' or 'ss'), ignored otherwise
+     class        — required for mode=class
+     section      — required for mode=bulk ('js' or 'ss')
      session      — e.g. 2025/2026
      term         — first/second/third
 
+   Approval gate: mode=class requires ALL results for the
+   requested grade_level+class to have is_approved=1 before
+   publishing is allowed. VP Academics cannot bypass this.
+
    MODE: class
-     Publishes one grade_level+class (classroom). Computes
-     total_score/average_score per student, ranks within that
-     classroom only, sets class_position + class_total_students.
-     Does NOT touch grade_level_position.
+     Publishes one grade_level+class. Computes totals, ranks
+     within that classroom, sets class_position +
+     class_total_students.
 
    MODE: grade_level_cumulative
-     Re-ranks ALL classes of one grade level together. Computes
-     grade_level_position + grade_level_total_students across
-     every active class of that grade level. Does NOT touch the
-     class-level position — a grade level must already be
-     class-published before cumulative ranking makes sense,
-     since totals must exist first.
+     Re-ranks ALL published classes of one grade level together.
+     Sets grade_level_position + grade_level_total_students.
+     Requires all classes to be class-published first.
 
    MODE: bulk
-     Loops every active class in a grade level (or every grade
-     level in a section) and runs MODE: class on each one
-     independently. Each classroom still ranks only against itself.
+     Loops every active class in a grade level (or section) and
+     runs MODE: class on each one. Skips unapproved classes.
 
    Accessible to: superadmin, vp_academics
    ============================================================ */
@@ -84,18 +83,45 @@ if (!in_array($term, $validTerms, true)) {
     exit;
 }
 
-/* ── Section permission check helper ── */
 function checkSectionPermission(array $admin, string $gradeLevelSection): bool {
     if ($admin['role'] === 'superadmin') return true;
     if ($admin['section'] === 'both') return true;
     return $admin['section'] === $gradeLevelSection;
 }
 
+/* ── Check approval status for a grade_level+class ──
+   Returns ['approved' => N, 'total' => N, 'unapproved_names' => [...]] */
+function getApprovalStatus(PDO $pdo, string $gradeLevel, string $class, string $session, string $term): array {
+    $stmt = $pdo->prepare(
+        "SELECT r.is_approved,
+                CONCAT(s.first_name, ' ', s.last_name) AS student_name
+         FROM   results r
+         JOIN   students s ON s.id = r.student_id
+         WHERE  s.grade_level = ? AND s.class = ? AND s.is_active = 1
+         AND    r.session = ? AND r.term = ?"
+    );
+    $stmt->execute([$gradeLevel, $class, $session, $term]);
+    $rows = $stmt->fetchAll();
+
+    $total      = count($rows);
+    $approved   = 0;
+    $unapproved = [];
+
+    foreach ($rows as $row) {
+        if ((int) $row['is_approved'] === 1) {
+            $approved++;
+        } else {
+            $unapproved[] = $row['student_name'];
+        }
+    }
+
+    return ['approved' => $approved, 'total' => $total, 'unapproved' => $unapproved];
+}
+
 $pdo = getDB();
 
 /* ============================================================
-   Shared helper — publish a single grade_level+class (classroom)
-   Returns count of students published.
+   Shared helper — publish a single grade_level+class
    ============================================================ */
 function publishSingleClass(PDO $pdo, int $adminId, string $gradeLevel, string $class, string $session, string $term): int {
     $stmt = $pdo->prepare(
@@ -108,9 +134,7 @@ function publishSingleClass(PDO $pdo, int $adminId, string $gradeLevel, string $
     $stmt->execute([$gradeLevel, $class, $session, $term]);
     $resultRows = $stmt->fetchAll();
 
-    if (empty($resultRows)) {
-        return 0;
-    }
+    if (empty($resultRows)) return 0;
 
     $totals = [];
     foreach ($resultRows as $row) {
@@ -125,16 +149,13 @@ function publishSingleClass(PDO $pdo, int $adminId, string $gradeLevel, string $
         $totalSum     = (float) $sum['total_sum'];
         $average      = $subjectCount > 0 ? round($totalSum / $subjectCount, 2) : 0;
 
-        $totals[$row['result_id']] = [
-            'total'   => $totalSum,
-            'average' => $average,
-        ];
+        $totals[$row['result_id']] = ['total' => $totalSum, 'average' => $average];
     }
 
     uasort($totals, fn($a, $b) => $b['total'] <=> $a['total']);
 
-    $position = 0;
-    $lastTotal = null;
+    $position      = 0;
+    $lastTotal     = null;
     $totalStudents = count($totals);
 
     $updateStmt = $pdo->prepare(
@@ -161,7 +182,7 @@ try {
     $pdo->beginTransaction();
 
     if ($mode === 'class') {
-        /* ── Single classroom publish ── */
+
         if (!in_array($gradeLevel, $validGradeLevels, true) || $class === '') {
             $pdo->rollBack();
             echo json_encode(['success' => false, 'message' => 'Invalid grade level or class.']);
@@ -176,24 +197,36 @@ try {
             exit;
         }
 
-        $count = publishSingleClass($pdo, (int) $admin['id'], $gradeLevel, $class, $session, $term);
+        /* ── Approval gate ── */
+        $approval = getApprovalStatus($pdo, $gradeLevel, $class, $session, $term);
 
-        if ($count === 0) {
+        if ($approval['total'] === 0) {
             $pdo->rollBack();
-            echo json_encode(['success' => false, 'message' => 'No results found for this grade level, class, session, and term. Enter scores first.']);
+            echo json_encode(['success' => false, 'message' => 'No results found for ' . htmlspecialchars($gradeLevel . ' ' . $class) . '. Enter scores first.']);
             exit;
         }
 
+        if ($approval['approved'] < $approval['total']) {
+            $pdo->rollBack();
+            $unapprovedCount = $approval['total'] - $approval['approved'];
+            echo json_encode([
+                'success' => false,
+                'message' => 'Cannot publish — ' . $unapprovedCount . ' student result(s) have not been approved by the Form Teacher yet. The Form Teacher must approve all results before publishing.',
+            ]);
+            exit;
+        }
+
+        $count = publishSingleClass($pdo, (int) $admin['id'], $gradeLevel, $class, $session, $term);
+
         $pdo->commit();
         echo json_encode([
-            'success' => true,
-            'message' => $count . ' student result(s) published for ' . htmlspecialchars($gradeLevel) . ' ' . htmlspecialchars($class) . '.',
+            'success'   => true,
+            'message'   => $count . ' student result(s) published for ' . htmlspecialchars($gradeLevel . ' ' . $class) . '.',
             'published' => $count,
         ]);
 
     } elseif ($mode === 'grade_level_cumulative') {
-        /* ── Cumulative ranking across all classes of one grade level ──
-           Requires results already class-published (total_score must exist) */
+
         if (!in_array($gradeLevel, $validGradeLevels, true)) {
             $pdo->rollBack();
             echo json_encode(['success' => false, 'message' => 'Invalid grade level.']);
@@ -208,6 +241,37 @@ try {
             exit;
         }
 
+        /* Check all classes in this grade level are published first */
+        $classStmt = $pdo->prepare(
+            "SELECT ca.class,
+                    COUNT(r.id) AS total_results,
+                    SUM(CASE WHEN r.is_published = 1 THEN 1 ELSE 0 END) AS published_results
+             FROM   class_arms ca
+             LEFT JOIN students s ON s.grade_level = ca.grade_level AND s.class = ca.class AND s.is_active = 1
+             LEFT JOIN results r ON r.student_id = s.id AND r.session = ? AND r.term = ?
+             WHERE  ca.grade_level = ? AND ca.is_active = 1
+             GROUP  BY ca.class"
+        );
+        $classStmt->execute([$session, $term, $gradeLevel]);
+        $classStatuses = $classStmt->fetchAll();
+
+        $unpublishedClasses = [];
+        foreach ($classStatuses as $cs) {
+            if ((int) $cs['total_results'] > 0 && (int) $cs['published_results'] < (int) $cs['total_results']) {
+                $unpublishedClasses[] = $gradeLevel . ' ' . $cs['class'];
+            }
+        }
+
+        if (!empty($unpublishedClasses)) {
+            $pdo->rollBack();
+            echo json_encode([
+                'success' => false,
+                'message' => 'Cannot calculate grade level rankings — the following classes have unpublished results: ' . implode(', ', $unpublishedClasses) . '. Publish all classes first.',
+            ]);
+            exit;
+        }
+
+        /* Rank all published students across the grade level */
         $stmt = $pdo->prepare(
             "SELECT r.id AS result_id, r.total_score
              FROM   results r
@@ -222,16 +286,15 @@ try {
             $pdo->rollBack();
             echo json_encode([
                 'success' => false,
-                'message' => 'No published class results found for ' . htmlspecialchars($gradeLevel) . '. Publish each class individually first, then run cumulative ranking.',
+                'message' => 'No published results found for ' . htmlspecialchars($gradeLevel) . '. Publish each class individually first.',
             ]);
             exit;
         }
 
-        /* Rank by total_score across the whole grade level */
         usort($rows, fn($a, $b) => (float) $b['total_score'] <=> (float) $a['total_score']);
 
-        $position = 0;
-        $lastTotal = null;
+        $position      = 0;
+        $lastTotal     = null;
         $totalStudents = count($rows);
 
         $updateStmt = $pdo->prepare(
@@ -249,13 +312,13 @@ try {
 
         $pdo->commit();
         echo json_encode([
-            'success' => true,
-            'message' => 'Cumulative grade level ranking calculated for ' . $totalStudents . ' students across all classes of ' . htmlspecialchars($gradeLevel) . '.',
+            'success'   => true,
+            'message'   => 'Grade level rankings calculated for ' . $totalStudents . ' students across all classes of ' . htmlspecialchars($gradeLevel) . '.',
             'published' => $totalStudents,
         ]);
 
     } elseif ($mode === 'bulk') {
-        /* ── Bulk: publish every active class in a grade level, or every grade level+class in a section ── */
+
         $gradeLevelsToProcess = [];
 
         if ($gradeLevel !== '' && in_array($gradeLevel, $validGradeLevels, true)) {
@@ -270,27 +333,41 @@ try {
             exit;
         }
 
-        $totalPublished = 0;
+        $totalPublished   = 0;
         $classesProcessed = 0;
-        $skipped = [];
+        $skipped          = [];
+        $unapprovedSkipped = [];
 
         foreach ($gradeLevelsToProcess as $gl) {
             $glSection = str_starts_with($gl, 'JSS') ? 'js' : 'ss';
-            if (!checkSectionPermission($admin, $glSection)) {
-                continue; // silently skip sections this admin can't touch
-            }
+            if (!checkSectionPermission($admin, $glSection)) continue;
 
-            $classStmt = $pdo->prepare("SELECT class FROM class_arms WHERE grade_level = ? AND is_active = 1 ORDER BY class ASC");
+            $classStmt = $pdo->prepare(
+                "SELECT class FROM class_arms WHERE grade_level = ? AND is_active = 1 ORDER BY class ASC"
+            );
             $classStmt->execute([$gl]);
             $classes = $classStmt->fetchAll(PDO::FETCH_COLUMN);
 
             foreach ($classes as $className) {
+                /* Check approval before bulk-publishing each class */
+                $approval = getApprovalStatus($pdo, $gl, $className, $session, $term);
+
+                if ($approval['total'] === 0) {
+                    $skipped[] = $gl . ' ' . $className . ' (no scores)';
+                    continue;
+                }
+
+                if ($approval['approved'] < $approval['total']) {
+                    $unapprovedSkipped[] = $gl . ' ' . $className . ' (not approved)';
+                    continue;
+                }
+
                 $count = publishSingleClass($pdo, (int) $admin['id'], $gl, $className, $session, $term);
                 if ($count > 0) {
                     $totalPublished += $count;
                     $classesProcessed++;
                 } else {
-                    $skipped[] = $gl . ' ' . $className;
+                    $skipped[] = $gl . ' ' . $className . ' (no scores)';
                 }
             }
         }
@@ -298,8 +375,11 @@ try {
         $pdo->commit();
 
         $message = $totalPublished . ' student result(s) published across ' . $classesProcessed . ' class(es).';
+        if (!empty($unapprovedSkipped)) {
+            $message .= ' Skipped — awaiting form teacher approval: ' . implode(', ', $unapprovedSkipped) . '.';
+        }
         if (!empty($skipped)) {
-            $message .= ' Skipped (no scores entered): ' . implode(', ', $skipped) . '.';
+            $message .= ' Skipped — no scores entered: ' . implode(', ', $skipped) . '.';
         }
 
         echo json_encode([
