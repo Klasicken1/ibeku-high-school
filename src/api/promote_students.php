@@ -31,7 +31,7 @@ $admin = currentAdmin();
 
 if (!in_array($admin['role'], ['superadmin', 'principal', 'form_teacher'], true)) {
     $_SESSION['admin_error'] = 'You do not have permission to perform this action.';
-    header('Location: ../admin/students.php');
+    header('Location: ../../public/admin/students.php');
     exit;
 }
 
@@ -65,7 +65,7 @@ $validActions = ['promote','retain','demote','expel','graduate'];
 
 if (empty($studentIds) || !is_array($studentIds)) {
     $_SESSION['admin_error'] = 'No students selected.';
-    header('Location: ../admin/' . $redirect);
+    header('Location: ../../public/admin/' . $redirect);
     exit;
 }
 
@@ -188,13 +188,13 @@ try {
 
     $_SESSION['admin_success'] = $processed . ' student(s) updated successfully.' .
         ($skipped > 0 ? ' ' . $skipped . ' skipped.' : '');
-    header('Location: ../admin/' . $redirect);
+    header('Location: ../../public/admin/' . $redirect);
     exit;
 
 } catch (PDOException $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     error_log('IHS promote_students error: ' . $e->getMessage());
     $_SESSION['admin_error'] = 'A server error occurred. Please try again.';
-    header('Location: ../admin/students.php');
+    header('Location: ../../public/admin/students.php');
     exit;
 }
