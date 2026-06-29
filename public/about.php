@@ -54,11 +54,6 @@ require_once '../src/includes/header.php';
 
     <div class="reveal">
       <div class="history-section__img">
-        <!--
-          REPLACE WITH REAL PHOTO:
-          <img src="<?php echo BASE_PATH; ?>assets/images/school-building.jpg"
-               alt="Ibeku High School — historical photo"/>
-        -->
         <div class="history-section__img-placeholder">
           <svg width="72" height="72" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/>
@@ -176,30 +171,13 @@ require_once '../src/includes/header.php';
       </div>
     </div>
 
-    <h3 style="text-align:center;font-size:1.5rem;color:var(--purple);margin:50px 0 20px">
-      Our Core Values
-    </h3>
+    <h3 style="text-align:center;font-size:1.5rem;color:var(--purple);margin:50px 0 20px">Our Core Values</h3>
     <div class="values-grid">
-      <div class="value-item reveal">
-        <span class="value-item__icon" aria-hidden="true">⚖️</span>
-        <h4>Integrity</h4>
-      </div>
-      <div class="value-item reveal">
-        <span class="value-item__icon" aria-hidden="true">🏆</span>
-        <h4>Excellence</h4>
-      </div>
-      <div class="value-item reveal">
-        <span class="value-item__icon" aria-hidden="true">🎖️</span>
-        <h4>Discipline</h4>
-      </div>
-      <div class="value-item reveal">
-        <span class="value-item__icon" aria-hidden="true">🤝</span>
-        <h4>Community</h4>
-      </div>
-      <div class="value-item reveal">
-        <span class="value-item__icon" aria-hidden="true">💡</span>
-        <h4>Innovation</h4>
-      </div>
+      <div class="value-item reveal"><span class="value-item__icon" aria-hidden="true">⚖️</span><h4>Integrity</h4></div>
+      <div class="value-item reveal"><span class="value-item__icon" aria-hidden="true">🏆</span><h4>Excellence</h4></div>
+      <div class="value-item reveal"><span class="value-item__icon" aria-hidden="true">🎖️</span><h4>Discipline</h4></div>
+      <div class="value-item reveal"><span class="value-item__icon" aria-hidden="true">🤝</span><h4>Community</h4></div>
+      <div class="value-item reveal"><span class="value-item__icon" aria-hidden="true">💡</span><h4>Innovation</h4></div>
     </div>
 
   </div>
@@ -221,36 +199,27 @@ require_once '../src/includes/header.php';
     <div class="anthem-card reveal">
       <span class="anthem-card__label">🎵 The Ibeku High School Anthem</span>
       <div class="anthem-card__verses">
-
         <div class="anthem-verse">
           <p>Ibeku High School, our noble alma mater,</p>
           <p>We gather here to honour your name,</p>
           <p>With hearts full of pride and voices united,</p>
           <p>We sing of your glory and timeless fame.</p>
         </div>
-
         <div class="anthem-divider"></div>
-
         <div class="anthem-verse">
           <p>In knowledge and wisdom, you guide us forward,</p>
           <p>In discipline strong, you shape every mind,</p>
           <p>Through challenges faced and victories celebrated,</p>
           <p>We carry your spirit throughout all of time.</p>
         </div>
-
         <div class="anthem-divider"></div>
-
         <div class="anthem-verse">
           <p>Ibeku, Ibeku, our light ever shining,</p>
           <p>From Umuahia your beacon burns bright,</p>
           <p>We pledge to uphold all you have taught us,</p>
           <p>And walk ever forward in truth and in light.</p>
         </div>
-
-        <p class="anthem-note">
-          * Placeholder lyrics — update with the official school anthem text before launch.
-        </p>
-
+        <p class="anthem-note">* Placeholder lyrics — update with the official school anthem text before launch.</p>
       </div>
     </div>
 
@@ -269,7 +238,6 @@ require_once '../src/includes/header.php';
     <p class="ssub">Ibeku High School maintains high standards of conduct. Every student is expected to uphold these rules at all times on and off school premises.</p>
 
     <div class="rules-grid">
-
       <div class="rule-card reveal">
         <h3 class="rule-card__title">👔 Dress &amp; Appearance</h3>
         <ul>
@@ -280,7 +248,6 @@ require_once '../src/includes/header.php';
           <li>School shoes and socks must match prescribed standards</li>
         </ul>
       </div>
-
       <div class="rule-card reveal">
         <h3 class="rule-card__title">📚 Academic Conduct</h3>
         <ul>
@@ -291,7 +258,6 @@ require_once '../src/includes/header.php';
           <li>Respect for teachers and fellow students is non-negotiable</li>
         </ul>
       </div>
-
       <div class="rule-card reveal">
         <h3 class="rule-card__title">🏫 General Behaviour</h3>
         <ul>
@@ -302,14 +268,14 @@ require_once '../src/includes/header.php';
           <li>Substance use of any kind is strictly prohibited</li>
         </ul>
       </div>
-
     </div>
+
   </div>
 </section>
 
 
 <!-- ═══════════════════════════════════════════
-     BOTH PRINCIPALS
+     BOTH PRINCIPALS — driven by Settings
      ═══════════════════════════════════════════ -->
 <section class="principals-section" id="principal-ss">
   <div class="principals-section__inner wrap">
@@ -322,36 +288,25 @@ require_once '../src/includes/header.php';
       </p>
     </div>
 
+    <?php $_site = getSettings(); ?>
+
     <div class="principals-grid">
 
       <!-- SS Principal -->
       <div class="principal-card reveal">
         <div class="principal-card__top principal-card__top--ss">
           <div class="principal-card__photo">
-            <!--
-              REPLACE WITH REAL PHOTO:
-              <img src="<?php echo BASE_PATH; ?>assets/images/staff/principal-ss.jpg"
-                   alt="Senior Secondary Principal"/>
-            -->
             <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
               <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
             </svg>
           </div>
           <span class="principal-card__badge">Senior Secondary Principal</span>
-          <!-- UPDATE: Replace with real SS Principal name -->
-          <h3 class="principal-card__name">[SS Principal's Full Name]</h3>
-          <p class="principal-card__title">Principal, Senior Secondary — Ibeku High School</p>
+          <h3 class="principal-card__name"><?php echo htmlspecialchars($_site['principal_ss_name']); ?></h3>
+          <p class="principal-card__title">Principal, Senior Secondary — <?php echo htmlspecialchars($_site['school_name']); ?></p>
         </div>
-        <div class="principal-card__body" id="principal-ss-body">
+        <div class="principal-card__body">
           <span class="principal-card__qmark" aria-hidden="true">&ldquo;</span>
-          <blockquote>
-            At Ibeku High School, we do not merely teach subjects — we shape futures.
-            Every student who walks through our gates carries within them the potential
-            to become a leader, a builder, a thinker. Our commitment is to help them
-            discover that potential and develop it to its fullest through academic
-            rigour, strong values, and a community of care that never gives up on
-            any child.
-          </blockquote>
+          <blockquote><?php echo nl2br(htmlspecialchars($_site['principal_ss_message'])); ?></blockquote>
         </div>
       </div>
 
@@ -359,28 +314,17 @@ require_once '../src/includes/header.php';
       <div class="principal-card reveal" id="principal-js">
         <div class="principal-card__top principal-card__top--js">
           <div class="principal-card__photo">
-            <!--
-              REPLACE WITH REAL PHOTO:
-              <img src="<?php echo BASE_PATH; ?>assets/images/staff/principal-js.jpg"
-                   alt="Junior Secondary Principal"/>
-            -->
             <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
               <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
             </svg>
           </div>
           <span class="principal-card__badge">Junior Secondary Principal</span>
-          <!-- UPDATE: Replace with real JS Principal name -->
-          <h3 class="principal-card__name">[JS Principal's Full Name]</h3>
-          <p class="principal-card__title">Principal, Junior Secondary — Ibeku High School</p>
+          <h3 class="principal-card__name"><?php echo htmlspecialchars($_site['principal_js_name']); ?></h3>
+          <p class="principal-card__title">Principal, Junior Secondary — <?php echo htmlspecialchars($_site['school_name']); ?></p>
         </div>
         <div class="principal-card__body">
           <span class="principal-card__qmark" aria-hidden="true">&ldquo;</span>
-          <blockquote>
-            The junior secondary years are the most formative in a child's academic
-            journey. At Ibeku High School, we ensure every JSS student builds a solid
-            foundation — not just in Mathematics and English, but in confidence,
-            curiosity, and the love of learning that will carry them through life.
-          </blockquote>
+          <blockquote><?php echo nl2br(htmlspecialchars($_site['principal_js_message'])); ?></blockquote>
         </div>
       </div>
 
@@ -400,56 +344,32 @@ require_once '../src/includes/header.php';
     <p class="ssub">Ibeku High School provides the infrastructure and resources our students need to learn, grow, and thrive.</p>
 
     <div class="facilities-grid">
-
       <div class="facility-card reveal">
         <div class="facility-card__img facility-card__img--1" aria-hidden="true">🔬</div>
-        <div class="facility-card__body">
-          <h3>Science Laboratory</h3>
-          <p>A fully equipped science lab supporting Physics, Chemistry, and Biology practicals for SSS students.</p>
-        </div>
+        <div class="facility-card__body"><h3>Science Laboratory</h3><p>A fully equipped science lab supporting Physics, Chemistry, and Biology practicals for SSS students.</p></div>
       </div>
-
       <div class="facility-card reveal">
         <div class="facility-card__img facility-card__img--2" aria-hidden="true">💻</div>
-        <div class="facility-card__body">
-          <h3>Computer Laboratory</h3>
-          <p>A modern ICT lab with desktop computers and internet access, recently refurbished through alumni donations.</p>
-        </div>
+        <div class="facility-card__body"><h3>Computer Laboratory</h3><p>A modern ICT lab with desktop computers and internet access, recently refurbished through alumni donations.</p></div>
       </div>
-
       <div class="facility-card reveal">
         <div class="facility-card__img facility-card__img--3" aria-hidden="true">📚</div>
-        <div class="facility-card__body">
-          <h3>School Library</h3>
-          <p>A well-stocked library with textbooks, reference materials, and reading resources for all year groups.</p>
-        </div>
+        <div class="facility-card__body"><h3>School Library</h3><p>A well-stocked library with textbooks, reference materials, and reading resources for all year groups.</p></div>
       </div>
-
       <div class="facility-card reveal">
         <div class="facility-card__img facility-card__img--4" aria-hidden="true">⚽</div>
-        <div class="facility-card__body">
-          <h3>Sports Fields</h3>
-          <p>Dedicated football pitch, basketball court, and athletics track supporting inter-house and inter-school competitions.</p>
-        </div>
+        <div class="facility-card__body"><h3>Sports Fields</h3><p>Dedicated football pitch, basketball court, and athletics track supporting inter-house and inter-school competitions.</p></div>
       </div>
-
       <div class="facility-card reveal">
         <div class="facility-card__img facility-card__img--5" aria-hidden="true">🎭</div>
-        <div class="facility-card__body">
-          <h3>Assembly Hall</h3>
-          <p>A large, covered assembly hall used for morning assembly, cultural events, prize-giving, and school functions.</p>
-        </div>
+        <div class="facility-card__body"><h3>Assembly Hall</h3><p>A large, covered assembly hall used for morning assembly, cultural events, prize-giving, and school functions.</p></div>
       </div>
-
       <div class="facility-card reveal">
         <div class="facility-card__img facility-card__img--6" aria-hidden="true">🏫</div>
-        <div class="facility-card__body">
-          <h3>Classrooms</h3>
-          <p>Well-ventilated, properly furnished classrooms across the JS and SS sections, designed for focused learning.</p>
-        </div>
+        <div class="facility-card__body"><h3>Classrooms</h3><p>Well-ventilated, properly furnished classrooms across the JS and SS sections, designed for focused learning.</p></div>
       </div>
-
     </div>
+
   </div>
 </section>
 
@@ -467,7 +387,6 @@ require_once '../src/includes/header.php';
       </div>
     </div>
 
-    <!-- Filter buttons — Phase 2 will filter by data-department -->
     <div class="staff-filter">
       <button class="filter-btn active">All Staff</button>
       <button class="filter-btn">Administration</button>
@@ -478,18 +397,15 @@ require_once '../src/includes/header.php';
     </div>
 
     <div class="staff-directory__grid">
-      <!--
-        UPDATE: Replace each card with real staff data.
-        To add a photo replace .staff-dir-card__initials with:
-        <img src="<?php echo BASE_PATH; ?>assets/images/staff/name.jpg" alt="Name"/>
-      -->
       <div class="staff-dir-card reveal">
         <div class="staff-dir-card__photo"><div class="staff-dir-card__initials">SP</div></div>
-        <h4>[SS Principal]</h4><p>SS Principal</p><span>Administration</span>
+        <h4><?php echo htmlspecialchars($_site['principal_ss_name']); ?></h4>
+        <p>SS Principal</p><span>Administration</span>
       </div>
       <div class="staff-dir-card reveal">
         <div class="staff-dir-card__photo"><div class="staff-dir-card__initials">JP</div></div>
-        <h4>[JS Principal]</h4><p>JS Principal</p><span>Administration</span>
+        <h4><?php echo htmlspecialchars($_site['principal_js_name']); ?></h4>
+        <p>JS Principal</p><span>Administration</span>
       </div>
       <div class="staff-dir-card reveal">
         <div class="staff-dir-card__photo"><div class="staff-dir-card__initials">VP</div></div>

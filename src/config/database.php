@@ -2,42 +2,19 @@
 /* ============================================================
    IBEKU HIGH SCHOOL — DATABASE CONNECTION
    File: src/config/database.php
-
-   Loads credentials from .env and returns a PDO connection.
-   Uses PDO with prepared statements throughout — never raw SQL
-   with user input.
-
-   USAGE in any PHP file:
-   ────────────────────────────────────────────────────────────
-   require_once '../src/config/database.php';
-   $pdo = getDB();
-   $stmt = $pdo->prepare('SELECT * FROM students WHERE admission_number = ?');
-   $stmt->execute([$admissionNumber]);
-   $student = $stmt->fetch();
-   ────────────────────────────────────────────────────────────
    ============================================================ */
 
 declare(strict_types=1);
 
-/* ── Load .env file ── */
 function loadEnv(string $path): void {
     if (!file_exists($path)) return;
-
     $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
-        /* Skip comments */
         if (str_starts_with(trim($line), '#')) continue;
-
-        /* Split on first = only */
         $parts = explode('=', $line, 2);
         if (count($parts) !== 2) continue;
-
         $key   = trim($parts[0]);
-        $value = trim($parts[1]);
-
-        /* Strip surrounding quotes */
-        $value = trim($value, '"\'');
-
+        $value = trim(trim($parts[1]), '"\'');
         if (!array_key_exists($key, $_ENV)) {
             $_ENV[$key] = $value;
             putenv("{$key}={$value}");
@@ -45,19 +22,14 @@ function loadEnv(string $path): void {
     }
 }
 
-/* Load .env from project root — works on both XAMPP and cPanel */
 $envPath = dirname(__DIR__, 2) . '/.env';
 loadEnv($envPath);
 
-/* ── Database connection singleton ── */
 $_pdo_instance = null;
 
 function getDB(): PDO {
     global $_pdo_instance;
-
-    if ($_pdo_instance !== null) {
-        return $_pdo_instance;
-    }
+    if ($_pdo_instance !== null) return $_pdo_instance;
 
     $host = $_ENV['DB_HOST'] ?? '127.0.0.1';
     $port = $_ENV['DB_PORT'] ?? '3306';
@@ -78,11 +50,8 @@ function getDB(): PDO {
         $_pdo_instance = new PDO($dsn, $user, $pass, $options);
         return $_pdo_instance;
     } catch (PDOException $e) {
-        /* Never expose connection details publicly */
         $isLocal = in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true);
-
         if ($isLocal) {
-            /* Show full error only on localhost */
             die('<pre style="background:#1a0835;color:#ff6b6b;padding:20px;font-size:14px">'
                 . 'DATABASE CONNECTION FAILED' . PHP_EOL
                 . 'Host: ' . $host . PHP_EOL
@@ -90,7 +59,6 @@ function getDB(): PDO {
                 . 'Error: ' . $e->getMessage()
                 . '</pre>');
         } else {
-            /* On production — log quietly and show generic message */
             error_log('IHS DB Connection failed: ' . $e->getMessage());
             die('<p style="text-align:center;padding:40px;font-family:sans-serif">'
                 . 'The website is temporarily unavailable. Please try again shortly.'
@@ -99,7 +67,49 @@ function getDB(): PDO {
     }
 }
 
-/* ── Grade calculator — used by result APIs ── */
+/* ── Settings loader — cached per request ── */
+$_settings_cache = null;
+
+function getSettings(): array {
+    global $_settings_cache;
+    if ($_settings_cache !== null) return $_settings_cache;
+
+    $defaults = [
+        'school_name'            => 'Ibeku High School',
+        'school_tagline'         => 'Excellence in Education',
+        'school_address'         => 'Umuahia, Abia State, Nigeria',
+        'school_phone'           => '+234 000 000 0000',
+        'school_email'           => 'info@ibekuhighschool.edu.ng',
+        'school_website'         => 'https://ibekuhighschool.edu.ng',
+        'current_session'        => '2025/2026',
+        'current_term'           => 'first',
+        'next_term_resumption'   => '',
+        'result_checker_open'    => '1',
+        'admissions_open'        => '1',
+        'announcement_show'      => '0',
+        'announcement_text'      => '',
+        'announcement_link'      => '',
+        'announcement_link_text' => 'Read more →',
+        'principal_ss_name'      => '[SS Principal\'s Full Name]',
+        'principal_ss_message'   => 'At Ibeku High School, we do not merely teach subjects — we shape futures. Every student who walks through our gates carries within them the potential to become a leader, a builder, a thinker.',
+        'principal_js_name'      => '[JS Principal\'s Full Name]',
+        'principal_js_message'   => 'The junior secondary years are the most formative in a child\'s academic journey. At Ibeku High School, we ensure every JSS student builds a solid foundation — not just in Mathematics and English, but in confidence, curiosity, and the love of learning.',
+        'school_motto'           => 'Knowledge, Discipline, Excellence',
+    ];
+
+    try {
+        $pdo  = getDB();
+        $rows = $pdo->query('SELECT `key`, `value` FROM settings')->fetchAll(PDO::FETCH_KEY_PAIR);
+        $_settings_cache = array_merge($defaults, $rows);
+    } catch (Throwable $e) {
+        /* Settings table may not exist yet — fall back to defaults silently */
+        $_settings_cache = $defaults;
+    }
+
+    return $_settings_cache;
+}
+
+/* ── Grade calculator ── */
 function calculateGrade(float $total): array {
     if      ($total >= 75) return ['grade' => 'A1', 'remark' => 'Excellent'];
     elseif  ($total >= 70) return ['grade' => 'B2', 'remark' => 'Very Good'];
@@ -112,7 +122,6 @@ function calculateGrade(float $total): array {
     else                   return ['grade' => 'F9', 'remark' => 'Fail'];
 }
 
-/* ── Sanitise output — use on all data going to HTML ── */
 function esc(string $value): string {
     return htmlspecialchars($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 }

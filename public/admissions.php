@@ -10,6 +10,32 @@ $currentPage = 'admissions';
 $pageCss     = 'admissions';
 
 require_once '../src/includes/header.php';
+
+/* ── Settings — admissions toggle + contact details ── */
+$_site = getSettings();
+
+/* If admissions are closed show notice and exit */
+if ($_site['admissions_open'] !== '1'):
+?>
+<div style="max-width:600px;margin:80px auto;text-align:center;padding:40px 24px;background:#fff;border:1px solid #e8e6f0;border-radius:16px;font-family:'DM Sans',sans-serif">
+  <div style="font-size:48px;margin-bottom:16px">📋</div>
+  <h2 style="color:#3d1a6e;font-family:'Playfair Display',serif;margin-bottom:12px">Admissions Currently Closed</h2>
+  <p style="color:#6b6b80;font-size:15px;line-height:1.6">
+    We are not currently accepting new applications. Please check back during the next admissions window or contact the school office to register your interest.
+  </p>
+  <div style="margin-top:20px;display:flex;flex-direction:column;gap:8px;align-items:center;font-size:14px;color:#6b6b80">
+    <span>📞 <?php echo htmlspecialchars($_site['school_phone']); ?></span>
+    <span>✉ <?php echo htmlspecialchars($_site['school_email']); ?></span>
+    <span>📍 <?php echo htmlspecialchars($_site['school_address']); ?></span>
+  </div>
+  <p style="margin-top:16px">
+    <a href="<?php echo BASE_PATH; ?>contact.php" style="color:#4a90d9">Contact the school office →</a>
+  </p>
+</div>
+<?php
+require_once '../src/includes/footer.php';
+exit;
+endif;
 ?>
 
 
@@ -155,20 +181,17 @@ require_once '../src/includes/header.php';
           <ul>
             <li>Applicants must be between 10 and 13 years of age at the time of entry</li>
           </ul>
-
           <h4>Academic Qualification</h4>
           <ul>
             <li>Successful completion of Primary 6</li>
             <li>Primary School Leaving Certificate (PSLC) or equivalent</li>
             <li>Strong performance in English Language and Mathematics</li>
           </ul>
-
           <h4>Entrance Assessment</h4>
           <ul>
             <li>Written entrance examination in English Language and Mathematics</li>
             <li>Candidates are ranked and offered places based on performance</li>
           </ul>
-
           <h4>Documents Required</h4>
           <ul>
             <li>Completed application form</li>
@@ -192,20 +215,17 @@ require_once '../src/includes/header.php';
           <ul>
             <li>Applicants must be between 14 and 17 years of age at the time of entry</li>
           </ul>
-
           <h4>Academic Qualification</h4>
           <ul>
             <li>Successful completion of JSS 3 with a valid Junior WAEC (BECE) result</li>
             <li>Credit or Merit in English Language and Mathematics</li>
             <li>Minimum of 5 passes in core Junior WAEC subjects</li>
           </ul>
-
           <h4>Entrance Assessment</h4>
           <ul>
             <li>Written entrance examination in English Language, Mathematics, and Basic Science</li>
             <li>Interview for shortlisted candidates</li>
           </ul>
-
           <h4>Documents Required</h4>
           <ul>
             <li>Completed application form</li>
@@ -236,36 +256,32 @@ require_once '../src/includes/header.php';
     </div>
 
     <div class="steps-grid">
-
       <div class="step-card reveal">
         <div class="step-card__num">1</div>
         <span class="step-card__icon" aria-hidden="true">📝</span>
         <h3>Submit Enquiry</h3>
         <p>Fill the online enquiry form below or visit the school office to collect a printed application form. Our admissions team will contact you within 48 hours.</p>
       </div>
-
       <div class="step-card reveal">
         <div class="step-card__num">2</div>
         <span class="step-card__icon" aria-hidden="true">📂</span>
         <h3>Submit Documents</h3>
         <p>Return the completed application form with all required documents — certificates, birth certificate, report card, and 4 passport photographs.</p>
       </div>
-
       <div class="step-card reveal">
         <div class="step-card__num">3</div>
         <span class="step-card__icon" aria-hidden="true">✏️</span>
         <h3>Entrance Assessment</h3>
         <p>Eligible candidates are invited to sit the entrance examination in English Language and Mathematics. Results are communicated within one week.</p>
       </div>
-
       <div class="step-card reveal">
         <div class="step-card__num">4</div>
         <span class="step-card__icon" aria-hidden="true">🎉</span>
         <h3>Offer &amp; Enrolment</h3>
         <p>Successful candidates receive an offer letter. Complete registration by paying the required fees and submitting any outstanding documents.</p>
       </div>
-
     </div>
+
   </div>
 </section>
 
@@ -276,21 +292,20 @@ require_once '../src/includes/header.php';
 <section class="fees-dates-section" id="fees">
   <div class="fees-dates-section__inner wrap">
 
-    <!-- Fees -->
     <div class="fees-card reveal">
       <div class="fees-card__header">
         <h3>School Fees</h3>
-        <p>2024/2025 Academic Session — indicative figures</p>
+        <p><?php echo htmlspecialchars($_site['current_session']); ?> Academic Session — indicative figures</p>
       </div>
       <div class="fees-table">
         <?php
         $fees = [
-          ['Application Form',          '₦2,000'],
+          ['Application Form',              '₦2,000'],
           ['Acceptance Fee (new students)', '₦5,000'],
-          ['Tuition — JSS (per term)',   '₦[Amount]'],
-          ['Tuition — SSS (per term)',   '₦[Amount]'],
-          ['Levies &amp; Development',   '₦[Amount]'],
-          ['PTA Dues (per session)',      '₦[Amount]'],
+          ['Tuition — JSS (per term)',      '₦[Amount]'],
+          ['Tuition — SSS (per term)',      '₦[Amount]'],
+          ['Levies &amp; Development',      '₦[Amount]'],
+          ['PTA Dues (per session)',         '₦[Amount]'],
         ];
         foreach ($fees as $fee): ?>
         <div class="fees-row">
@@ -305,11 +320,10 @@ require_once '../src/includes/header.php';
       </div>
     </div>
 
-    <!-- Important Dates -->
     <div class="dates-card reveal">
       <div class="dates-card__header">
         <h3>Important Dates</h3>
-        <p>2025/2026 Admissions Calendar</p>
+        <p><?php echo htmlspecialchars($_site['current_session']); ?> Admissions Calendar</p>
       </div>
       <div class="dates-table">
         <?php
@@ -345,7 +359,7 @@ require_once '../src/includes/header.php';
 <section class="application-form-section" id="apply-now">
   <div class="application-form-section__inner wrap">
 
-    <!-- Left: contact info -->
+    <!-- Left: contact info — driven by settings -->
     <div class="application-form-section__info reveal">
       <span class="slabel">Get in Touch</span>
       <h2 class="stitle">Start Your <span>Application</span></h2>
@@ -357,21 +371,21 @@ require_once '../src/includes/header.php';
           <span class="contact-option__icon" aria-hidden="true">📍</span>
           <div class="contact-option__text">
             <strong>Visit Us</strong>
-            <span>Ibeku High School, Umuahia, Abia State</span>
+            <span><?php echo htmlspecialchars($_site['school_address']); ?></span>
           </div>
         </div>
         <div class="contact-option">
           <span class="contact-option__icon" aria-hidden="true">📞</span>
           <div class="contact-option__text">
             <strong>Call the School Office</strong>
-            <span>+234 000 000 0000</span>
+            <span><?php echo htmlspecialchars($_site['school_phone']); ?></span>
           </div>
         </div>
         <div class="contact-option">
           <span class="contact-option__icon" aria-hidden="true">✉️</span>
           <div class="contact-option__text">
             <strong>Email Admissions</strong>
-            <span>admissions@ibekuhighschool.edu.ng</span>
+            <span><?php echo htmlspecialchars($_site['school_email']); ?></span>
           </div>
         </div>
         <div class="contact-option">
@@ -456,8 +470,16 @@ require_once '../src/includes/header.php';
           <label class="form-label" for="admSession">Academic Session</label>
           <select class="form-input" id="admSession">
             <option value="">Select session</option>
-            <option>2025/2026</option>
-            <option>2026/2027</option>
+            <?php
+            $currentSession = $_site['current_session'] ?? '2025/2026';
+            $sessionYear    = (int) substr($currentSession, 0, 4);
+            for ($y = $sessionYear; $y <= $sessionYear + 1; $y++):
+                $sess = $y . '/' . ($y + 1);
+            ?>
+            <option value="<?php echo $sess; ?>" <?php echo $sess === $currentSession ? 'selected' : ''; ?>>
+              <?php echo $sess; ?>
+            </option>
+            <?php endfor; ?>
           </select>
         </div>
       </div>
@@ -477,13 +499,10 @@ require_once '../src/includes/header.php';
           style="resize:vertical"></textarea>
       </div>
 
-      <button
-        class="btn--apply"
-        onclick="submitAdmissionForm()">
+      <button class="btn--apply" onclick="submitAdmissionForm()">
         Submit Admissions Enquiry &rarr;
       </button>
 
-      <!-- Success message — shown by JS after submit -->
       <div class="form-success" id="admSuccess">
         <p>✅ Enquiry Received!</p>
         <span>
@@ -517,41 +536,24 @@ require_once '../src/includes/header.php';
     <div class="faq-list">
       <?php
       $faqs = [
-        [
-          'q' => 'When does the admissions process open each year?',
-          'a' => 'Application forms are typically made available at the beginning of the year, usually January or February, for entry in the following September. Contact the school office to confirm the exact dates for the current admissions cycle.',
-        ],
-        [
-          'q' => 'Is there an entrance examination?',
-          'a' => 'Yes. All applicants — for both JSS 1 and SSS 1 entry — are required to sit a written entrance examination in English Language and Mathematics. SSS 1 applicants also sit Basic Science. Candidates are offered places based on their examination performance.',
-        ],
-        [
-          'q' => 'Can a student transfer from another school into a class other than JSS 1 or SSS 1?',
-          'a' => 'Transfer admissions into other class levels are considered on a case-by-case basis, subject to availability of space and the student meeting academic requirements. Contact the admissions office directly to enquire about transfer placements.',
-        ],
-        [
-          'q' => 'Is the school co-educational?',
-          'a' => 'Yes. Ibeku High School is a co-educational government secondary school, admitting both male and female students across all class levels from JSS 1 to SSS 3.',
-        ],
-        [
-          'q' => 'What happens after the entrance examination?',
-          'a' => 'Results of the entrance examination are communicated to applicants within one week. Successful candidates receive an offer letter and are given a deadline to complete registration by paying the required fees and submitting any outstanding documents.',
-        ],
-        [
-          'q' => 'Are there scholarships or fee waivers available?',
-          'a' => 'The school occasionally offers support for exceptionally talented students in financial need. Enquire at the admissions office about current scholarship and bursary arrangements. The IHS Old Students Association also runs a support fund for students from difficult circumstances.',
-        ],
-        [
-          'q' => 'What is the school uniform?',
-          'a' => 'Ibeku High School\'s uniform consists of a light blue shirt and dark purple trousers or skirt. Full uniform details including sports kit requirements are provided in the school prospectus issued at the time of application.',
-        ],
+        ['q' => 'When does the admissions process open each year?',
+         'a' => 'Application forms are typically made available at the beginning of the year, usually January or February, for entry in the following September. Contact the school office to confirm the exact dates for the current admissions cycle.'],
+        ['q' => 'Is there an entrance examination?',
+         'a' => 'Yes. All applicants — for both JSS 1 and SSS 1 entry — are required to sit a written entrance examination in English Language and Mathematics. SSS 1 applicants also sit Basic Science. Candidates are offered places based on their examination performance.'],
+        ['q' => 'Can a student transfer from another school into a class other than JSS 1 or SSS 1?',
+         'a' => 'Transfer admissions into other class levels are considered on a case-by-case basis, subject to availability of space and the student meeting academic requirements. Contact the admissions office directly to enquire about transfer placements.'],
+        ['q' => 'Is the school co-educational?',
+         'a' => 'Yes. Ibeku High School is a co-educational government secondary school, admitting both male and female students across all class levels from JSS 1 to SSS 3.'],
+        ['q' => 'What happens after the entrance examination?',
+         'a' => 'Results of the entrance examination are communicated to applicants within one week. Successful candidates receive an offer letter and are given a deadline to complete registration by paying the required fees and submitting any outstanding documents.'],
+        ['q' => 'Are there scholarships or fee waivers available?',
+         'a' => 'The school occasionally offers support for exceptionally talented students in financial need. Enquire at the admissions office about current scholarship and bursary arrangements. The IHS Old Students Association also runs a support fund for students from difficult circumstances.'],
+        ['q' => 'What is the school uniform?',
+         'a' => 'Ibeku High School\'s uniform consists of a light blue shirt and dark purple trousers or skirt. Full uniform details including sports kit requirements are provided in the school prospectus issued at the time of application.'],
       ];
       foreach ($faqs as $i => $faq): ?>
       <div class="faq-item reveal" id="admfaq-<?php echo $i; ?>">
-        <button
-          class="faq-item__question"
-          onclick="toggleAdmFaq(<?php echo $i; ?>)"
-          aria-expanded="false">
+        <button class="faq-item__question" onclick="toggleAdmFaq(<?php echo $i; ?>)" aria-expanded="false">
           <span><?php echo htmlspecialchars($faq['q']); ?></span>
           <span class="faq-item__icon" aria-hidden="true">+</span>
         </button>
@@ -569,7 +571,6 @@ require_once '../src/includes/header.php';
 <?php require_once '../src/includes/footer.php'; ?>
 
 <script>
-/* Admissions form submit — sends to src/api/submit_admission.php */
 function submitAdmissionForm() {
   var required = ['admParentFirst','admParentLast','admEmail','admPhone',
                   'admStudentFirst','admStudentLast','admClass'];
@@ -601,46 +602,42 @@ function submitAdmissionForm() {
   if (btn) { btn.textContent = 'Submitting…'; btn.disabled = true; }
 
   fetch('/ibeku-high-school/src/api/submit_admission.php', { method: 'POST', body: formData })
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
       if (data.success) {
         var successEl = document.getElementById('admSuccess');
         successEl.querySelector('span').textContent = data.message;
         successEl.style.display = 'block';
         successEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        required.forEach(function (id) { document.getElementById(id).value = ''; });
-        document.getElementById('admDob').value = '';
-        document.getElementById('admGender').value = '';
+        required.forEach(function(id) { document.getElementById(id).value = ''; });
+        document.getElementById('admDob').value     = '';
+        document.getElementById('admGender').value  = '';
         document.getElementById('admSession').value = '';
         document.getElementById('admPrevSchool').value = '';
         document.getElementById('admMessage').value = '';
       } else if (data.errors) {
-        var firstError = Object.values(data.errors)[0];
-        alert(firstError);
+        alert(Object.values(data.errors)[0]);
       } else {
         alert(data.message || 'Something went wrong. Please try again.');
       }
     })
-    .catch(function (err) {
+    .catch(function(err) {
       console.error('Admission form error:', err);
       alert('A connection error occurred. Please try again.');
     })
-    .finally(function () {
+    .finally(function() {
       if (btn) { btn.textContent = 'Submit Admissions Enquiry →'; btn.disabled = false; }
     });
 }
 
-/* FAQ accordion */
 function toggleAdmFaq(index) {
   var item   = document.getElementById('admfaq-' + index);
   var isOpen = item ? item.classList.contains('open') : false;
-
   document.querySelectorAll('.faq-item.open').forEach(function(el) {
     el.classList.remove('open');
     var b = el.querySelector('.faq-item__question');
     if (b) b.setAttribute('aria-expanded', 'false');
   });
-
   if (!isOpen && item) {
     item.classList.add('open');
     var btn = item.querySelector('.faq-item__question');

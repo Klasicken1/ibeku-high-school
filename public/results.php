@@ -11,6 +11,32 @@ $pageCss     = 'results';
 $pageJs      = 'results';
 
 require_once '../src/includes/header.php';
+
+/* ── Settings — result checker toggle + session defaults ── */
+$_site = getSettings();
+
+/* If result checker is closed show notice and exit */
+if ($_site['result_checker_open'] !== '1'):
+?>
+<div style="max-width:600px;margin:80px auto;text-align:center;padding:40px 24px;background:#fff;border:1px solid #e8e6f0;border-radius:16px;font-family:'DM Sans',sans-serif">
+  <div style="font-size:48px;margin-bottom:16px">🔒</div>
+  <h2 style="color:#3d1a6e;font-family:'Playfair Display',serif;margin-bottom:12px">Result Checker Unavailable</h2>
+  <p style="color:#6b6b80;font-size:15px;line-height:1.6">
+    The online result checker is currently closed. Results will be made available after the examination period.
+    Please check back later or contact the school office for assistance.
+  </p>
+  <p style="margin-top:20px;font-size:14px;color:#6b6b80">
+    📞 <?php echo htmlspecialchars($_site['school_phone']); ?> &nbsp;|&nbsp;
+    ✉ <?php echo htmlspecialchars($_site['school_email']); ?>
+  </p>
+  <p style="margin-top:16px">
+    <a href="<?php echo BASE_PATH; ?>contact.php" style="color:#4a90d9">Contact the school office →</a>
+  </p>
+</div>
+<?php
+require_once '../src/includes/footer.php';
+exit;
+endif;
 ?>
 
 
@@ -127,17 +153,25 @@ require_once '../src/includes/header.php';
           <label class="form-label" for="rcSession">Session</label>
           <select class="form-input" id="rcSession">
             <option value="">Select session</option>
-            <option value="2025/2026">2025/2026</option>
-            <option value="2024/2025">2024/2025</option>
+            <?php
+            $currentSession = $_site['current_session'] ?? '2025/2026';
+            $sessionYear    = (int) substr($currentSession, 0, 4);
+            for ($y = $sessionYear; $y >= $sessionYear - 3; $y--):
+                $sess = $y . '/' . ($y + 1);
+            ?>
+            <option value="<?php echo $sess; ?>" <?php echo $sess === $currentSession ? 'selected' : ''; ?>>
+              <?php echo $sess; ?>
+            </option>
+            <?php endfor; ?>
           </select>
         </div>
         <div class="form-group">
           <label class="form-label" for="rcTerm">Term</label>
           <select class="form-input" id="rcTerm">
             <option value="">Select term</option>
-            <option value="first">First Term</option>
-            <option value="second">Second Term</option>
-            <option value="third">Third Term</option>
+            <option value="first"  <?php echo $_site['current_term'] === 'first'  ? 'selected' : ''; ?>>First Term</option>
+            <option value="second" <?php echo $_site['current_term'] === 'second' ? 'selected' : ''; ?>>Second Term</option>
+            <option value="third"  <?php echo $_site['current_term'] === 'third'  ? 'selected' : ''; ?>>Third Term</option>
           </select>
         </div>
       </div>
@@ -155,7 +189,7 @@ require_once '../src/includes/header.php';
         <div class="result-panel__meta" id="rcPanelMeta"></div>
         <div class="result-panel__subjects" id="rcPanelSubjects"></div>
         <div class="result-panel__footer">
-          <p>Ibeku High School, Umuahia &mdash; Official Result</p>
+          <p><?php echo htmlspecialchars($_site['school_name']); ?>, Umuahia &mdash; Official Result</p>
           <button
             class="btn btn--ghost btn--sm"
             onclick="printResult()"
@@ -184,11 +218,11 @@ require_once '../src/includes/header.php';
         <!-- Header -->
         <div class="rs-header">
           <div class="rs-header__logo">IHS</div>
-          <div class="rs-header__school">Ibeku High School</div>
+          <div class="rs-header__school"><?php echo htmlspecialchars($_site['school_name']); ?></div>
           <div class="rs-header__address">
-            Umuahia, Abia State, Nigeria &nbsp;|&nbsp;
-            Tel: +234 000 000 0000 &nbsp;|&nbsp;
-            info@ibekuhighschool.edu.ng
+            <?php echo htmlspecialchars($_site['school_address']); ?> &nbsp;|&nbsp;
+            Tel: <?php echo htmlspecialchars($_site['school_phone']); ?> &nbsp;|&nbsp;
+            <?php echo htmlspecialchars($_site['school_email']); ?>
           </div>
           <div class="rs-header__title" id="rsPrintTitle">Student Academic Report</div>
         </div>
@@ -295,8 +329,9 @@ require_once '../src/includes/header.php';
         </div>
 
         <div class="rs-watermark">
+          <?php echo htmlspecialchars($_site['school_motto']); ?> &nbsp;|&nbsp;
           This result slip is computer-generated. For an official stamped copy, contact the school office.
-          &nbsp;|&nbsp; Ibeku High School, Umuahia, Abia State
+          &nbsp;|&nbsp; <?php echo htmlspecialchars($_site['school_name']); ?>, Umuahia, Abia State
         </div>
 
       </div><!-- end .result-sheet -->
