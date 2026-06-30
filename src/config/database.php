@@ -75,26 +75,49 @@ function getSettings(): array {
     if ($_settings_cache !== null) return $_settings_cache;
 
     $defaults = [
+        /* School Identity */
         'school_name'            => 'Ibeku High School',
         'school_tagline'         => 'Excellence in Education',
         'school_address'         => 'Umuahia, Abia State, Nigeria',
         'school_phone'           => '+234 000 000 0000',
         'school_email'           => 'info@ibekuhighschool.edu.ng',
         'school_website'         => 'https://ibekuhighschool.edu.ng',
-        'current_session'        => '2025/2026',
-        'current_term'           => 'first',
-        'next_term_resumption'   => '',
-        'result_checker_open'    => '1',
-        'admissions_open'        => '1',
-        'announcement_show'      => '0',
-        'announcement_text'      => '',
-        'announcement_link'      => '',
-        'announcement_link_text' => 'Read more →',
+        'school_motto'           => 'Knowledge, Discipline, Excellence',
+        'school_hours'           => 'Mon – Fri: 8:00 AM – 3:00 PM',
+
+        /* Principals */
         'principal_ss_name'      => '[SS Principal\'s Full Name]',
         'principal_ss_message'   => 'At Ibeku High School, we do not merely teach subjects — we shape futures. Every student who walks through our gates carries within them the potential to become a leader, a builder, a thinker.',
         'principal_js_name'      => '[JS Principal\'s Full Name]',
         'principal_js_message'   => 'The junior secondary years are the most formative in a child\'s academic journey. At Ibeku High School, we ensure every JSS student builds a solid foundation — not just in Mathematics and English, but in confidence, curiosity, and the love of learning.',
-        'school_motto'           => 'Knowledge, Discipline, Excellence',
+
+        /* Academic Year */
+        'current_session'        => '2025/2026',
+        'current_term'           => 'first',
+        'next_term_resumption'   => '',
+
+        /* Feature Toggles */
+        'result_checker_open'    => '1',
+        'admissions_open'        => '1',
+
+        /* Announcement Bar (persistent, below nav) */
+        'announcement_show'      => '0',
+        'announcement_text'      => '',
+        'announcement_link'      => '',
+        'announcement_link_text' => 'Read more →',
+
+        /* Popup Notification (intrusive — scroll/time triggered) */
+        'popup_show'             => '0',
+        'popup_title'            => '',
+        'popup_text'             => '',
+        'popup_link'             => '',
+        'popup_link_text'        => 'Learn more →',
+        'popup_trigger_scroll'   => '20',
+        'popup_trigger_seconds'  => '5',
+
+        /* Homepage YouTube Embed */
+        'youtube_video_id'       => '',
+        'youtube_video_title'    => 'A Look Inside Ibeku High School',
     ];
 
     try {
@@ -102,7 +125,6 @@ function getSettings(): array {
         $rows = $pdo->query('SELECT `key`, `value` FROM settings')->fetchAll(PDO::FETCH_KEY_PAIR);
         $_settings_cache = array_merge($defaults, $rows);
     } catch (Throwable $e) {
-        /* Settings table may not exist yet — fall back to defaults silently */
         $_settings_cache = $defaults;
     }
 

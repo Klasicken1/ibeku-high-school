@@ -10,7 +10,7 @@ if ($_SERVER['HTTP_HOST'] === 'localhost') {
     define('BASE_PATH', '/');
 }
 
-/* ── Load settings — used for topbar, announcement bar ── */
+/* ── Load settings — used for nav, announcement bar, footer ── */
 require_once dirname(__DIR__) . '/config/database.php';
 $_site = getSettings();
 ?>
@@ -38,23 +38,8 @@ $_site = getSettings();
 <body>
 
 <!-- ═══════════════════════════════════════════
-     TOPBAR
-     ═══════════════════════════════════════════ -->
-<div class="topbar">
-  <div class="topbar__left">
-    <span>📍 <?php echo htmlspecialchars($_site['school_address']); ?></span>
-    <span class="topbar__divider"></span>
-    <span>🕐 Mon – Fri: 8:00 AM – 3:00 PM</span>
-  </div>
-  <div class="topbar__right">
-    <a href="mailto:<?php echo htmlspecialchars($_site['school_email']); ?>">✉ <?php echo htmlspecialchars($_site['school_email']); ?></a>
-    <span class="topbar__divider"></span>
-    <a href="tel:<?php echo htmlspecialchars(preg_replace('/\s+/', '', $_site['school_phone'])); ?>">📞 <?php echo htmlspecialchars($_site['school_phone']); ?></a>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════
      STICKY NAVIGATION
+     (Topbar removed — contact info now lives in the footer)
      ═══════════════════════════════════════════ -->
 <nav class="nav">
   <div class="nav__inner">
@@ -132,18 +117,20 @@ $_site = getSettings();
 
 <!-- ═══════════════════════════════════════════
      ANNOUNCEMENT BAR — controlled from Settings
+     Dismiss handled in main.js — closes smoothly and
+     remembers dismissal for the session via sessionStorage.
      ═══════════════════════════════════════════ -->
 <?php if ($_site['announcement_show'] === '1' && $_site['announcement_text'] !== ''): ?>
 <div class="ann-bar" id="annBar" role="alert" aria-live="polite">
   <span class="ann-bar__pill">NOTICE</span>
-  <span>
+  <span class="ann-bar__text">
     <?php echo htmlspecialchars($_site['announcement_text']); ?>
-    <?php if ($_site['announcement_link']): ?>
-    &nbsp;<a href="<?php echo htmlspecialchars($_site['announcement_link']); ?>">
+    <?php if (!empty($_site['announcement_link'])): ?>
+    <a href="<?php echo htmlspecialchars($_site['announcement_link']); ?>" class="ann-bar__link">
       <?php echo htmlspecialchars($_site['announcement_link_text'] ?: 'Read more →'); ?>
     </a>
     <?php endif; ?>
   </span>
-  <button class="ann-bar__close" id="annBarClose" aria-label="Dismiss announcement">&#10005;</button>
+  <button class="ann-bar__close" id="annBarClose" type="button" aria-label="Dismiss announcement">&#10005;</button>
 </div>
 <?php endif; ?>

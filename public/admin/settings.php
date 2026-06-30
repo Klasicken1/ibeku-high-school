@@ -5,8 +5,8 @@
 
    Accessible to: superadmin only
    Controls school identity, principal details, academic year,
-   feature toggles, and the site-wide announcement banner.
-   All values read via getSettings() throughout the site.
+   feature toggles, announcement banner, popup notification,
+   YouTube embed, and school operating hours.
    ============================================================ */
 
 declare(strict_types=1);
@@ -43,8 +43,7 @@ $s = getSettings();
 /* ── Handle form submission ── */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $section = trim($_POST['section'] ?? 'school');
-
-    $toSave = [];
+    $toSave  = [];
 
     if ($section === 'school') {
         $toSave = [
@@ -55,6 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'school_email'   => trim($_POST['school_email']   ?? ''),
             'school_website' => trim($_POST['school_website'] ?? ''),
             'school_motto'   => trim($_POST['school_motto']   ?? ''),
+            'school_hours'   => trim($_POST['school_hours']   ?? ''),
         ];
         if ($toSave['school_name'] === '') {
             $message = 'School name is required.'; $messageType = 'error';
@@ -89,6 +89,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'announcement_link'      => trim($_POST['announcement_link']      ?? ''),
             'announcement_link_text' => trim($_POST['announcement_link_text'] ?? 'Read more →'),
         ];
+
+    } elseif ($section === 'popup') {
+        $toSave = [
+            'popup_show'            => isset($_POST['popup_show']) ? '1' : '0',
+            'popup_title'           => trim($_POST['popup_title']           ?? ''),
+            'popup_text'            => trim($_POST['popup_text']            ?? ''),
+            'popup_link'            => trim($_POST['popup_link']            ?? ''),
+            'popup_link_text'       => trim($_POST['popup_link_text']       ?? 'Learn more →'),
+            'popup_trigger_scroll'  => (string) max(0, min(100, (int) ($_POST['popup_trigger_scroll']  ?? 20))),
+            'popup_trigger_seconds' => (string) max(0, min(120, (int) ($_POST['popup_trigger_seconds'] ?? 5))),
+        ];
+
+    } elseif ($section === 'media') {
+        $ytId = trim($_POST['youtube_video_id'] ?? '');
+        /* Accept full YouTube URLs or bare video IDs */
+        if ($ytId && preg_match('/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $ytId, $m)) {
+            $ytId = $m[1];
+        }
+        $toSave = [
+            'youtube_video_id'    => $ytId,
+            'youtube_video_title' => trim($_POST['youtube_video_title'] ?? ''),
+        ];
     }
 
     if ($message === '' && !empty($toSave)) {
@@ -100,11 +122,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach ($toSave as $key => $value) {
                 $upsert->execute([$key, $value]);
             }
-            /* Bust the cache so getSettings() re-reads on next call */
             global $_settings_cache;
             $_settings_cache = null;
             $s = getSettings();
-
             $message = 'Settings saved.'; $messageType = 'success';
         } catch (PDOException $e) {
             error_log('IHS settings save error: ' . $e->getMessage());
@@ -123,8 +143,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/css/admin-layout.css">
 <style>
-  .settings-tabs { display:flex; gap:0; margin-bottom:24px; background:#fff; border:1px solid #e8e6f0; border-radius:12px; overflow:hidden; }
-  .settings-tab { flex:1; padding:12px 16px; text-align:center; font-size:13px; font-weight:600; color:#6b6b80; text-decoration:none; border-right:1px solid #e8e6f0; transition:background .15s; cursor:pointer; }
+  .settings-tabs {
+    display:flex; gap:0; margin-bottom:24px;
+    background:#fff; border:1px solid #e8e6f0; border-radius:12px;
+    overflow-x:auto; -webkit-overflow-scrolling:touch;
+  }
+  .settings-tab {
+    flex:1; min-width:100px; padding:12px 14px; text-align:center;
+    font-size:12.5px; font-weight:600; color:#6b6b80;
+    border-right:1px solid #e8e6f0; transition:background .15s; cursor:pointer;
+    white-space:nowrap;
+  }
   .settings-tab:last-child { border-right:none; }
   .settings-tab--active { background:#3d1a6e; color:#fff; }
   .settings-tab:not(.settings-tab--active):hover { background:#f4f3f9; color:#3d1a6e; }
@@ -137,7 +166,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   .form-group { margin-bottom:16px; }
   .form-label { display:block; font-size:12px; font-weight:600; color:#3d1a6e; margin-bottom:5px; text-transform:uppercase; letter-spacing:.03em; }
-  .form-input, .form-select, .form-textarea { width:100%; padding:10px 13px; border:1.5px solid #e2e0ea; border-radius:8px; font-size:13.5px; font-family:'DM Sans',sans-serif; color:#1a1a2e; }
+  .form-input, .form-select, .form-textarea {
+    width:100%; padding:10px 13px; border:1.5px solid #e2e0ea; border-radius:8px;
+    font-size:13.5px; font-family:'DM Sans',sans-serif; color:#1a1a2e;
+  }
   .form-input:focus, .form-select:focus, .form-textarea:focus { outline:none; border-color:#4a90d9; }
   .form-textarea { resize:vertical; }
   .form-row { display:flex; gap:16px; }
@@ -158,11 +190,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   .btn-save { background:#3d1a6e; color:#fff; border:none; padding:11px 28px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; margin-top:4px; }
   .btn-save:hover { background:#5a2d9e; }
 
-  .announcement-preview {
+  /* Announcement preview */
+  .ann-preview {
     background:#1a0835; color:#fff; border-radius:10px; padding:12px 18px;
     font-size:13px; margin-top:14px; display:flex; align-items:center; gap:10px;
   }
-  .announcement-preview .pill { background:#4a90d9; color:#fff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; text-transform:uppercase; flex-shrink:0; }
+  .ann-preview .pill { background:#4a90d9; color:#fff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; text-transform:uppercase; flex-shrink:0; }
+
+  /* Popup preview */
+  .popup-preview {
+    background:#fff; border:1px solid #e8e6f0; border-radius:16px;
+    padding:22px 20px 20px; max-width:340px; position:relative;
+    box-shadow:0 8px 28px rgba(26,8,53,.14); margin-top:16px;
+  }
+  .popup-preview__close {
+    position:absolute; top:10px; right:10px; width:24px; height:24px;
+    border-radius:50%; background:#f0ecfa; color:#3d1a6e;
+    display:flex; align-items:center; justify-content:center; font-size:11px;
+    border:none; cursor:default;
+  }
+  .popup-preview__title { font-size:16px; font-weight:700; color:#3d1a6e; margin:0 24px 8px 0; font-family:'Playfair Display',serif; }
+  .popup-preview__text  { font-size:13px; color:#6b6b80; line-height:1.6; margin-bottom:12px; }
+  .popup-preview__cta   { display:inline-block; background:#3d1a6e; color:#fff; font-size:12.5px; font-weight:600; padding:8px 16px; border-radius:7px; }
+
+  /* YouTube preview */
+  .yt-preview {
+    margin-top:14px; border-radius:12px; overflow:hidden;
+    background:#000; aspect-ratio:16/9; max-width:480px;
+  }
+  .yt-preview iframe { width:100%; height:100%; border:0; }
+  .yt-placeholder {
+    display:flex; align-items:center; justify-content:center;
+    height:100%; min-height:180px; background:#1a1a2e;
+    color:rgba(255,255,255,.4); font-size:13px; border-radius:12px;
+    flex-direction:column; gap:8px;
+  }
+  .yt-placeholder span { font-size:32px; }
 
   .info-row { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; font-size:13px; padding-top:4px; }
   .info-item__label { font-size:11px; font-weight:700; color:#9b97b0; text-transform:uppercase; margin-bottom:3px; }
@@ -177,7 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <div class="page-header">
         <h2>Settings &amp; Site Customiser</h2>
-        <p>Control school information, principal details, academic year, feature toggles, and announcements.</p>
+        <p>Control school information, principal details, academic year, feature toggles, announcements, popups, and media.</p>
       </div>
 
       <?php if ($message): ?>
@@ -186,17 +249,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <!-- Tabs -->
       <div class="settings-tabs">
-        <div class="settings-tab settings-tab--active" onclick="switchTab('school')">🏫 School Info</div>
-        <div class="settings-tab" onclick="switchTab('principals')">👤 Principals</div>
-        <div class="settings-tab" onclick="switchTab('academic')">📅 Academic</div>
-        <div class="settings-tab" onclick="switchTab('announcement')">📢 Announcement</div>
-        <div class="settings-tab" onclick="switchTab('system')">⚙️ System</div>
+        <div class="settings-tab settings-tab--active" onclick="switchTab('school', this)">🏫 School Info</div>
+        <div class="settings-tab" onclick="switchTab('principals', this)">👤 Principals</div>
+        <div class="settings-tab" onclick="switchTab('academic', this)">📅 Academic</div>
+        <div class="settings-tab" onclick="switchTab('announcement', this)">📢 Announcement</div>
+        <div class="settings-tab" onclick="switchTab('popup', this)">💬 Popup</div>
+        <div class="settings-tab" onclick="switchTab('media', this)">🎬 Media</div>
+        <div class="settings-tab" onclick="switchTab('system', this)">⚙️ System</div>
       </div>
 
-      <!-- ── School Info ── -->
+
+      <!-- ════════════════════════════════════════
+           SCHOOL INFO
+           ════════════════════════════════════════ -->
       <div class="settings-panel settings-panel--active" id="panel-school">
         <form method="POST">
           <input type="hidden" name="section" value="school"/>
+
           <div class="settings-card">
             <div class="settings-card__title">School Identity</div>
             <div class="form-group">
@@ -220,7 +289,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
 
           <div class="settings-card">
-            <div class="settings-card__title">Contact Information</div>
+            <div class="settings-card__title">Contact Information &amp; Hours</div>
             <div class="form-group">
               <label class="form-label">Address</label>
               <input type="text" class="form-input" name="school_address" maxlength="255"
@@ -239,20 +308,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        value="<?php echo htmlspecialchars($s['school_email']); ?>"/>
               </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Website URL</label>
-              <input type="url" class="form-input" name="school_website" maxlength="255"
-                     value="<?php echo htmlspecialchars($s['school_website']); ?>"/>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Website URL</label>
+                <input type="url" class="form-input" name="school_website" maxlength="255"
+                       value="<?php echo htmlspecialchars($s['school_website']); ?>"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Days &amp; Hours of Operation</label>
+                <input type="text" class="form-input" name="school_hours" maxlength="100"
+                       value="<?php echo htmlspecialchars($s['school_hours']); ?>"
+                       placeholder="e.g. Mon – Fri: 8:00 AM – 3:00 PM"/>
+                <p class="char-hint">Shown in the footer contact strip.</p>
+              </div>
             </div>
           </div>
+
           <button type="submit" class="btn-save">Save School Info</button>
         </form>
       </div>
 
-      <!-- ── Principals ── -->
+
+      <!-- ════════════════════════════════════════
+           PRINCIPALS
+           ════════════════════════════════════════ -->
       <div class="settings-panel" id="panel-principals">
         <form method="POST">
           <input type="hidden" name="section" value="principals"/>
+
           <div class="settings-card">
             <div class="settings-card__title">Senior Secondary Principal</div>
             <div class="form-group">
@@ -264,8 +347,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="form-group">
               <label class="form-label">Welcome Message</label>
               <textarea class="form-textarea" name="principal_ss_message" rows="5"
-                        placeholder="Message shown on the About page under SS Principal..."><?php echo htmlspecialchars($s['principal_ss_message']); ?></textarea>
-              <p class="char-hint">Displayed on the About page in the Principal's Message section.</p>
+                        placeholder="Message shown on the About page and Homepage..."><?php echo htmlspecialchars($s['principal_ss_message']); ?></textarea>
+              <p class="char-hint">Shown on the About page (Principal's Message) and the Homepage principal section.</p>
             </div>
           </div>
 
@@ -280,18 +363,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="form-group">
               <label class="form-label">Welcome Message</label>
               <textarea class="form-textarea" name="principal_js_message" rows="5"
-                        placeholder="Message shown on the About page under JS Principal..."><?php echo htmlspecialchars($s['principal_js_message']); ?></textarea>
-              <p class="char-hint">Displayed on the About page in the Principal's Message section.</p>
+                        placeholder="Message shown on the About page..."><?php echo htmlspecialchars($s['principal_js_message']); ?></textarea>
+              <p class="char-hint">Shown on the About page under the JS Principal's Message section.</p>
             </div>
           </div>
+
           <button type="submit" class="btn-save">Save Principal Details</button>
         </form>
       </div>
 
-      <!-- ── Academic ── -->
+
+      <!-- ════════════════════════════════════════
+           ACADEMIC
+           ════════════════════════════════════════ -->
       <div class="settings-panel" id="panel-academic">
         <form method="POST">
           <input type="hidden" name="section" value="academic"/>
+
           <div class="settings-card">
             <div class="settings-card__title">Academic Year</div>
             <div class="form-row">
@@ -300,7 +388,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="text" class="form-input" name="current_session"
                        pattern="\d{4}\/\d{4}" placeholder="2025/2026"
                        value="<?php echo htmlspecialchars($s['current_session']); ?>"/>
-                <p class="char-hint">Pre-fills results entry and publish pages.</p>
+                <p class="char-hint">Format: YYYY/YYYY. Pre-fills results entry and publish pages.</p>
               </div>
               <div class="form-group">
                 <label class="form-label">Current Term</label>
@@ -327,7 +415,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="toggle-row__hint">Allow students to check results on the public website</div>
               </div>
               <label class="toggle">
-                <input type="checkbox" name="result_checker_open" <?php echo $s['result_checker_open'] === '1' ? 'checked' : ''; ?>/>
+                <input type="checkbox" name="result_checker_open"
+                       <?php echo $s['result_checker_open'] === '1' ? 'checked' : ''; ?>/>
                 <span class="toggle__slider"></span>
               </label>
             </div>
@@ -337,23 +426,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="toggle-row__hint">Show the online admissions enquiry form to the public</div>
               </div>
               <label class="toggle">
-                <input type="checkbox" name="admissions_open" <?php echo $s['admissions_open'] === '1' ? 'checked' : ''; ?>/>
+                <input type="checkbox" name="admissions_open"
+                       <?php echo $s['admissions_open'] === '1' ? 'checked' : ''; ?>/>
                 <span class="toggle__slider"></span>
               </label>
             </div>
           </div>
+
           <button type="submit" class="btn-save">Save Academic Settings</button>
         </form>
       </div>
 
-      <!-- ── Announcement ── -->
+
+      <!-- ════════════════════════════════════════
+           ANNOUNCEMENT BAR
+           ════════════════════════════════════════ -->
       <div class="settings-panel" id="panel-announcement">
         <form method="POST">
           <input type="hidden" name="section" value="announcement"/>
+
           <div class="settings-card">
             <div class="settings-card__title">Site-wide Announcement Banner</div>
             <p style="font-size:13px;color:#6b6b80;margin-bottom:16px">
-              The announcement bar appears at the top of every public page. Use it for important notices — results available, school resumption dates, admissions open, etc.
+              A slim banner that appears just below the navigation on every public page. Use it for important notices — results available, school resumption dates, admissions open, etc. Visitors can dismiss it for the session.
             </p>
 
             <div class="toggle-row" style="margin-bottom:16px">
@@ -364,7 +459,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <label class="toggle">
                 <input type="checkbox" name="announcement_show" id="annToggle"
                        <?php echo $s['announcement_show'] === '1' ? 'checked' : ''; ?>
-                       onchange="updatePreview()"/>
+                       onchange="updateAnnPreview()"/>
                 <span class="toggle__slider"></span>
               </label>
             </div>
@@ -375,7 +470,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                      maxlength="300"
                      value="<?php echo htmlspecialchars($s['announcement_text']); ?>"
                      placeholder="e.g. 2024/2025 Third Term results are now available online."
-                     oninput="updatePreview()"/>
+                     oninput="updateAnnPreview()"/>
             </div>
 
             <div class="form-row">
@@ -384,8 +479,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="text" class="form-input" name="announcement_link" id="annLink"
                        maxlength="255"
                        value="<?php echo htmlspecialchars($s['announcement_link']); ?>"
-                       placeholder="e.g. /results.php or https://..."
-                       oninput="updatePreview()"/>
+                       placeholder="e.g. /results.php"
+                       oninput="updateAnnPreview()"/>
               </div>
               <div class="form-group">
                 <label class="form-label">Link Text</label>
@@ -393,31 +488,184 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        maxlength="60"
                        value="<?php echo htmlspecialchars($s['announcement_link_text']); ?>"
                        placeholder="e.g. Check results →"
-                       oninput="updatePreview()"/>
+                       oninput="updateAnnPreview()"/>
               </div>
             </div>
 
-            <!-- Live preview -->
-            <div class="announcement-preview" id="annPreview"
+            <div class="ann-preview" id="annPreview"
                  style="<?php echo $s['announcement_show'] !== '1' ? 'opacity:.4' : ''; ?>">
               <span class="pill">NOTICE</span>
               <span id="annPreviewText"><?php echo htmlspecialchars($s['announcement_text'] ?: 'Your announcement text will appear here.'); ?></span>
-              <?php if ($s['announcement_link']): ?>
-              <a id="annPreviewLink" href="<?php echo htmlspecialchars($s['announcement_link']); ?>"
-                 style="color:#4a90d9;font-size:12.5px;white-space:nowrap">
-                <?php echo htmlspecialchars($s['announcement_link_text']); ?>
-              </a>
-              <?php else: ?>
-              <span id="annPreviewLink" style="display:none"></span>
-              <?php endif; ?>
+              <span id="annPreviewLink" style="color:#4a90d9;font-size:12.5px;<?php echo empty($s['announcement_link']) ? 'display:none' : ''; ?>">
+                <?php echo htmlspecialchars($s['announcement_link_text'] ?: 'Read more →'); ?>
+              </span>
             </div>
-            <p class="char-hint" style="margin-top:8px">Preview of how the banner will appear on the public website.</p>
+            <p class="char-hint" style="margin-top:8px">Live preview of the announcement bar.</p>
           </div>
+
           <button type="submit" class="btn-save">Save Announcement</button>
         </form>
       </div>
 
-      <!-- ── System Info ── -->
+
+      <!-- ════════════════════════════════════════
+           POPUP NOTIFICATION
+           ════════════════════════════════════════ -->
+      <div class="settings-panel" id="panel-popup">
+        <form method="POST">
+          <input type="hidden" name="section" value="popup"/>
+
+          <div class="settings-card">
+            <div class="settings-card__title">Intrusive Popup Notification</div>
+            <p style="font-size:13px;color:#6b6b80;margin-bottom:16px">
+              A separate popup card that appears in the bottom-right corner — independent of the announcement bar. Triggers after the visitor scrolls a set percentage of the page OR stays for a set number of seconds, whichever happens first. Visitors can dismiss it for the session. Use sparingly for high-priority notices.
+            </p>
+
+            <div class="toggle-row" style="margin-bottom:16px">
+              <div>
+                <div class="toggle-row__label">Show Popup Notification</div>
+                <div class="toggle-row__hint">Toggle on to enable the popup across all public pages</div>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" name="popup_show" id="popupToggle"
+                       <?php echo $s['popup_show'] === '1' ? 'checked' : ''; ?>
+                       onchange="updatePopupPreview()"/>
+                <span class="toggle__slider"></span>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Popup Title (optional)</label>
+              <input type="text" class="form-input" name="popup_title" id="popupTitle"
+                     maxlength="100"
+                     value="<?php echo htmlspecialchars($s['popup_title']); ?>"
+                     placeholder="e.g. Admissions Now Open!"
+                     oninput="updatePopupPreview()"/>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Popup Message *</label>
+              <textarea class="form-textarea" name="popup_text" id="popupText" rows="3" maxlength="300"
+                        oninput="updatePopupPreview()"
+                        placeholder="e.g. Applications for the 2025/2026 session are now open. Limited spaces available."><?php echo htmlspecialchars($s['popup_text']); ?></textarea>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Link URL (optional)</label>
+                <input type="text" class="form-input" name="popup_link" id="popupLink"
+                       maxlength="255"
+                       value="<?php echo htmlspecialchars($s['popup_link']); ?>"
+                       placeholder="e.g. /admissions.php"
+                       oninput="updatePopupPreview()"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Button Text</label>
+                <input type="text" class="form-input" name="popup_link_text" id="popupLinkText"
+                       maxlength="60"
+                       value="<?php echo htmlspecialchars($s['popup_link_text']); ?>"
+                       oninput="updatePopupPreview()"/>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Trigger — Scroll %</label>
+                <input type="number" class="form-input" name="popup_trigger_scroll"
+                       min="0" max="100"
+                       value="<?php echo htmlspecialchars($s['popup_trigger_scroll']); ?>"/>
+                <p class="char-hint">Popup shows once visitor scrolls this % of the page (0–100).</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Trigger — Seconds on Page</label>
+                <input type="number" class="form-input" name="popup_trigger_seconds"
+                       min="0" max="120"
+                       value="<?php echo htmlspecialchars($s['popup_trigger_seconds']); ?>"/>
+                <p class="char-hint">Popup shows after this many seconds, whichever trigger fires first.</p>
+              </div>
+            </div>
+
+            <!-- Live preview -->
+            <p style="font-size:12px;font-weight:600;color:#3d1a6e;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">Live Preview</p>
+            <div class="popup-preview" id="popupPreview"
+                 style="<?php echo $s['popup_show'] !== '1' ? 'opacity:.4' : ''; ?>">
+              <div class="popup-preview__close">✕</div>
+              <div class="popup-preview__title" id="popupPreviewTitle">
+                <?php echo htmlspecialchars($s['popup_title'] ?: 'Popup Title'); ?>
+              </div>
+              <div class="popup-preview__text" id="popupPreviewText">
+                <?php echo htmlspecialchars($s['popup_text'] ?: 'Your popup message will appear here.'); ?>
+              </div>
+              <span class="popup-preview__cta" id="popupPreviewCta"
+                    style="<?php echo empty($s['popup_link']) ? 'display:none' : ''; ?>">
+                <?php echo htmlspecialchars($s['popup_link_text'] ?: 'Learn more →'); ?>
+              </span>
+            </div>
+            <p class="char-hint" style="margin-top:8px">Live preview of the popup card.</p>
+          </div>
+
+          <button type="submit" class="btn-save">Save Popup Settings</button>
+        </form>
+      </div>
+
+
+      <!-- ════════════════════════════════════════
+           MEDIA — YouTube embed
+           ════════════════════════════════════════ -->
+      <div class="settings-panel" id="panel-media">
+        <form method="POST">
+          <input type="hidden" name="section" value="media"/>
+
+          <div class="settings-card">
+            <div class="settings-card__title">Homepage YouTube Video</div>
+            <p style="font-size:13px;color:#6b6b80;margin-bottom:16px">
+              Embed a YouTube video on the homepage — for a school tour, speech day highlights, prize-giving ceremony, etc. Paste the full YouTube URL or just the video ID.
+            </p>
+
+            <div class="form-group">
+              <label class="form-label">YouTube Video URL or ID</label>
+              <input type="text" class="form-input" name="youtube_video_id" id="ytInput"
+                     maxlength="255"
+                     value="<?php echo htmlspecialchars($s['youtube_video_id']); ?>"
+                     placeholder="e.g. https://www.youtube.com/watch?v=dQw4w9WgXcQ or just dQw4w9WgXcQ"
+                     oninput="updateYtPreview()"/>
+              <p class="char-hint">Leave blank to hide the video section from the homepage.</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Video Title / Caption</label>
+              <input type="text" class="form-input" name="youtube_video_title"
+                     maxlength="200"
+                     value="<?php echo htmlspecialchars($s['youtube_video_title']); ?>"
+                     placeholder="e.g. A Look Inside Ibeku High School"/>
+            </div>
+
+            <!-- Live preview -->
+            <div class="yt-preview" id="ytPreview">
+              <?php
+              $ytId = $s['youtube_video_id'];
+              if ($ytId):
+              ?>
+              <iframe src="https://www.youtube.com/embed/<?php echo htmlspecialchars($ytId); ?>"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowfullscreen loading="lazy"></iframe>
+              <?php else: ?>
+              <div class="yt-placeholder" id="ytPlaceholder">
+                <span>▶</span>
+                <p>Enter a YouTube URL above to preview</p>
+              </div>
+              <?php endif; ?>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-save">Save Media Settings</button>
+        </form>
+      </div>
+
+
+      <!-- ════════════════════════════════════════
+           SYSTEM INFO
+           ════════════════════════════════════════ -->
       <div class="settings-panel" id="panel-system">
         <div class="settings-card">
           <div class="settings-card__title">System Information</div>
@@ -446,54 +694,107 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <div class="info-item__label">Current Term</div>
               <div><?php echo ucfirst($s['current_term']); ?> Term</div>
             </div>
+            <div>
+              <div class="info-item__label">School Hours</div>
+              <div><?php echo htmlspecialchars($s['school_hours']); ?></div>
+            </div>
           </div>
         </div>
 
         <div class="settings-card">
           <div class="settings-card__title">Superadmin Credentials</div>
           <div style="font-size:13px;color:#6b6b80;line-height:1.8">
-            <div><strong style="color:#1a1a2e">Email:</strong> <?php echo htmlspecialchars($admin['name'] ?? ''); ?> — change via Manage Users → Edit</div>
+            <div><strong style="color:#1a1a2e">Email:</strong> <?php echo htmlspecialchars($admin['email'] ?? ''); ?> — change via Manage Users → Edit</div>
             <div><strong style="color:#1a1a2e">Password:</strong> Change via Manage Users → Edit → Reset Password</div>
           </div>
         </div>
       </div>
 
-    </div>
-  </div>
+    </div><!-- /.admin-content__inner -->
+  </div><!-- /.admin-content -->
 
   <script src="../assets/js/admin.js"></script>
   <script>
     /* ── Tab switching ── */
-    function switchTab(name) {
+    function switchTab(name, el) {
       document.querySelectorAll('.settings-tab').forEach(function (t) {
         t.classList.remove('settings-tab--active');
       });
       document.querySelectorAll('.settings-panel').forEach(function (p) {
         p.classList.remove('settings-panel--active');
       });
-      event.currentTarget.classList.add('settings-tab--active');
+      el.classList.add('settings-tab--active');
       document.getElementById('panel-' + name).classList.add('settings-panel--active');
     }
 
-    /* ── Live announcement preview ── */
-    function updatePreview() {
-      var toggle   = document.getElementById('annToggle');
-      var textEl   = document.getElementById('annText');
-      var linkEl   = document.getElementById('annLink');
+    /* ── Announcement bar live preview ── */
+    function updateAnnPreview() {
+      var toggle    = document.getElementById('annToggle');
+      var textEl    = document.getElementById('annText');
+      var linkEl    = document.getElementById('annLink');
       var linkTxtEl = document.getElementById('annLinkText');
-      var preview  = document.getElementById('annPreview');
-      var prevText = document.getElementById('annPreviewText');
-      var prevLink = document.getElementById('annPreviewLink');
+      var preview   = document.getElementById('annPreview');
+      var prevText  = document.getElementById('annPreviewText');
+      var prevLink  = document.getElementById('annPreviewLink');
 
       preview.style.opacity = toggle.checked ? '1' : '0.4';
       prevText.textContent  = textEl.value || 'Your announcement text will appear here.';
 
       if (linkEl.value.trim()) {
         prevLink.style.display = '';
-        prevLink.href          = linkEl.value.trim();
         prevLink.textContent   = linkTxtEl.value || 'Read more →';
       } else {
         prevLink.style.display = 'none';
+      }
+    }
+
+    /* ── Popup live preview ── */
+    function updatePopupPreview() {
+      var toggle    = document.getElementById('popupToggle');
+      var titleEl   = document.getElementById('popupTitle');
+      var textEl    = document.getElementById('popupText');
+      var linkEl    = document.getElementById('popupLink');
+      var linkTxtEl = document.getElementById('popupLinkText');
+      var preview   = document.getElementById('popupPreview');
+      var prevTitle = document.getElementById('popupPreviewTitle');
+      var prevText  = document.getElementById('popupPreviewText');
+      var prevCta   = document.getElementById('popupPreviewCta');
+
+      preview.style.opacity = toggle.checked ? '1' : '0.4';
+      prevTitle.textContent = titleEl.value || 'Popup Title';
+      prevText.textContent  = textEl.value  || 'Your popup message will appear here.';
+
+      if (linkEl.value.trim()) {
+        prevCta.style.display = '';
+        prevCta.textContent   = linkTxtEl.value || 'Learn more →';
+      } else {
+        prevCta.style.display = 'none';
+      }
+    }
+
+    /* ── YouTube live preview ── */
+    function updateYtPreview() {
+      var input       = document.getElementById('ytInput');
+      var previewBox  = document.getElementById('ytPreview');
+      var raw         = input.value.trim();
+      var videoId     = '';
+
+      /* Extract video ID from full URL or bare ID */
+      var match = raw.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+      if (match) {
+        videoId = match[1];
+      } else if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) {
+        videoId = raw;
+      }
+
+      if (videoId) {
+        previewBox.innerHTML =
+          '<iframe src="https://www.youtube.com/embed/' + videoId + '"' +
+          ' allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"' +
+          ' allowfullscreen loading="lazy" style="width:100%;height:100%;border:0"></iframe>';
+      } else {
+        previewBox.innerHTML =
+          '<div class="yt-placeholder"><span>▶</span><p>Enter a YouTube URL above to preview</p></div>';
       }
     }
   </script>

@@ -1,11 +1,6 @@
 /* ============================================================
    IBEKU HIGH SCHOOL — SHARED JAVASCRIPT
    File: public/assets/js/main.js
-
-   Loaded on every page of the website.
-   Handles: nav, announcement bar, scroll reveal, back to top.
-
-   Page-specific scripts live in assets/js/pages/
    ============================================================ */
 
 'use strict';
@@ -13,67 +8,141 @@
 
 /* ============================================================
    1. ANNOUNCEMENT BAR
-   - Slides open below the nav 1.5s after page load
-   - Dismissed with the ✕ button
-   - sessionStorage prevents reappearing in the same session
+   Controlled from Settings. Dismisses smoothly with
+   sessionStorage so it doesn't reappear in the same session.
    ============================================================ */
-(function initAnnBar() {
+(function initAnnouncementBar() {
   var bar   = document.getElementById('annBar');
   var close = document.getElementById('annBarClose');
+  if (!bar) return;
 
-  if (!bar || !close) return;
+  /* If already dismissed this session, hide immediately */
+  try {
+    if (sessionStorage.getItem('ihs_ann_dismissed') === '1') {
+      bar.style.display = 'none';
+      return;
+    }
+  } catch (e) {}
 
-  /* Don't show if already dismissed this session */
-  if (sessionStorage.getItem('ihs_ann_dismissed')) return;
-
-  setTimeout(function () {
-    bar.classList.add('ann-bar--show');
-  }, 1500);
-
-  close.addEventListener('click', function () {
-    bar.classList.remove('ann-bar--show');
-    sessionStorage.setItem('ihs_ann_dismissed', '1');
-  });
+  if (close) {
+    close.addEventListener('click', function () {
+      bar.classList.add('is-hiding');
+      setTimeout(function () { bar.style.display = 'none'; }, 300);
+      try { sessionStorage.setItem('ihs_ann_dismissed', '1'); } catch (e) {}
+    });
+  }
 }());
 
 
 /* ============================================================
-   2. NAVIGATION — BURGER & MOBILE DROPDOWNS
+   2. SITE POPUP — triggers on scroll % OR time, whichever first.
+   Independent of the announcement bar.
+   Trigger values come from data-scroll-pct and data-delay-seconds
+   attributes set in footer.php from Settings.
+   ============================================================ */
+(function initSitePopup() {
+  var popup = document.getElementById('sitePopup');
+  var close = document.getElementById('sitePopupClose');
+  if (!popup) return;
+
+  var scrollPct  = parseInt(popup.dataset.scrollPct, 10)    || 20;
+  var delaySecs  = parseInt(popup.dataset.delaySeconds, 10)  || 5;
+  var shown      = false;
+
+  try {
+    if (sessionStorage.getItem('ihs_popup_dismissed') === '1') return;
+  } catch (e) {}
+
+  function showPopup() {
+    if (shown) return;
+    shown = true;
+    popup.classList.add('is-visible');
+  }
+
+  function dismissPopup() {
+    popup.classList.remove('is-visible');
+    try { sessionStorage.setItem('ihs_popup_dismissed', '1'); } catch (e) {}
+    setTimeout(function () { popup.style.display = 'none'; }, 350);
+  }
+
+  /* Trigger 1: time on page */
+  var timer = setTimeout(showPopup, delaySecs * 1000);
+
+  /* Trigger 2: scroll percentage */
+  function onScroll() {
+    var scrolled = window.scrollY;
+    var height   = document.documentElement.scrollHeight - window.innerHeight;
+    var pct      = height > 0 ? (scrolled / height) * 100 : 0;
+    if (pct >= scrollPct) {
+      showPopup();
+      window.removeEventListener('scroll', onScroll);
+    }
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  if (close) {
+    close.addEventListener('click', function () {
+      clearTimeout(timer);
+      window.removeEventListener('scroll', onScroll);
+      dismissPopup();
+    });
+  }
+}());
+
+
+/* ============================================================
+   3. NAVIGATION — burger + mobile dropdowns + desktop click
    ============================================================ */
 (function initNav() {
   var burger  = document.getElementById('navBurger');
   var navMenu = document.getElementById('navMenu');
-
   if (!burger || !navMenu) return;
 
-  /* Toggle the full nav on mobile */
+  /* Mobile burger toggle */
   burger.addEventListener('click', function () {
     burger.classList.toggle('active');
     navMenu.classList.toggle('open');
   });
 
-  /* On mobile (≤900px): tap a dropdown parent to toggle it.
-     On desktop: CSS :hover handles opening. */
   var dropParents = navMenu.querySelectorAll('.nav__item--has-drop > .nav__link');
 
   dropParents.forEach(function (link) {
     link.addEventListener('click', function (e) {
+      var item = link.parentElement;
+
+      /* Mobile: tap toggles dropdown, prevents navigation */
       if (window.innerWidth <= 900) {
         e.preventDefault();
-
-        var item = link.parentElement;
-
-        /* Close any other open dropdowns first */
         navMenu.querySelectorAll('.nav__item--has-drop.open').forEach(function (el) {
           if (el !== item) el.classList.remove('open');
         });
-
         item.classList.toggle('open');
+        return;
       }
+
+      /* Desktop: first click opens (prevents nav), second click navigates */
+      var alreadyOpen = item.classList.contains('open');
+      document.querySelectorAll('.nav__item--has-drop.open').forEach(function (el) {
+        el.classList.remove('open');
+      });
+      if (!alreadyOpen) {
+        e.preventDefault();
+        item.classList.add('open');
+      }
+      /* If alreadyOpen === true, we don't preventDefault so the link navigates */
     });
   });
 
-  /* Close the mobile nav when any non-parent link is clicked */
+  /* Close dropdown when clicking outside on desktop */
+  document.addEventListener('click', function (e) {
+    if (window.innerWidth > 900 && !e.target.closest('.nav__item--has-drop')) {
+      document.querySelectorAll('.nav__item--has-drop.open').forEach(function (el) {
+        el.classList.remove('open');
+      });
+    }
+  });
+
+  /* Close mobile nav when any non-parent link is clicked */
   navMenu.querySelectorAll('.nav__link:not(.nav__item--has-drop > .nav__link)').forEach(function (link) {
     link.addEventListener('click', function () {
       navMenu.classList.remove('open');
@@ -81,7 +150,7 @@
     });
   });
 
-  /* Also close dropdown links in the mobile expanded menu */
+  /* Close mobile nav when a dropdown child link is clicked */
   navMenu.querySelectorAll('.nav__dropdown-link').forEach(function (link) {
     link.addEventListener('click', function () {
       navMenu.classList.remove('open');
@@ -92,9 +161,8 @@
 
 
 /* ============================================================
-   3. SCROLL REVEAL
-   Any element with class .reveal animates into view when it
-   enters the viewport. Powered by IntersectionObserver.
+   4. SCROLL REVEAL
+   Elements with .reveal animate in when they enter the viewport.
    ============================================================ */
 (function initReveal() {
   var elements = document.querySelectorAll('.reveal');
@@ -104,31 +172,24 @@
     entries.forEach(function (entry) {
       if (entry.isIntersecting) {
         entry.target.classList.add('vis');
-        /* Stop observing once visible — no need to watch anymore */
         observer.unobserve(entry.target);
       }
     });
   }, { threshold: 0.08 });
 
-  elements.forEach(function (el) {
-    observer.observe(el);
-  });
+  elements.forEach(function (el) { observer.observe(el); });
 }());
 
 
 /* ============================================================
-   4. BACK TO TOP BUTTON
+   5. BACK TO TOP BUTTON
    ============================================================ */
 (function initBackToTop() {
   var btn = document.getElementById('backToTop');
   if (!btn) return;
 
   window.addEventListener('scroll', function () {
-    if (window.scrollY > 500) {
-      btn.classList.add('show');
-    } else {
-      btn.classList.remove('show');
-    }
+    btn.classList.toggle('show', window.scrollY > 500);
   }, { passive: true });
 
   btn.addEventListener('click', function () {
@@ -138,9 +199,8 @@
 
 
 /* ============================================================
-   5. PAGE ANCHOR NAVIGATION
-   Highlights the correct anchor tab as the user scrolls.
-   Used on About, Hall of Fame, and other long pages.
+   6. PAGE ANCHOR NAVIGATION
+   Highlights the active anchor tab as the user scrolls.
    ============================================================ */
 (function initAnchorNav() {
   var anchors = document.querySelectorAll('.page-anchor');
@@ -148,18 +208,12 @@
 
   window.addEventListener('scroll', function () {
     var scrollY = window.scrollY + 130;
-
     anchors.forEach(function (anchor) {
       var targetId = anchor.getAttribute('href');
       if (!targetId || targetId.charAt(0) !== '#') return;
-
       var section = document.querySelector(targetId);
       if (!section) return;
-
-      if (
-        section.offsetTop <= scrollY &&
-        section.offsetTop + section.offsetHeight > scrollY
-      ) {
+      if (section.offsetTop <= scrollY && section.offsetTop + section.offsetHeight > scrollY) {
         anchors.forEach(function (a) { a.classList.remove('active'); });
         anchor.classList.add('active');
       }
@@ -169,9 +223,8 @@
 
 
 /* ============================================================
-   6. STAFF FILTER BUTTONS
-   UI-only filter on About / Staff pages.
-   In Phase 2 this will filter actual data from the database.
+   7. STAFF FILTER BUTTONS
+   UI filter on About / Academics pages.
    ============================================================ */
 (function initStaffFilter() {
   var filterBtns = document.querySelectorAll('.filter-btn');
@@ -182,7 +235,14 @@
       filterBtns.forEach(function (b) { b.classList.remove('active'); });
       btn.classList.add('active');
 
-      /* Phase 2: filter staff cards by data-department attribute */
+      var filter = btn.dataset.filter || 'all';
+      document.querySelectorAll('.staff-dir-card, .staff-card').forEach(function (card) {
+        if (filter === 'all') {
+          card.style.display = '';
+        } else {
+          card.style.display = (card.dataset.filter === filter) ? '' : 'none';
+        }
+      });
     });
   });
 }());
