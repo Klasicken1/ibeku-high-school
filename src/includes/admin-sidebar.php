@@ -33,6 +33,9 @@ function renderAdminSidebar(array $admin, string $currentPage = ''): void {
 ['milestones',  'milestones.php',  '🕐',  'History Timeline',  ['superadmin']],
 ['clubs',       'clubs.php',       '🎭',  'Clubs & Societies', ['superadmin']],
 ['awards',      'awards.php',      '🏆',  'Awards',            ['superadmin']],        ['settings',         'settings.php',         '⚙️', 'Settings',          ['superadmin']],
+['alumni',       'alumni.php',       '🌍', 'Alumni Directory',    ['superadmin']],
+['scholarships', 'scholarships.php', '🎓', 'Scholarships',        ['superadmin']],
+['prefects-admin', 'prefects-admin.php', '🎖️', 'Prefects', ['superadmin', 'principal']],
     ];
     ?>
 
