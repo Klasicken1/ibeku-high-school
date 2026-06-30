@@ -10,6 +10,8 @@ $currentPage = 'about';
 $pageCss     = 'about';
 
 require_once '../src/includes/header.php';
+require_once '../src/config/database.php';
+$pdo = getDB();
 ?>
 
 
@@ -81,68 +83,56 @@ require_once '../src/includes/header.php';
 
 
 <!-- ═══════════════════════════════════════════
-     TIMELINE
+     TIMELINE — driven by milestones table
      ═══════════════════════════════════════════ -->
 <section class="timeline-section">
   <div class="timeline-section__inner wrap">
     <h2 class="timeline-section__title">Key Milestones in Our History</h2>
+
+    <?php
+    $milestones = $pdo->query(
+        "SELECT * FROM milestones WHERE is_published = 1 ORDER BY sort_order ASC, id ASC"
+    )->fetchAll();
+
+    /* Fall back to hardcoded milestones if none in DB yet */
+    $defaultMilestones = [
+        ['era_label' => '1954',  'title' => 'School Founded',              'description' => 'Ibeku High School is established in Umuahia as part of Eastern Nigeria\'s secondary education expansion under colonial administration.'],
+        ['era_label' => '1960s', 'title' => 'Post-Independence Growth',    'description' => 'Following Nigerian independence, the school expands its curriculum, increases enrolment, and strengthens its academic programmes in Sciences, Arts, and Commerce.'],
+        ['era_label' => '1970s', 'title' => 'Post-War Reconstruction',     'description' => 'After the Nigerian civil war, Ibeku High School rebuilds and restores its facilities, recommitting to its mission of educating the young people of Umuahia and Abia State.'],
+        ['era_label' => '1980s', 'title' => 'Junior Secondary Introduced', 'description' => 'The school adopts Nigeria\'s 6-3-3-4 educational system, establishing a formal Junior Secondary section alongside the Senior Secondary programme.'],
+        ['era_label' => '2000s', 'title' => 'ICT & Digital Education',     'description' => 'A dedicated computer laboratory is established, introducing ICT as a formal subject and beginning the school\'s journey toward digital literacy for all students.'],
+        ['era_label' => '2025',  'title' => 'Official Website Launched',   'description' => 'As part of an NYSC CDS digital transformation initiative, Ibeku High School launches its first official website — featuring an online result checker, admissions portal, and news system.'],
+    ];
+
+    if (empty($milestones)) {
+        $milestones = $defaultMilestones;
+    }
+    ?>
+
     <div class="timeline">
-
+      <?php foreach ($milestones as $i => $ms):
+        $isLeft = ($i % 2 === 0);
+      ?>
       <div class="timeline__item reveal">
+        <?php if ($isLeft): ?>
         <div class="timeline__content">
-          <h4>School Founded</h4>
-          <p>Ibeku High School is established in Umuahia as part of Eastern Nigeria's secondary education expansion under colonial administration.</p>
+          <h4><?php echo htmlspecialchars($ms['title']); ?></h4>
+          <p><?php echo htmlspecialchars($ms['description']); ?></p>
         </div>
-        <div class="timeline__dot">1954</div>
+        <div class="timeline__dot"><?php echo htmlspecialchars($ms['era_label']); ?></div>
         <div class="timeline__spacer"></div>
-      </div>
-
-      <div class="timeline__item reveal">
+        <?php else: ?>
         <div class="timeline__spacer"></div>
-        <div class="timeline__dot">1960s</div>
+        <div class="timeline__dot"><?php echo htmlspecialchars($ms['era_label']); ?></div>
         <div class="timeline__content">
-          <h4>Post-Independence Growth</h4>
-          <p>Following Nigerian independence, the school expands its curriculum, increases enrolment, and strengthens its academic programmes in Sciences, Arts, and Commerce.</p>
+          <h4><?php echo htmlspecialchars($ms['title']); ?></h4>
+          <p><?php echo htmlspecialchars($ms['description']); ?></p>
         </div>
+        <?php endif; ?>
       </div>
-
-      <div class="timeline__item reveal">
-        <div class="timeline__content">
-          <h4>Post-War Reconstruction</h4>
-          <p>After the Nigerian civil war, Ibeku High School rebuilds and restores its facilities, recommitting to its mission of educating the young people of Umuahia and Abia State.</p>
-        </div>
-        <div class="timeline__dot">1970s</div>
-        <div class="timeline__spacer"></div>
-      </div>
-
-      <div class="timeline__item reveal">
-        <div class="timeline__spacer"></div>
-        <div class="timeline__dot">1980s</div>
-        <div class="timeline__content">
-          <h4>Junior Secondary Introduced</h4>
-          <p>The school adopts Nigeria's 6-3-3-4 educational system, establishing a formal Junior Secondary section alongside the Senior Secondary programme.</p>
-        </div>
-      </div>
-
-      <div class="timeline__item reveal">
-        <div class="timeline__content">
-          <h4>ICT &amp; Digital Education</h4>
-          <p>A dedicated computer laboratory is established, introducing ICT as a formal subject and beginning the school's journey toward digital literacy for all students.</p>
-        </div>
-        <div class="timeline__dot">2000s</div>
-        <div class="timeline__spacer"></div>
-      </div>
-
-      <div class="timeline__item reveal">
-        <div class="timeline__spacer"></div>
-        <div class="timeline__dot">2025</div>
-        <div class="timeline__content">
-          <h4>Official Website Launched</h4>
-          <p>As part of an NYSC CDS digital transformation initiative, Ibeku High School launches its first official website — featuring an online result checker, admissions portal, and news system.</p>
-        </div>
-      </div>
-
+      <?php endforeach; ?>
     </div>
+
   </div>
 </section>
 
@@ -288,8 +278,6 @@ require_once '../src/includes/header.php';
       </p>
     </div>
 
-    <?php $_site = getSettings(); ?>
-
     <div class="principals-grid">
 
       <!-- SS Principal -->
@@ -375,7 +363,7 @@ require_once '../src/includes/header.php';
 
 
 <!-- ═══════════════════════════════════════════
-     STAFF DIRECTORY
+     STAFF DIRECTORY — driven by staff table
      ═══════════════════════════════════════════ -->
 <section class="staff-directory" id="staff">
   <div class="staff-directory__inner wrap">
@@ -387,59 +375,58 @@ require_once '../src/includes/header.php';
       </div>
     </div>
 
+    <?php
+    $staffMembers = $pdo->query(
+        "SELECT * FROM staff WHERE is_published = 1 ORDER BY sort_order ASC, full_name ASC"
+    )->fetchAll();
+
+    $staffCategories = [
+        'administration' => 'Administration',
+        'sciences'       => 'Sciences',
+        'arts'           => 'Arts',
+        'commercial'     => 'Commercial',
+        'support'        => 'Support Staff',
+    ];
+    ?>
+
     <div class="staff-filter">
-      <button class="filter-btn active">All Staff</button>
-      <button class="filter-btn">Administration</button>
-      <button class="filter-btn">Sciences</button>
-      <button class="filter-btn">Arts</button>
-      <button class="filter-btn">Commercial</button>
-      <button class="filter-btn">Support Staff</button>
+      <button class="filter-btn active" data-filter="all">All Staff</button>
+      <?php foreach ($staffCategories as $key => $label): ?>
+      <button class="filter-btn" data-filter="<?php echo $key; ?>"><?php echo $label; ?></button>
+      <?php endforeach; ?>
     </div>
 
+    <?php if (empty($staffMembers)): ?>
+    <p style="color:#6b6b80;text-align:center;padding:40px 0">
+      Staff profiles will appear here once added by the administrator.
+    </p>
+    <?php else: ?>
     <div class="staff-directory__grid">
-      <div class="staff-dir-card reveal">
-        <div class="staff-dir-card__photo"><div class="staff-dir-card__initials">SP</div></div>
-        <h4><?php echo htmlspecialchars($_site['principal_ss_name']); ?></h4>
-        <p>SS Principal</p><span>Administration</span>
+      <?php foreach ($staffMembers as $m): ?>
+      <div class="staff-dir-card reveal" data-filter="<?php echo htmlspecialchars($m['category']); ?>">
+        <div class="staff-dir-card__photo">
+          <?php if (!empty($m['photo'])): ?>
+          <img src="<?php echo BASE_PATH; ?>assets/images/staff/<?php echo htmlspecialchars($m['photo']); ?>"
+               alt="<?php echo htmlspecialchars($m['full_name']); ?>"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+          <div class="staff-dir-card__initials" style="display:none">
+            <?php echo htmlspecialchars(strtoupper(substr($m['full_name'], 0, 2))); ?>
+          </div>
+          <?php else: ?>
+          <div class="staff-dir-card__initials">
+            <?php echo htmlspecialchars(strtoupper(substr($m['full_name'], 0, 2))); ?>
+          </div>
+          <?php endif; ?>
+        </div>
+        <h4><?php echo htmlspecialchars($m['full_name']); ?></h4>
+        <p><?php echo htmlspecialchars($m['role']); ?></p>
+        <?php if ($m['department']): ?>
+        <span><?php echo htmlspecialchars($m['department']); ?></span>
+        <?php endif; ?>
       </div>
-      <div class="staff-dir-card reveal">
-        <div class="staff-dir-card__photo"><div class="staff-dir-card__initials">JP</div></div>
-        <h4><?php echo htmlspecialchars($_site['principal_js_name']); ?></h4>
-        <p>JS Principal</p><span>Administration</span>
-      </div>
-      <div class="staff-dir-card reveal">
-        <div class="staff-dir-card__photo"><div class="staff-dir-card__initials">VP</div></div>
-        <h4>[VP Academics]</h4><p>VP Academics</p><span>Administration</span>
-      </div>
-      <div class="staff-dir-card reveal">
-        <div class="staff-dir-card__photo"><div class="staff-dir-card__initials">HS</div></div>
-        <h4>[HOD Sciences]</h4><p>HOD Sciences</p><span>Sciences</span>
-      </div>
-      <div class="staff-dir-card reveal">
-        <div class="staff-dir-card__photo"><div class="staff-dir-card__initials">HA</div></div>
-        <h4>[HOD Arts]</h4><p>HOD Arts</p><span>Arts</span>
-      </div>
-      <div class="staff-dir-card reveal">
-        <div class="staff-dir-card__photo"><div class="staff-dir-card__initials">HC</div></div>
-        <h4>[HOD Commercial]</h4><p>HOD Commercial</p><span>Commercial</span>
-      </div>
-      <div class="staff-dir-card reveal">
-        <div class="staff-dir-card__photo"><div class="staff-dir-card__initials">IC</div></div>
-        <h4>[ICT Coordinator]</h4><p>ICT Coordinator</p><span>Computer Studies</span>
-      </div>
-      <div class="staff-dir-card reveal">
-        <div class="staff-dir-card__photo"><div class="staff-dir-card__initials">GM</div></div>
-        <h4>[Guidance Master]</h4><p>Student Affairs</p><span>Pastoral Care</span>
-      </div>
-      <div class="staff-dir-card reveal">
-        <div class="staff-dir-card__photo"><div class="staff-dir-card__initials">BU</div></div>
-        <h4>[Bursar]</h4><p>Bursar</p><span>Finance</span>
-      </div>
-      <div class="staff-dir-card reveal">
-        <div class="staff-dir-card__photo"><div class="staff-dir-card__initials">LB</div></div>
-        <h4>[Librarian]</h4><p>School Librarian</p><span>Library</span>
-      </div>
+      <?php endforeach; ?>
     </div>
+    <?php endif; ?>
 
   </div>
 </section>

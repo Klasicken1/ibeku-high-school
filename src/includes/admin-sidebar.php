@@ -29,6 +29,7 @@ function renderAdminSidebar(array $admin, string $currentPage = ''): void {
         ['users',            'users.php',            '👥', 'Manage Users',      ['superadmin']],
         ['class-arms',       'class-arms.php',       '🏫', 'Manage Classes',    ['superadmin']],
         ['subjects',         'subjects.php',         '📚', 'Manage Subjects',   ['superadmin']],
+        ['staff',    'staff.php',    '👨‍🏫', 'Staff Directory', ['superadmin']],
         ['settings',         'settings.php',         '⚙️', 'Settings',          ['superadmin']],
     ];
     ?>
