@@ -18,3 +18,6 @@ vendor/
 
 # Logs
 *.log
+
+# VAPID private key — do not expose
+src/config/vapid.php

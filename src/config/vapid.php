@@ -3,23 +3,31 @@
    IBEKU HIGH SCHOOL — VAPID KEYS FOR WEB PUSH
    File: src/config/vapid.php
 
-   SETUP INSTRUCTIONS:
-   1. Generate your VAPID key pair once using the helper script
-      below, or any VAPID key generator tool:
-      https://vapidkeys.com/
+   These keys identify this server when sending Web Push
+   notifications. Generated once and never changed (changing
+   them invalidates all existing browser subscriptions).
 
-   2. Paste the generated keys into the constants below.
-
-   3. Never commit real private keys to a public repository.
-      On cPanel, set these via the .env file or directly here
-      (this file is outside public/ so it's not web-accessible).
-
-   KEY FORMAT:
-   - VAPID_PUBLIC_KEY  → Base64url-encoded uncompressed P-256 public key (87 chars)
-   - VAPID_PRIVATE_KEY → Base64url-encoded P-256 private key (43 chars)
-   - VAPID_SUBJECT     → mailto: URI for your school email
+   SECURITY:
+   - This file lives outside public/ — not web-accessible.
+   - Do NOT commit this file to a public repository with real
+     keys. Add src/config/vapid.php to .gitignore if this
+     repo ever becomes public.
+   - On cPanel production, you can override these via .env
+     environment variables (VAPID_PUBLIC_KEY, etc.) if your
+     host supports it. Otherwise the constants below are used.
    ============================================================ */
 
-define('VAPID_PUBLIC_KEY',  getenv('VAPID_PUBLIC_KEY')  ?: 'REPLACE_WITH_YOUR_PUBLIC_KEY');
-define('VAPID_PRIVATE_KEY', getenv('VAPID_PRIVATE_KEY') ?: 'REPLACE_WITH_YOUR_PRIVATE_KEY');
-define('VAPID_SUBJECT',     getenv('VAPID_SUBJECT')     ?: 'mailto:admin@ibekuhighschool.edu.ng');
+define('VAPID_PUBLIC_KEY',
+    getenv('VAPID_PUBLIC_KEY') ?:
+    'BHsWzywBD6IC7Jp8bL8bHQvB1GzyRPM56r6pXtwV-zFKmv6Bf8m-QbwRVGBsveemOibzry1VFRMfhhKDb9R2dCg'
+);
+
+define('VAPID_PRIVATE_KEY',
+    getenv('VAPID_PRIVATE_KEY') ?:
+    '4Wfe6UT7_mdzqejnV1bhJYy37ihvRYxTIHacGvIpJlM'
+);
+
+define('VAPID_SUBJECT',
+    getenv('VAPID_SUBJECT') ?:
+    'mailto:me.klasicken@gmail.com'
+);
