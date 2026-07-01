@@ -59,6 +59,7 @@ function renderAdminSidebar(array $admin, string $currentPage = ''): void {
 
         ['messages',           'messages.php',           '💬', 'Messages',          null],
         ['push-notifications', 'push-notifications.php', '🔔', 'Push Notifications', ['superadmin', 'principal']],
+        ['newsletter-admin', 'newsletter-admin.php', '📧', 'Newsletter', ['superadmin', 'principal', 'vp_general']],
 
         ['users',              'users.php',              '👥', 'Manage Users',      ['superadmin']],
         ['class-arms',         'class-arms.php',         '🏫', 'Manage Classes',    ['superadmin']],
