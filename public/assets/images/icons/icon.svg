@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="80" fill="#3d1a6e"/>
+  <!-- Inner accent ring -->
+  <rect x="24" y="24" width="464" height="464" rx="60" fill="none" stroke="#4a90d9" stroke-width="8"/>
+  <!-- IHS text -->
+  <text x="256" y="300" font-family="Georgia, serif" font-size="200" font-weight="700"
+        text-anchor="middle" fill="#ffffff">IHS</text>
+  <!-- Tagline -->
+  <text x="256" y="370" font-family="Arial, sans-serif" font-size="40" font-weight="400"
+        text-anchor="middle" fill="rgba(255,255,255,0.55)" letter-spacing="6">IBEKU</text>
+  <!-- Top gold bar -->
+  <rect x="120" y="80" width="272" height="10" rx="5" fill="#e8a020"/>
+  <!-- Bottom gold bar -->
+  <rect x="120" y="422" width="272" height="10" rx="5" fill="#e8a020"/>
+</svg>
