@@ -348,3 +348,45 @@
   }
 
 }());
+
+/* ============================================================
+   9. ONLINE / OFFLINE BANNER
+   Shows a slim banner when connection is lost or restored.
+   Works independently of the service worker.
+   ============================================================ */
+(function initOnlineOfflineBanner() {
+  var banner = null;
+
+  function getBanner() {
+    if (banner) return banner;
+    banner = document.createElement('div');
+    banner.id = 'ihs-connection-banner';
+    banner.style.cssText = [
+      'position:fixed', 'top:0', 'left:0', 'right:0', 'z-index:99999',
+      'padding:10px 20px', 'text-align:center', 'font-size:13.5px',
+      'font-weight:600', 'font-family:DM Sans,sans-serif',
+      'transform:translateY(-100%)', 'transition:transform .3s ease',
+    ].join(';');
+    document.body.appendChild(banner);
+    return banner;
+  }
+
+  function showBanner(msg, bg, auto) {
+    var b = getBanner();
+    b.textContent     = msg;
+    b.style.background = bg;
+    b.style.color      = '#fff';
+    b.style.transform  = 'translateY(0)';
+    if (auto) {
+      setTimeout(function () { b.style.transform = 'translateY(-100%)'; }, 3500);
+    }
+  }
+
+  window.addEventListener('offline', function () {
+    showBanner('⚠️ You are offline. Some content may not be available.', '#cc3333', false);
+  });
+
+  window.addEventListener('online', function () {
+    showBanner('✅ Connection restored.', '#1a7a3a', true);
+  });
+}());
