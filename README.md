@@ -1,92 +1,82 @@
-# Ibeku High School — Official Website
-
-**Live URL:** _Coming soon_  
-**Project Type:** NYSC Personal Community Development Service (CDS) Project — Digital Transformation Initiative  
-**Built by:** Kenneth Nweke — Full-Stack Developer, NYSC Corps Member (2025/2026)  
-**School:** Ibeku High School, Umuahia, Abia State, Nigeria  
-
----
-
-## About This Project
-
-Ibeku High School is one of the oldest and most respected government secondary
-schools in South-East Nigeria. This project gives the school its first official
-digital presence — a fully functional website with a live result checker, news
-system, gallery, admissions portal, and a custom admin panel.
-
-Built entirely from scratch as an NYSC Personal CDS initiative and documented publicly
-to demonstrate the full development process.
-
----
-
-## Features
-
-- Public website with school information, news, events, and gallery
-- **Online result checker** — students enter their ID and view term results
-- Admissions enquiry system
-- Contact form
-- **Admin panel** — school staff can upload results, post news, manage gallery
-- Fully responsive — works on mobile, tablet, and desktop
-- Clean, accessible design using school colours (light blue #4a90d9 and dark purple #3d1a6e)
-
----
-
-## Tech Stack
-
-| Layer     | Technology              |
-|-----------|-------------------------|
-| Frontend  | HTML5, CSS3, JavaScript |
-| Backend   | PHP 8+                  |
-| Database  | MySQL                   |
-| Hosting   | cPanel Shared Hosting   |
-| Version Control | Git + GitHub      |
-
----
-
-## Project Phases
-
-| Phase | Description                        | Status      |
-|-------|------------------------------------|-------------|
-| 1     | Static frontend (HTML/CSS/JS)      | 🔄 In progress |
-| 2     | PHP backend + MySQL database       | ⏳ Pending  |
-| 3     | Admin panel                        | ⏳ Pending  |
-
 ---
 
 ## Local Development Setup
 
-### Prerequisites
-- XAMPP (or any PHP 8+ local server)
-- Git
-- A code editor (VS Code recommended)
-
-### Steps
+**Prerequisites:** XAMPP (or any PHP 8+ server), Git, VS Code
 
 ```bash
-# 1. Clone the repository
+# Clone the repository
 git clone https://github.com/Klasicken1/ibeku-high-school.git
-
-# 2. Navigate into the project
 cd ibeku-high-school
 
-# 3. Copy environment variables
+# Copy environment file and fill in credentials
 cp .env.example .env
-# Then open .env and fill in your database credentials
 
-# 4. Import the database
-# Open phpMyAdmin, create a database called ibeku_school
-# Import database/schema.sql, then database/seed.sql
+# Create the database
+# Open phpMyAdmin → create database: ibeku_school
+# Import: database/schema.sql then database/seed.sql
 
-# 5. Move the project into your XAMPP htdocs folder
-# Then visit: http://localhost/ibeku-high-school/public/
+# Visit the site
+# http://localhost/ibeku-high-school/public/
+
+# Admin panel
+# http://localhost/ibeku-high-school/public/admin/
 ```
+
+**BASE_PATH convention:** All PHP files and JS fetch calls use
+`/ibeku-high-school/` as the subfolder prefix on localhost.
+On production (cPanel root domain) this becomes `/` — update the
+constant in `src/config/database.php` before deploying.
 
 ---
 
-## NYSC Documentation
+## Deployment (cPanel)
 
-This project is documented as a Personal CDS digital transformation initiative.
-Evidence including Coding session photos/videos, screenshots, meeting notes, and launch records
+1. Upload all files to `public_html/` via File Manager or FTP
+2. Create MySQL database and user in cPanel → MySQL Databases
+3. Import `database/schema.sql` via phpMyAdmin
+4. Update `src/config/database.php` with cPanel credentials
+5. Set `BASE_PATH` to `/` in `src/config/database.php`
+6. Set folder permissions: `public/assets/images/staff/` → 755
+7. Test all public pages and admin panel
+
+---
+
+## Planned — Phase 5
+
+- **Staff internal messaging** — bell icon and unread badge in admin
+  header; staff_messages table already created; message triggers
+  on results entry and approval events
+- **Browser push notifications** — Web Push API with VAPID keys;
+  opt-in prompt for visitors and parents; admin interface to compose
+  and broadcast announcements; when installed as a PWA, push
+  notifications delivered as native app notifications via the same
+  Web Push / VAPID infrastructure — no separate system needed
+- **PWA conversion** — manifest.json, service worker with layered
+  caching, offline fallback page, online/offline banner
+- **News CMS** — full CRUD for news.php from admin panel
+- **Gallery CMS** — upload and manage gallery images from admin panel
+- **Events CMS** — manage events.php calendar from admin panel
+- **Admissions backend** — PHP handler connecting enquiry form to
+  a notifiable inbox
+- **Newsletter broadcast** — subscriber list management
+- **cPanel production deployment**
+
+---
+
+## NYSC Context
+
+This project was built as a Personal CDS digital transformation
+initiative during NYSC primary assignment at Ibeku High School,
+where the developer serves as a Digital Technology teacher
+(Corps Member AB/25C/0245, Batch C).
+
+The project demonstrates full-stack PHP development including
+database design, role-based access control, file upload handling,
+API design, anti-spam techniques, and progressive enhancement —
+and serves as a portfolio piece for the developer's career progress.
+
+Evidence including session photos, screenshots, and meeting notes
 are stored in the `/docs` folder.
 
 ---
