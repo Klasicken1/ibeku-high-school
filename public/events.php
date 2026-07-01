@@ -10,182 +10,96 @@ $currentPage = 'news';
 $pageCss     = 'events';
 
 require_once '../src/includes/header.php';
+require_once '../src/config/database.php';
+$pdo = getDB();
 
-/*
- * EVENTS DATA
- * Phase 2: replace with database query:
- * SELECT * FROM events WHERE date >= CURDATE() ORDER BY date ASC
- *
- * Categories: academic, sports, culture, examination, meeting, holiday, general
- */
-
-$featured_event = [
-  'cat'      => 'examination',
-  'cat_label'=> 'Examination',
-  'icon'     => '✏️',
-  'title'    => 'First Term Examinations — 2024/2025 Academic Session',
-  'excerpt'  => 'The First Term examinations for all classes from JSS 1 to SSS 3 commence this month. Students are advised to collect their individual timetables from their form teachers and prepare adequately.',
-  'day'      => '13',
-  'month'    => 'Jan',
-  'time'     => '8:00 AM',
-  'venue'    => 'All Classrooms — IHS Main Campus',
-  'duration' => 'Two weeks',
+$categories = [
+    'academic'    => 'Academic',
+    'sports'      => 'Sports',
+    'culture'     => 'Culture',
+    'examination' => 'Examination',
+    'meeting'     => 'Meeting',
+    'holiday'     => 'Holiday',
+    'general'     => 'General',
 ];
 
-$secondary_featured = [
-  [
-    'cat'       => 'culture',
-    'cat_label' => 'Culture',
-    'icon'      => '🎭',
-    'title'     => 'Inter-House Cultural Competition',
-    'excerpt'   => 'Annual inter-house cultural competition featuring drama, poetry, traditional dance, and music performances from all four houses.',
-    'day'       => '24',
-    'month'     => 'Jan',
-    'time'      => '10:00 AM',
-    'venue'     => 'School Assembly Hall',
-    'style'     => 'blue',
-  ],
-  [
-    'cat'       => 'meeting',
-    'cat_label' => 'Meeting',
-    'icon'      => '🤝',
-    'title'     => 'Parents-Teachers Association (PTA) Meeting',
-    'excerpt'   => 'The First Term PTA meeting for parents and guardians of all students. Results and school updates will be shared.',
-    'day'       => '01',
-    'month'     => 'Feb',
-    'time'      => '9:00 AM',
-    'venue'     => 'School Assembly Hall',
-    'style'     => 'purple',
-  ],
+$categoryColors = [
+    'academic'    => ['bg' => '#e6f0ff', 'color' => '#1a5a9a'],
+    'sports'      => ['bg' => '#e6f9ed', 'color' => '#1a7a3a'],
+    'culture'     => ['bg' => '#f0ecfa', 'color' => '#3d1a6e'],
+    'examination' => ['bg' => '#ffe6e6', 'color' => '#cc3333'],
+    'meeting'     => ['bg' => '#fff3e6', 'color' => '#8a4a00'],
+    'holiday'     => ['bg' => '#fffbe6', 'color' => '#8a6a00'],
+    'general'     => ['bg' => '#f4f3f9', 'color' => '#6b6b80'],
 ];
 
-$upcoming_events = [
-  [
-    'cat'      => 'academic',
-    'tag'      => 'academic',
-    'title'    => 'Second Term Resumption',
-    'desc'     => 'Second Term of the 2024/2025 academic session resumes. All students must report by 8:00 AM.',
-    'day'      => '13',
-    'month'    => 'Jan',
-    'time'     => '8:00 AM',
-    'venue'    => 'IHS Main Campus',
-  ],
-  [
-    'cat'      => 'examination',
-    'tag'      => 'examination',
-    'title'    => 'First Term Examinations Begin',
-    'desc'     => 'First Term examinations commence for all classes. Timetables available from form teachers.',
-    'day'      => '20',
-    'month'    => 'Jan',
-    'time'     => '8:00 AM',
-    'venue'    => 'All Classrooms',
-  ],
-  [
-    'cat'      => 'culture',
-    'tag'      => 'culture',
-    'title'    => 'Inter-House Cultural Competition',
-    'desc'     => 'Drama, poetry, traditional dance, and music competition between the four school houses.',
-    'day'      => '24',
-    'month'    => 'Jan',
-    'time'     => '10:00 AM',
-    'venue'    => 'Assembly Hall',
-  ],
-  [
-    'cat'      => 'sports',
-    'tag'      => 'sports',
-    'title'    => 'Inter-House Sports Day',
-    'desc'     => 'Annual inter-house sports competition — athletics, football, basketball, and field events.',
-    'day'      => '28',
-    'month'    => 'Jan',
-    'time'     => '8:30 AM',
-    'venue'    => 'School Sports Field',
-  ],
-  [
-    'cat'      => 'meeting',
-    'tag'      => 'meeting',
-    'title'    => 'PTA Meeting — First Term',
-    'desc'     => 'Parents and guardians are invited to the First Term PTA meeting. Attendance is strongly encouraged.',
-    'day'      => '01',
-    'month'    => 'Feb',
-    'time'     => '9:00 AM',
-    'venue'    => 'Assembly Hall',
-  ],
-  [
-    'cat'      => 'academic',
-    'tag'      => 'academic',
-    'title'    => 'Career Guidance Day — SSS 3',
-    'desc'     => 'SSS 3 students will receive career guidance, JAMB preparation tips, and university application advice.',
-    'day'      => '08',
-    'month'    => 'Feb',
-    'time'     => '10:00 AM',
-    'venue'    => 'Assembly Hall',
-  ],
-  [
-    'cat'      => 'holiday',
-    'tag'      => 'holiday',
-    'title'    => 'First Term Ends — School Closes',
-    'desc'     => 'End of First Term 2024/2025. Students are dismissed after the closing assembly.',
-    'day'      => '14',
-    'month'    => 'Feb',
-    'time'     => '12:00 PM',
-    'venue'    => 'IHS Main Campus',
-  ],
-  [
-    'cat'      => 'academic',
-    'tag'      => 'academic',
-    'title'    => 'Second Term Resumption',
-    'desc'     => 'Second Term of the 2024/2025 academic session resumes for all students.',
-    'day'      => '03',
-    'month'    => 'Mar',
-    'time'     => '8:00 AM',
-    'venue'    => 'IHS Main Campus',
-  ],
-];
+/* ── Featured event — most recent upcoming published and featured ── */
+$featuredEvent = $pdo->query(
+    "SELECT * FROM events
+     WHERE is_published = 1 AND is_featured = 1
+       AND event_date >= CURDATE()
+     ORDER BY event_date ASC LIMIT 1"
+)->fetch();
 
-$past_events = [
-  [
-    'icon'   => '🏆',
-    'thumb'  => 1,
-    'date'   => 'December 10, 2024',
-    'title'  => 'Abia State Science Quiz Championship 2024',
-    'desc'   => 'IHS retained the Abia State Science Quiz Championship title for the third consecutive year.',
-  ],
-  [
-    'icon'   => '🎭',
-    'thumb'  => 2,
-    'date'   => 'December 6, 2024',
-    'title'  => 'Annual Cultural Day Celebration',
-    'desc'   => 'Students celebrated the school\'s cultural heritage with traditional attire, drama, and music performances.',
-  ],
-  [
-    'icon'   => '🎓',
-    'thumb'  => 3,
-    'date'   => 'November 30, 2024',
-    'title'  => 'SSS 3 Valedictory Service & Graduation',
-    'desc'   => 'The Class of 2024 graduated in a colourful valedictory ceremony attended by parents and well-wishers.',
-  ],
-  [
-    'icon'   => '📚',
-    'thumb'  => 4,
-    'date'   => 'November 22, 2024',
-    'title'  => 'Prize-Giving Day 2024',
-    'desc'   => 'Outstanding students across all categories were recognised and awarded at the annual prize-giving ceremony.',
-  ],
-  [
-    'icon'   => '💻',
-    'thumb'  => 5,
-    'date'   => 'November 15, 2024',
-    'title'  => 'Computer Lab Commissioning',
-    'desc'   => 'The newly refurbished computer lab was officially commissioned, funded by the IHS Old Students Association.',
-  ],
-  [
-    'icon'   => '⚽',
-    'thumb'  => 6,
-    'date'   => 'November 5, 2024',
-    'title'  => 'Inter-House Sports Day 2024',
-    'desc'   => 'An exciting day of athletics, football, and field events, with Red House emerging overall champion.',
-  ],
+/* Fallback: next upcoming published event if none is featured */
+if (!$featuredEvent) {
+    $featuredEvent = $pdo->query(
+        "SELECT * FROM events
+         WHERE is_published = 1 AND event_date >= CURDATE()
+         ORDER BY event_date ASC LIMIT 1"
+    )->fetch();
+}
+
+/* ── Next 2 upcoming events after featured (for secondary cards) ── */
+$secondaryStmt = $pdo->prepare(
+    "SELECT * FROM events
+     WHERE is_published = 1
+       AND event_date >= CURDATE()
+       AND id != ?
+     ORDER BY event_date ASC LIMIT 2"
+);
+$secondaryStmt->execute([$featuredEvent['id'] ?? 0]);
+$secondaryEvents = $secondaryStmt->fetchAll();
+
+/* ── Full upcoming list (excluding featured and secondary) ── */
+$excludeIds = array_filter([
+    $featuredEvent['id']  ?? null,
+    $secondaryEvents[0]['id'] ?? null,
+    $secondaryEvents[1]['id'] ?? null,
+]);
+$placeholders = implode(',', array_fill(0, max(count($excludeIds), 1), '?'));
+$upcomingStmt = $pdo->prepare(
+    "SELECT * FROM events
+     WHERE is_published = 1
+       AND event_date >= CURDATE()
+       AND id NOT IN ($placeholders)
+     ORDER BY event_date ASC, start_time ASC"
+);
+$upcomingStmt->execute($excludeIds ?: [0]);
+$upcomingEvents = $upcomingStmt->fetchAll();
+
+/* ── Past events ── */
+$pastEvents = $pdo->query(
+    "SELECT * FROM events
+     WHERE is_published = 1 AND event_date < CURDATE()
+     ORDER BY event_date DESC LIMIT 6"
+)->fetchAll();
+
+/* ── Fallback hardcoded past events if DB is empty ── */
+$defaultPastEvents = [
+    ['icon'=>'🏆','event_date'=>'2024-12-10','title'=>'Abia State Science Quiz Championship','description'=>'IHS retained the state science quiz title for the third consecutive year.'],
+    ['icon'=>'🎭','event_date'=>'2024-12-06','title'=>'Annual Cultural Day Celebration',      'description'=>'Students celebrated the school\'s cultural heritage with traditional attire, drama, and music.'],
+    ['icon'=>'🎓','event_date'=>'2024-11-30','title'=>'SSS 3 Valedictory Service & Graduation','description'=>'The Class of 2024 graduated in a colourful valedictory ceremony attended by parents and well-wishers.'],
+    ['icon'=>'📚','event_date'=>'2024-11-22','title'=>'Prize-Giving Day',                    'description'=>'Outstanding students were recognised and awarded at the annual prize-giving ceremony.'],
+    ['icon'=>'💻','event_date'=>'2024-11-15','title'=>'Computer Lab Commissioning',           'description'=>'The newly refurbished computer lab was officially commissioned, funded by the IHS Old Students Association.'],
+    ['icon'=>'⚽','event_date'=>'2024-11-05','title'=>'Inter-House Sports Day',              'description'=>'An exciting day of athletics, football, and field events, with Red House emerging overall champion.'],
 ];
+if (empty($pastEvents)) {
+    $pastEvents    = $defaultPastEvents;
+    $pastIsDefault = true;
+} else {
+    $pastIsDefault = false;
+}
 ?>
 
 
@@ -211,18 +125,15 @@ $past_events = [
 <div class="events-filter-bar">
   <div class="events-filter-bar__inner wrap">
     <button class="events-tab active" data-cat="all">All Events</button>
-    <button class="events-tab" data-cat="academic">Academic</button>
-    <button class="events-tab" data-cat="examination">Examinations</button>
-    <button class="events-tab" data-cat="sports">Sports</button>
-    <button class="events-tab" data-cat="culture">Culture</button>
-    <button class="events-tab" data-cat="meeting">Meetings</button>
-    <button class="events-tab" data-cat="holiday">Term Dates</button>
+    <?php foreach ($categories as $key => $label): ?>
+    <button class="events-tab" data-cat="<?php echo $key; ?>"><?php echo $label; ?></button>
+    <?php endforeach; ?>
   </div>
 </div>
 
 
 <!-- ═══════════════════════════════════════════
-     FEATURED UPCOMING EVENTS
+     FEATURED UPCOMING EVENTS — from DB
      ═══════════════════════════════════════════ -->
 <section class="featured-events" id="upcoming">
   <div class="featured-events__inner wrap">
@@ -234,54 +145,79 @@ $past_events = [
       </div>
     </div>
 
+    <?php if (!$featuredEvent): ?>
+    <p style="color:#6b6b80;text-align:center;padding:40px 0">
+      No upcoming events at the moment. Check back soon.
+    </p>
+    <?php else: ?>
     <div class="featured-events-grid">
 
       <!-- Main featured event -->
       <div class="featured-event-card reveal">
         <div class="featured-event-card__date-badge">
-          <span class="day"><?php echo $featured_event['day']; ?></span>
-          <span class="month"><?php echo $featured_event['month']; ?></span>
+          <span class="day"><?php echo date('d', strtotime($featuredEvent['event_date'])); ?></span>
+          <span class="month"><?php echo date('M', strtotime($featuredEvent['event_date'])); ?></span>
         </div>
-        <span class="featured-event-card__icon" aria-hidden="true"><?php echo $featured_event['icon']; ?></span>
-        <span class="featured-event-card__cat"><?php echo htmlspecialchars($featured_event['cat_label']); ?></span>
-        <h3><?php echo htmlspecialchars($featured_event['title']); ?></h3>
-        <p><?php echo htmlspecialchars($featured_event['excerpt']); ?></p>
+        <span class="featured-event-card__cat">
+          <?php echo htmlspecialchars($categories[$featuredEvent['category']] ?? 'General'); ?>
+        </span>
+        <h3><?php echo htmlspecialchars($featuredEvent['title']); ?></h3>
+        <?php if ($featuredEvent['description']): ?>
+        <p><?php echo htmlspecialchars($featuredEvent['description']); ?></p>
+        <?php endif; ?>
         <div class="featured-event-card__meta">
-          <span>🕐 <?php echo htmlspecialchars($featured_event['time']); ?></span>
-          <span>📍 <?php echo htmlspecialchars($featured_event['venue']); ?></span>
-          <span>⏱ <?php echo htmlspecialchars($featured_event['duration']); ?></span>
+          <?php if ($featuredEvent['start_time']): ?>
+          <span>🕐 <?php echo date('g:ia', strtotime($featuredEvent['start_time'])); ?></span>
+          <?php endif; ?>
+          <?php if ($featuredEvent['venue']): ?>
+          <span>📍 <?php echo htmlspecialchars($featuredEvent['venue']); ?></span>
+          <?php endif; ?>
         </div>
       </div>
 
       <!-- Secondary featured events -->
-      <?php foreach ($secondary_featured as $sf): ?>
+      <?php
+      $cardStyles = ['blue', 'purple'];
+      foreach ($secondaryEvents as $si => $sf):
+        $style    = $cardStyles[$si % 2];
+        $catColor = $categoryColors[$sf['category']] ?? $categoryColors['general'];
+      ?>
       <div class="secondary-event-card reveal">
-        <div class="secondary-event-card__header secondary-event-card__header--<?php echo $sf['style']; ?>">
+        <div class="secondary-event-card__header secondary-event-card__header--<?php echo $style; ?>">
           <div class="secondary-event-card__date">
-            <span class="day"><?php echo $sf['day']; ?></span>
-            <span class="month"><?php echo $sf['month']; ?></span>
+            <span class="day"><?php echo date('d', strtotime($sf['event_date'])); ?></span>
+            <span class="month"><?php echo date('M', strtotime($sf['event_date'])); ?></span>
           </div>
-          <span class="secondary-event-card__icon" aria-hidden="true"><?php echo $sf['icon']; ?></span>
-          <span class="secondary-event-card__cat"><?php echo htmlspecialchars($sf['cat_label']); ?></span>
+          <span class="secondary-event-card__cat">
+            <?php echo htmlspecialchars($categories[$sf['category']] ?? 'General'); ?>
+          </span>
           <h3><?php echo htmlspecialchars($sf['title']); ?></h3>
         </div>
         <div class="secondary-event-card__body">
-          <p><?php echo htmlspecialchars($sf['excerpt']); ?></p>
+          <?php if ($sf['description']): ?>
+          <p><?php echo htmlspecialchars(mb_substr($sf['description'], 0, 120)) . (mb_strlen($sf['description']) > 120 ? '…' : ''); ?></p>
+          <?php endif; ?>
           <div class="secondary-event-card__meta">
-            <span>🕐 <?php echo htmlspecialchars($sf['time']); ?></span>
+            <?php if ($sf['start_time']): ?>
+            <span>🕐 <?php echo date('g:ia', strtotime($sf['start_time'])); ?></span>
+            <?php endif; ?>
+            <?php if ($sf['venue']): ?>
             <span>📍 <?php echo htmlspecialchars($sf['venue']); ?></span>
+            <?php endif; ?>
           </div>
         </div>
       </div>
       <?php endforeach; ?>
 
     </div>
+    <?php endif; ?>
+
   </div>
 </section>
 
 
 <!-- ═══════════════════════════════════════════
-     FULL UPCOMING EVENTS LIST
+     FULL UPCOMING EVENTS LIST — from DB
      ═══════════════════════════════════════════ -->
 <section class="upcoming-events">
   <div class="upcoming-events__inner wrap">
@@ -294,30 +230,52 @@ $past_events = [
     </div>
 
     <div class="events-list" id="eventsList">
-      <?php foreach ($upcoming_events as $ev): ?>
-      <div class="event-list-item reveal" data-cat="<?php echo htmlspecialchars($ev['cat']); ?>">
+
+      <?php if (empty($upcomingEvents) && !$featuredEvent): ?>
+      <div class="events-none" id="eventsNone">
+        <p>No upcoming events scheduled</p>
+        <span>Check back soon — events are added regularly.</span>
+      </div>
+      <?php else: ?>
+
+      <?php foreach ($upcomingEvents as $ev):
+        $catColor = $categoryColors[$ev['category']] ?? $categoryColors['general'];
+        $isToday  = $ev['event_date'] === date('Y-m-d');
+      ?>
+      <div class="event-list-item reveal"
+           data-cat="<?php echo htmlspecialchars($ev['category']); ?>">
 
         <div class="event-list-item__date">
-          <span class="day"><?php echo htmlspecialchars($ev['day']); ?></span>
-          <span class="month"><?php echo htmlspecialchars($ev['month']); ?></span>
+          <span class="day"><?php echo date('d', strtotime($ev['event_date'])); ?></span>
+          <span class="month"><?php echo date('M', strtotime($ev['event_date'])); ?></span>
         </div>
 
         <div class="event-list-item__body">
-          <h4><?php echo htmlspecialchars($ev['title']); ?></h4>
-          <p><?php echo htmlspecialchars($ev['desc']); ?></p>
+          <h4>
+            <?php echo htmlspecialchars($ev['title']); ?>
+            <?php if ($isToday): ?><span style="background:#4a90d9;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;margin-left:6px;text-transform:uppercase">Today</span><?php endif; ?>
+          </h4>
+          <?php if ($ev['description']): ?>
+          <p><?php echo htmlspecialchars(mb_substr($ev['description'], 0, 120)) . (mb_strlen($ev['description']) > 120 ? '…' : ''); ?></p>
+          <?php endif; ?>
           <div class="event-list-item__tags">
-            <span class="event-tag event-tag--<?php echo $ev['tag']; ?>">
-              <?php echo ucfirst($ev['cat']); ?>
+            <span class="event-tag event-tag--<?php echo htmlspecialchars($ev['category']); ?>"
+                  style="background:<?php echo $catColor['bg']; ?>;color:<?php echo $catColor['color']; ?>">
+              <?php echo htmlspecialchars($categories[$ev['category']] ?? 'General'); ?>
             </span>
+            <?php if ($ev['venue']): ?>
             <span class="event-tag event-tag--general">
               📍 <?php echo htmlspecialchars($ev['venue']); ?>
             </span>
+            <?php endif; ?>
           </div>
         </div>
 
         <div class="event-list-item__time">
-          <strong><?php echo htmlspecialchars($ev['time']); ?></strong>
-          <span><?php echo htmlspecialchars($ev['month'] . ' ' . $ev['day']); ?></span>
+          <?php if ($ev['start_time']): ?>
+          <strong><?php echo date('g:ia', strtotime($ev['start_time'])); ?></strong>
+          <?php endif; ?>
+          <span><?php echo date('M j', strtotime($ev['event_date'])); ?></span>
         </div>
 
       </div>
@@ -328,13 +286,15 @@ $past_events = [
         <span>Select a different category or check back soon.</span>
       </div>
 
+      <?php endif; ?>
+
     </div>
   </div>
 </section>
 
 
 <!-- ═══════════════════════════════════════════
-     PAST EVENTS
+     PAST EVENTS — from DB with fallback
      ═══════════════════════════════════════════ -->
 <section class="past-events" id="past">
   <div class="past-events__inner wrap">
@@ -348,15 +308,23 @@ $past_events = [
     </div>
 
     <div class="past-events-grid">
-      <?php foreach ($past_events as $pe): ?>
+      <?php foreach ($pastEvents as $i => $pe):
+        /* Support both DB rows and fallback hardcoded array */
+        $peTitle = $pe['title'] ?? '';
+        $peDesc  = $pe['description'] ?? '';
+        $peDate  = isset($pe['event_date'])
+            ? date('F j, Y', strtotime($pe['event_date']))
+            : ($pe['date'] ?? '');
+        $peIcon  = $pe['icon'] ?? '📅';
+      ?>
       <div class="past-event-card reveal">
-        <div class="past-event-card__thumb past-event-card__thumb--<?php echo $pe['thumb']; ?>" aria-hidden="true">
-          <?php echo $pe['icon']; ?>
+        <div class="past-event-card__thumb past-event-card__thumb--<?php echo ($i % 6) + 1; ?>" aria-hidden="true">
+          <?php echo $peIcon; ?>
         </div>
         <div class="past-event-card__body">
-          <span class="past-event-card__date"><?php echo htmlspecialchars($pe['date']); ?></span>
-          <h4><?php echo htmlspecialchars($pe['title']); ?></h4>
-          <p><?php echo htmlspecialchars($pe['desc']); ?></p>
+          <span class="past-event-card__date"><?php echo htmlspecialchars($peDate); ?></span>
+          <h4><?php echo htmlspecialchars($peTitle); ?></h4>
+          <p><?php echo htmlspecialchars(mb_substr($peDesc, 0, 120)) . (mb_strlen($peDesc) > 120 ? '…' : ''); ?></p>
         </div>
       </div>
       <?php endforeach; ?>
@@ -371,9 +339,9 @@ $past_events = [
 <script>
 /* ── Events category filter ── */
 (function () {
-  var tabs   = document.querySelectorAll('.events-tab');
-  var items  = document.querySelectorAll('.event-list-item');
-  var noRes  = document.getElementById('eventsNone');
+  var tabs  = document.querySelectorAll('.events-tab');
+  var items = document.querySelectorAll('.event-list-item');
+  var noRes = document.getElementById('eventsNone');
 
   tabs.forEach(function (tab) {
     tab.addEventListener('click', function () {

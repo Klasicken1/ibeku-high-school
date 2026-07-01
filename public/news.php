@@ -14,7 +14,6 @@ require_once __DIR__ . '/../src/config/database.php';
 
 $pdo = getDB();
 
-/* ── Category display labels and emoji fallback (when no image uploaded) ── */
 $categoryLabels = [
     'achievement'  => 'Achievement',
     'academic'     => 'Academic',
@@ -41,7 +40,6 @@ $featured = $pdo->query(
      ORDER BY published_at DESC LIMIT 1"
 )->fetch();
 
-/* Fallback: if nothing is marked featured, use the most recent published article */
 if (!$featured) {
     $featured = $pdo->query(
         "SELECT * FROM news WHERE is_published = 1
@@ -49,7 +47,7 @@ if (!$featured) {
     )->fetch();
 }
 
-/* ── Remaining articles (everything except the featured one) ── */
+/* ── Remaining articles ── */
 $articlesStmt = $pdo->prepare(
     "SELECT * FROM news WHERE is_published = 1 AND id != ?
      ORDER BY published_at DESC"
@@ -57,42 +55,36 @@ $articlesStmt = $pdo->prepare(
 $articlesStmt->execute([$featured['id'] ?? 0]);
 $articles = $articlesStmt->fetchAll();
 
-/*
- * ANNOUNCEMENTS
- * Note: these remain a hardcoded array for now — the schema does
- * not yet have a dedicated announcements table with urgency badges.
- * TODO Phase 4: build an announcements table + admin CRUD, same
- * pattern as news, if the school wants these editable too.
- */
+/* ── Announcements — hardcoded until dedicated table is built ── */
 $announcements = [
-  [
-    'badge' => 'urgent', 'badge_label' => 'URGENT',
-    'icon'  => '⚠️',
-    'title' => 'Fee Payment Deadline — Second Term 2024/2025',
-    'body'  => 'All students must complete Second Term fee payments on or before January 10, 2025. Students with outstanding fees will not be permitted to sit Second Term examinations.',
-    'date'  => 'December 20, 2024',
-  ],
-  [
-    'badge' => 'notice', 'badge_label' => 'NOTICE',
-    'icon'  => '📋',
-    'title' => 'New School Website Launched',
-    'body'  => 'Ibeku High School has officially launched its first website. Students can now check results online, download timetables, and access school information at any time.',
-    'date'  => 'December 15, 2024',
-  ],
-  [
-    'badge' => 'info', 'badge_label' => 'INFO',
-    'icon'  => '📖',
-    'title' => 'Library Hours Extended for SSS 3 Students',
-    'body'  => 'To support SSS 3 students preparing for WAEC, the school library will be open from 7:00 AM to 4:30 PM every school day from January until examination period.',
-    'date'  => 'November 30, 2024',
-  ],
-  [
-    'badge' => 'notice', 'badge_label' => 'NOTICE',
-    'icon'  => '🏥',
-    'title' => 'Medical Examination for New JSS 1 Students',
-    'body'  => 'All new JSS 1 students are required to undergo the mandatory medical examination on Wednesday, January 15, 2025. Parents should accompany their wards.',
-    'date'  => 'January 5, 2025',
-  ],
+    [
+        'badge' => 'urgent', 'badge_label' => 'URGENT',
+        'icon'  => '⚠️',
+        'title' => 'Fee Payment Deadline — Second Term',
+        'body'  => 'All students must complete Second Term fee payments by the deadline. Students with outstanding fees will not be permitted to sit Second Term examinations.',
+        'date'  => 'See school notice board',
+    ],
+    [
+        'badge' => 'notice', 'badge_label' => 'NOTICE',
+        'icon'  => '📋',
+        'title' => 'New School Website Launched',
+        'body'  => 'Ibeku High School has officially launched its first website. Students can now check results online, download timetables, and access school information at any time.',
+        'date'  => 'Current session',
+    ],
+    [
+        'badge' => 'info', 'badge_label' => 'INFO',
+        'icon'  => '📖',
+        'title' => 'Library Hours Extended for SSS 3 Students',
+        'body'  => 'To support SSS 3 students preparing for WAEC, the school library will be open from 7:00 AM to 4:30 PM every school day until the examination period.',
+        'date'  => 'See school notice board',
+    ],
+    [
+        'badge' => 'notice', 'badge_label' => 'NOTICE',
+        'icon'  => '🏥',
+        'title' => 'Medical Examination for New JSS 1 Students',
+        'body'  => 'All new JSS 1 students are required to undergo the mandatory medical examination. Parents should accompany their wards. Check notice board for date.',
+        'date'  => 'See school notice board',
+    ],
 ];
 ?>
 
@@ -120,12 +112,9 @@ $announcements = [
   <div class="news-filter-bar__inner wrap">
     <div class="news-filter-tabs">
       <button class="news-tab active" data-cat="all">All</button>
-      <button class="news-tab" data-cat="achievement">Achievement</button>
-      <button class="news-tab" data-cat="academic">Academic</button>
-      <button class="news-tab" data-cat="announcement">Announcement</button>
-      <button class="news-tab" data-cat="sports">Sports</button>
-      <button class="news-tab" data-cat="ict">ICT</button>
-      <button class="news-tab" data-cat="culture">Culture</button>
+      <?php foreach ($categoryLabels as $key => $label): ?>
+      <button class="news-tab" data-cat="<?php echo $key; ?>"><?php echo $label; ?></button>
+      <?php endforeach; ?>
     </div>
     <div class="news-search">
       <span class="news-search__icon">🔍</span>
@@ -136,7 +125,7 @@ $announcements = [
 
 
 <!-- ═══════════════════════════════════════════
-     FEATURED ARTICLE
+     FEATURED ARTICLE — from DB
      ═══════════════════════════════════════════ -->
 <?php if ($featured): ?>
 <div class="featured-article" id="featured">
@@ -157,38 +146,56 @@ $announcements = [
       </div>
 
       <div class="featured-article__body">
-        <span class="featured-article__cat cat--<?php echo $featured['category']; ?>">
+        <span class="featured-article__cat cat--<?php echo htmlspecialchars($featured['category']); ?>">
           <?php echo htmlspecialchars($categoryLabels[$featured['category']] ?? 'General'); ?>
         </span>
         <h2><?php echo htmlspecialchars($featured['title']); ?></h2>
         <div class="featured-article__meta">
-          <span class="featured-article__date">📅 <?php echo date('F j, Y', strtotime($featured['published_at'])); ?></span>
+          <span class="featured-article__date">
+            📅 <?php echo date('F j, Y', strtotime($featured['published_at'])); ?>
+          </span>
         </div>
         <p><?php echo htmlspecialchars($featured['excerpt'] ?? ''); ?></p>
-        <a href="<?php echo BASE_PATH; ?>news-single.php?slug=<?php echo urlencode($featured['slug']); ?>" class="featured-article__read-more">Read Full Story →</a>
+        <a href="<?php echo BASE_PATH; ?>news-single.php?slug=<?php echo urlencode($featured['slug']); ?>"
+           class="featured-article__read-more">Read Full Story →</a>
       </div>
 
     </div>
   </div>
 </div>
+<?php else: ?>
+<!-- No published articles yet — empty state -->
+<div style="text-align:center;padding:60px 20px;color:#6b6b80">
+  <div style="font-size:40px;margin-bottom:12px">📰</div>
+  <p style="font-size:15px">No news articles published yet. Check back soon.</p>
+</div>
 <?php endif; ?>
 
 
 <!-- ═══════════════════════════════════════════
-     NEWS GRID
+     NEWS GRID — from DB
      ═══════════════════════════════════════════ -->
 <section class="news-grid-section" id="news">
   <div class="news-grid-section__inner wrap">
 
     <div class="news-grid-section__header">
       <h3>Latest News</h3>
-      <span class="news-count" id="newsCount"><?php echo count($articles); ?> articles</span>
+      <span class="news-count" id="newsCount"><?php echo count($articles); ?> article<?php echo count($articles) !== 1 ? 's' : ''; ?></span>
     </div>
 
     <div class="news-grid" id="newsGrid">
 
+      <?php if (empty($articles)): ?>
+      <div class="news-no-results" id="newsNoResults">
+        <p>No more articles yet</p>
+        <span>Check back soon — new articles are added regularly.</span>
+      </div>
+      <?php else: ?>
+
       <?php foreach ($articles as $article): ?>
-      <article class="news-card reveal" data-cat="<?php echo htmlspecialchars($article['category']); ?>" data-title="<?php echo htmlspecialchars(strtolower($article['title'])); ?>">
+      <article class="news-card reveal"
+               data-cat="<?php echo htmlspecialchars($article['category']); ?>"
+               data-title="<?php echo htmlspecialchars(strtolower($article['title'])); ?>">
 
         <div class="news-card__thumb" aria-hidden="true">
           <?php if (!empty($article['image'])): ?>
@@ -201,25 +208,27 @@ $announcements = [
         </div>
 
         <div class="news-card__body">
-          <span class="news-card__cat cat--<?php echo $article['category']; ?>">
+          <span class="news-card__cat cat--<?php echo htmlspecialchars($article['category']); ?>">
             <?php echo htmlspecialchars($categoryLabels[$article['category']] ?? 'General'); ?>
           </span>
           <h3><?php echo htmlspecialchars($article['title']); ?></h3>
           <p><?php echo htmlspecialchars($article['excerpt'] ?? ''); ?></p>
           <div class="news-card__footer">
             <span class="news-card__date"><?php echo date('F j, Y', strtotime($article['published_at'])); ?></span>
-            <a href="<?php echo BASE_PATH; ?>news-single.php?slug=<?php echo urlencode($article['slug']); ?>" class="news-card__link">Read more →</a>
+            <a href="<?php echo BASE_PATH; ?>news-single.php?slug=<?php echo urlencode($article['slug']); ?>"
+               class="news-card__link">Read more →</a>
           </div>
         </div>
 
       </article>
       <?php endforeach; ?>
 
-      <!-- Shown when no articles match the filter/search -->
-      <div class="news-no-results" id="newsNoResults" style="<?php echo empty($articles) ? '' : 'display:none'; ?>">
+      <div class="news-no-results" id="newsNoResults" style="display:none">
         <p>No articles found</p>
         <span>Try a different category or search term.</span>
       </div>
+
+      <?php endif; ?>
 
     </div>
   </div>
@@ -227,7 +236,8 @@ $announcements = [
 
 
 <!-- ═══════════════════════════════════════════
-     ANNOUNCEMENTS
+     ANNOUNCEMENTS — hardcoded (dedicated
+     table planned for a future phase)
      ═══════════════════════════════════════════ -->
 <section class="announcements-band" id="announcements">
   <div class="announcements-band__inner wrap">
@@ -272,7 +282,7 @@ $announcements = [
       <input class="form-input" type="email" id="nlNewsEmail" placeholder="Enter your email address"/>
       <button class="btn btn--secondary" onclick="subscribeNewsletter()">Subscribe</button>
     </div>
-    <div class="news-newsletter__success" id="nlSuccess">
+    <div class="news-newsletter__success" id="nlSuccess" style="display:none">
       ✅ Subscribed! You will receive school updates by email.
     </div>
   </div>
@@ -282,29 +292,28 @@ $announcements = [
 <?php require_once __DIR__ . '/../src/includes/footer.php'; ?>
 
 <script>
-/* ── Category filter ── */
+/* ── Category filter + search ── */
 (function () {
-  var tabs    = document.querySelectorAll('.news-tab');
-  var cards   = document.querySelectorAll('.news-card');
-  var noRes   = document.getElementById('newsNoResults');
-  var count   = document.getElementById('newsCount');
+  var tabs  = document.querySelectorAll('.news-tab');
+  var cards = document.querySelectorAll('.news-card');
+  var noRes = document.getElementById('newsNoResults');
+  var count = document.getElementById('newsCount');
 
   function filterNews() {
-    var activeCat    = document.querySelector('.news-tab.active').dataset.cat;
-    var searchTerm   = (document.getElementById('newsSearch').value || '').toLowerCase().trim();
-    var visibleCount = 0;
+    var activeCat  = document.querySelector('.news-tab.active').dataset.cat;
+    var searchTerm = (document.getElementById('newsSearch').value || '').toLowerCase().trim();
+    var visible    = 0;
 
     cards.forEach(function (card) {
       var catMatch    = activeCat === 'all' || card.dataset.cat === activeCat;
-      var searchMatch = !searchTerm || card.dataset.title.includes(searchTerm);
+      var searchMatch = !searchTerm || (card.dataset.title || '').includes(searchTerm);
       var show        = catMatch && searchMatch;
-
       card.style.display = show ? '' : 'none';
-      if (show) visibleCount++;
+      if (show) visible++;
     });
 
-    if (noRes)  noRes.style.display  = visibleCount === 0 ? 'block' : 'none';
-    if (count)  count.textContent    = visibleCount + ' article' + (visibleCount !== 1 ? 's' : '');
+    if (noRes)  noRes.style.display = visible === 0 ? 'block' : 'none';
+    if (count)  count.textContent   = visible + ' article' + (visible !== 1 ? 's' : '');
   }
 
   tabs.forEach(function (tab) {
@@ -316,40 +325,28 @@ $announcements = [
   });
 
   var searchInput = document.getElementById('newsSearch');
-  if (searchInput) {
-    searchInput.addEventListener('input', filterNews);
-  }
+  if (searchInput) searchInput.addEventListener('input', filterNews);
 }());
 
-/* ── Newsletter — sends to src/api/subscribe.php ── */
+/* ── Newsletter ── */
 function subscribeNewsletter() {
   var input   = document.getElementById('nlNewsEmail');
   var success = document.getElementById('nlSuccess');
+  if (!input || !input.value.trim()) { alert('Please enter your email address.'); return; }
 
-  if (!input || !input.value.trim()) {
-    alert('Please enter your email address.');
-    return;
-  }
+  var fd = new FormData();
+  fd.append('email', input.value.trim());
 
-  var formData = new FormData();
-  formData.append('email', input.value.trim());
-
-  fetch('/ibeku-high-school/src/api/subscribe.php', { method: 'POST', body: formData })
+  fetch('/ibeku-high-school/src/api/subscribe.php', { method: 'POST', body: fd })
     .then(function (r) { return r.json(); })
     .then(function (data) {
       if (data.success) {
-        if (success) {
-          success.textContent = '✅ ' + data.message;
-          success.style.display = 'block';
-        }
+        if (success) { success.textContent = '✅ ' + data.message; success.style.display = 'block'; }
         input.value = '';
       } else {
         alert(data.message || 'Something went wrong. Please try again.');
       }
     })
-    .catch(function (err) {
-      console.error('Subscribe error:', err);
-      alert('A connection error occurred. Please try again.');
-    });
+    .catch(function () { alert('A connection error occurred. Please try again.'); });
 }
 </script>

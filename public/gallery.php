@@ -11,211 +11,56 @@ $pageCss     = 'gallery';
 $pageJs      = 'gallery';
 
 require_once '../src/includes/header.php';
+require_once '../src/config/database.php';
+$pdo = getDB();
 
-/*
- * GALLERY DATA
- * Phase 2: replace with database query:
- * SELECT * FROM gallery WHERE published = 1 ORDER BY created_at DESC
- *
- * Categories: sports, events, classrooms, graduation, culture, assembly, ict, general
- *
- * item keys:
- *   cat      — category slug
- *   label    — category display label
- *   title    — photo caption
- *   icon     — emoji placeholder until real photo is added
- *   img      — path to real image (empty = show placeholder)
- *   wide     — true = spans 2 columns
- *   tall     — true = spans 2 rows
- */
-$photos = [
-
-  /* ── Row 1 ── */
-  [
-    'cat'   => 'sports',
-    'label' => 'Sports',
-    'title' => 'Science Quiz Championship 2024 — Winners',
-    'icon'  => '🏆',
-    'img'   => '',
-    'wide'  => true,
-    'tall'  => false,
-  ],
-  [
-    'cat'   => 'assembly',
-    'label' => 'Assembly',
-    'title' => 'Morning Assembly — Flag Raising',
-    'icon'  => '🏫',
-    'img'   => '',
-    'wide'  => false,
-    'tall'  => true,
-  ],
-  [
-    'cat'   => 'classrooms',
-    'label' => 'Classrooms',
-    'title' => 'SSS 2 Science Class in Session',
-    'icon'  => '📚',
-    'img'   => '',
-    'wide'  => false,
-    'tall'  => false,
-  ],
-
-  /* ── Row 2 ── */
-  [
-    'cat'   => 'ict',
-    'label' => 'ICT',
-    'title' => 'Students in the Newly Refurbished Computer Lab',
-    'icon'  => '💻',
-    'img'   => '',
-    'wide'  => false,
-    'tall'  => false,
-  ],
-  [
-    'cat'   => 'culture',
-    'label' => 'Culture',
-    'title' => 'Cultural Day 2024 — Traditional Attire Display',
-    'icon'  => '🎭',
-    'img'   => '',
-    'wide'  => true,
-    'tall'  => false,
-  ],
-
-  /* ── Row 3 ── */
-  [
-    'cat'   => 'graduation',
-    'label' => 'Graduation',
-    'title' => 'SSS 3 Graduation Ceremony 2024',
-    'icon'  => '🎓',
-    'img'   => '',
-    'wide'  => true,
-    'tall'  => false,
-  ],
-  [
-    'cat'   => 'sports',
-    'label' => 'Sports',
-    'title' => 'Inter-House Sports Day — Track Events',
-    'icon'  => '🏃',
-    'img'   => '',
-    'wide'  => false,
-    'tall'  => false,
-  ],
-  [
-    'cat'   => 'events',
-    'label' => 'Events',
-    'title' => 'Prize-Giving Day 2024',
-    'icon'  => '🏅',
-    'img'   => '',
-    'wide'  => false,
-    'tall'  => false,
-  ],
-
-  /* ── Row 4 ── */
-  [
-    'cat'   => 'classrooms',
-    'label' => 'Classrooms',
-    'title' => 'Biology Practical in the Science Laboratory',
-    'icon'  => '🔬',
-    'img'   => '',
-    'wide'  => false,
-    'tall'  => false,
-  ],
-  [
-    'cat'   => 'assembly',
-    'label' => 'Assembly',
-    'title' => 'End-of-Term Thanksgiving Assembly',
-    'icon'  => '🙏',
-    'img'   => '',
-    'wide'  => false,
-    'tall'  => false,
-  ],
-  [
-    'cat'   => 'sports',
-    'label' => 'Sports',
-    'title' => 'Football Team — Zonal Championship Winners',
-    'icon'  => '⚽',
-    'img'   => '',
-    'wide'  => false,
-    'tall'  => false,
-  ],
-  [
-    'cat'   => 'culture',
-    'label' => 'Culture',
-    'title' => 'Drama Club Performance — Cultural Day',
-    'icon'  => '🎪',
-    'img'   => '',
-    'wide'  => false,
-    'tall'  => false,
-  ],
-
-  /* ── Row 5 ── */
-  [
-    'cat'   => 'events',
-    'label' => 'Events',
-    'title' => 'Parents-Teachers Association Meeting',
-    'icon'  => '🤝',
-    'img'   => '',
-    'wide'  => false,
-    'tall'  => false,
-  ],
-  [
-    'cat'   => 'graduation',
-    'label' => 'Graduation',
-    'title' => 'Valedictory Service — Class of 2024',
-    'icon'  => '📜',
-    'img'   => '',
-    'wide'  => true,
-    'tall'  => false,
-  ],
-  [
-    'cat'   => 'ict',
-    'label' => 'ICT',
-    'title' => 'ICT Club Members — Digital Skills Training',
-    'icon'  => '🖥️',
-    'img'   => '',
-    'wide'  => false,
-    'tall'  => false,
-  ],
-
-  /* ── Row 6 ── */
-  [
-    'cat'   => 'classrooms',
-    'label' => 'Classrooms',
-    'title' => 'Library — Students Studying During Free Period',
-    'icon'  => '📖',
-    'img'   => '',
-    'wide'  => false,
-    'tall'  => false,
-  ],
-  [
-    'cat'   => 'sports',
-    'label' => 'Sports',
-    'title' => 'Basketball Court — Inter-Class Tournament',
-    'icon'  => '🏀',
-    'img'   => '',
-    'wide'  => false,
-    'tall'  => false,
-  ],
-  [
-    'cat'   => 'events',
-    'label' => 'Events',
-    'title' => 'New Students Orientation Day',
-    'icon'  => '👋',
-    'img'   => '',
-    'wide'  => false,
-    'tall'  => false,
-  ],
-  [
-    'cat'   => 'culture',
-    'label' => 'Culture',
-    'title' => 'Scripture Union — Weekly Fellowship',
-    'icon'  => '✝️',
-    'img'   => '',
-    'wide'  => false,
-    'tall'  => false,
-  ],
-
+$categoryLabels = [
+    'sports'     => 'Sports',
+    'events'     => 'Events',
+    'classrooms' => 'Classrooms',
+    'graduation' => 'Graduation',
+    'culture'    => 'Culture',
+    'assembly'   => 'Assembly',
+    'ict'        => 'ICT',
+    'general'    => 'General',
 ];
 
+$categoryIcons = [
+    'sports'     => '⚽',
+    'events'     => '🏅',
+    'classrooms' => '📚',
+    'graduation' => '🎓',
+    'culture'    => '🎭',
+    'assembly'   => '🏫',
+    'ict'        => '💻',
+    'general'    => '📷',
+];
+
+/* ── Load published photos from DB ── */
+$photosFromDB = $pdo->query(
+    "SELECT * FROM gallery WHERE is_published = 1
+     ORDER BY sort_order ASC, uploaded_at DESC"
+)->fetchAll();
+
+/* ── Fallback photos when DB is empty ── */
+$defaultPhotos = [
+    ['id'=>1,'category'=>'sports',    'title'=>'Science Quiz Championship — Winners',           'filename'=>'','caption'=>''],
+    ['id'=>2,'category'=>'assembly',  'title'=>'Morning Assembly — Flag Raising',               'filename'=>'','caption'=>''],
+    ['id'=>3,'category'=>'classrooms','title'=>'SSS 2 Science Class in Session',                'filename'=>'','caption'=>''],
+    ['id'=>4,'category'=>'ict',       'title'=>'Students in the Newly Refurbished Computer Lab','filename'=>'','caption'=>''],
+    ['id'=>5,'category'=>'culture',   'title'=>'Cultural Day — Traditional Attire Display',     'filename'=>'','caption'=>''],
+    ['id'=>6,'category'=>'graduation','title'=>'SSS 3 Graduation Ceremony',                     'filename'=>'','caption'=>''],
+    ['id'=>7,'category'=>'sports',    'title'=>'Inter-House Sports Day — Track Events',         'filename'=>'','caption'=>''],
+    ['id'=>8,'category'=>'events',    'title'=>'Prize-Giving Day',                              'filename'=>'','caption'=>''],
+    ['id'=>9,'category'=>'classrooms','title'=>'Biology Practical — Science Laboratory',        'filename'=>'','caption'=>''],
+    ['id'=>10,'category'=>'assembly', 'title'=>'End-of-Term Thanksgiving Assembly',             'filename'=>'','caption'=>''],
+    ['id'=>11,'category'=>'sports',   'title'=>'Football Team — Zonal Championship Winners',   'filename'=>'','caption'=>''],
+    ['id'=>12,'category'=>'culture',  'title'=>'Drama Club Performance — Cultural Day',        'filename'=>'','caption'=>''],
+];
+
+$photos      = !empty($photosFromDB) ? $photosFromDB : $defaultPhotos;
 $totalPhotos = count($photos);
+$isFromDB    = !empty($photosFromDB);
 ?>
 
 
@@ -242,13 +87,9 @@ $totalPhotos = count($photos);
   <div class="gallery-filter-bar__inner wrap">
     <div class="gallery-filter-tabs">
       <button class="gallery-tab active" data-cat="all">All Photos</button>
-      <button class="gallery-tab" data-cat="sports">Sports</button>
-      <button class="gallery-tab" data-cat="events">Events</button>
-      <button class="gallery-tab" data-cat="classrooms">Classrooms</button>
-      <button class="gallery-tab" data-cat="graduation">Graduation</button>
-      <button class="gallery-tab" data-cat="culture">Culture</button>
-      <button class="gallery-tab" data-cat="assembly">Assembly</button>
-      <button class="gallery-tab" data-cat="ict">ICT</button>
+      <?php foreach ($categoryLabels as $key => $label): ?>
+      <button class="gallery-tab" data-cat="<?php echo $key; ?>"><?php echo $label; ?></button>
+      <?php endforeach; ?>
     </div>
     <div class="gallery-view-toggle">
       <button class="gallery-view-btn active" id="view4col" title="4-column view" onclick="setView(4)">⊞</button>
@@ -276,7 +117,7 @@ $totalPhotos = count($photos);
 
 
 <!-- ═══════════════════════════════════════════
-     GALLERY GRID
+     GALLERY GRID — from DB with fallback
      ═══════════════════════════════════════════ -->
 <section class="gallery-section">
   <div class="gallery-section__inner wrap">
@@ -284,34 +125,46 @@ $totalPhotos = count($photos);
     <div class="gallery-grid" id="galleryGrid">
 
       <?php foreach ($photos as $i => $photo): ?>
-      <div
-        class="gallery-item<?php echo $photo['wide'] ? ' gallery-item--wide' : ''; ?><?php echo $photo['tall'] ? ' gallery-item--tall' : ''; ?> reveal"
-        data-cat="<?php echo htmlspecialchars($photo['cat']); ?>"
-        data-index="<?php echo $i; ?>"
-        onclick="openLightbox(<?php echo $i; ?>)"
-        role="button"
-        tabindex="0"
-        aria-label="View photo: <?php echo htmlspecialchars($photo['title']); ?>"
-      >
-        <?php if (!empty($photo['img'])): ?>
-          <img src="<?php echo BASE_PATH . htmlspecialchars($photo['img']); ?>" alt="<?php echo htmlspecialchars($photo['title']); ?>" loading="lazy"/>
+      <?php
+        $cat      = $photo['category'] ?? 'general';
+        $title    = $photo['title'] ?? ($photo['caption'] ?? '');
+        $filename = $photo['filename'] ?? '';
+        $label    = $categoryLabels[$cat] ?? ucfirst($cat);
+        $icon     = $categoryIcons[$cat]  ?? '📷';
+      ?>
+      <div class="gallery-item reveal"
+           data-cat="<?php echo htmlspecialchars($cat); ?>"
+           data-index="<?php echo $i; ?>"
+           onclick="openLightbox(<?php echo $i; ?>)"
+           role="button"
+           tabindex="0"
+           aria-label="View photo: <?php echo htmlspecialchars($title); ?>">
+
+        <?php if ($isFromDB && !empty($filename)): ?>
+        <img src="<?php echo BASE_PATH; ?>assets/images/gallery/<?php echo htmlspecialchars($filename); ?>"
+             alt="<?php echo htmlspecialchars($title); ?>"
+             loading="lazy"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+        <div class="gallery-item__placeholder" style="display:none">
+          <?php echo $icon; ?>
+          <span><?php echo htmlspecialchars($title); ?></span>
+        </div>
         <?php else: ?>
-          <div class="gallery-item__placeholder">
-            <?php echo $photo['icon']; ?>
-            <span><?php echo htmlspecialchars($photo['title']); ?></span>
-          </div>
+        <div class="gallery-item__placeholder">
+          <?php echo $icon; ?>
+          <span><?php echo htmlspecialchars($title); ?></span>
+        </div>
         <?php endif; ?>
 
         <div class="gallery-item__overlay">
           <span class="gallery-item__overlay-zoom">🔍</span>
-          <div class="gallery-item__overlay-title"><?php echo htmlspecialchars($photo['title']); ?></div>
-          <div class="gallery-item__overlay-cat"><?php echo htmlspecialchars($photo['label']); ?></div>
+          <div class="gallery-item__overlay-title"><?php echo htmlspecialchars($title); ?></div>
+          <div class="gallery-item__overlay-cat"><?php echo htmlspecialchars($label); ?></div>
         </div>
       </div>
       <?php endforeach; ?>
 
-      <!-- No results -->
-      <div class="gallery-no-results" id="galleryNoResults">
+      <div class="gallery-no-results" id="galleryNoResults" style="display:none">
         <p>No photos in this category yet</p>
         <span>Check back soon — new photos are added regularly.</span>
       </div>
@@ -326,21 +179,14 @@ $totalPhotos = count($photos);
      ═══════════════════════════════════════════ -->
 <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer">
   <div class="lightbox__content">
-
     <button class="lightbox__close" onclick="closeLightbox()" aria-label="Close photo viewer">&#x2715;</button>
-
-    <div id="lightboxMedia">
-      <!-- Populated by gallery.js -->
-    </div>
-
+    <div id="lightboxMedia"></div>
     <div class="lightbox__caption">
       <h4 id="lightboxTitle"></h4>
       <span id="lightboxCat"></span>
     </div>
-
     <span class="lightbox__counter" id="lightboxCounter"></span>
   </div>
-
   <button class="lightbox__nav lightbox__nav--prev" onclick="lightboxNav(-1)" aria-label="Previous photo">&#8592;</button>
   <button class="lightbox__nav lightbox__nav--next" onclick="lightboxNav(1)"  aria-label="Next photo">&#8594;</button>
 </div>
@@ -358,6 +204,25 @@ $totalPhotos = count($photos);
   </div>
 </section>
 
+
+<?php
+/* Pass gallery data as JSON for the lightbox JS */
+$galleryJson = json_encode(array_map(function ($p, $i) use ($categoryLabels, $categoryIcons) {
+    $cat      = $p['category'] ?? 'general';
+    $filename = $p['filename'] ?? '';
+    return [
+        'index'    => $i,
+        'title'    => $p['title'] ?? ($p['caption'] ?? ''),
+        'cat'      => $cat,
+        'catLabel' => $categoryLabels[$cat] ?? ucfirst($cat),
+        'img'      => $filename ? 'assets/images/gallery/' . $filename : '',
+        'icon'     => $categoryIcons[$cat] ?? '📷',
+    ];
+}, $photos, array_keys($photos)));
+?>
+<script>
+var GALLERY_DATA = <?php echo $galleryJson; ?>;
+</script>
 
 <?php
 $pageJs = 'gallery';
