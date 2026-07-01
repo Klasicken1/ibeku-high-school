@@ -8,15 +8,12 @@
 
 /* ============================================================
    1. ANNOUNCEMENT BAR
-   Controlled from Settings. Dismisses smoothly with
-   sessionStorage so it doesn't reappear in the same session.
    ============================================================ */
 (function initAnnouncementBar() {
   var bar   = document.getElementById('annBar');
   var close = document.getElementById('annBarClose');
   if (!bar) return;
 
-  /* If already dismissed this session, hide immediately */
   try {
     if (sessionStorage.getItem('ihs_ann_dismissed') === '1') {
       bar.style.display = 'none';
@@ -35,19 +32,16 @@
 
 
 /* ============================================================
-   2. SITE POPUP — triggers on scroll % OR time, whichever first.
-   Independent of the announcement bar.
-   Trigger values come from data-scroll-pct and data-delay-seconds
-   attributes set in footer.php from Settings.
+   2. SITE POPUP
    ============================================================ */
 (function initSitePopup() {
   var popup = document.getElementById('sitePopup');
   var close = document.getElementById('sitePopupClose');
   if (!popup) return;
 
-  var scrollPct  = parseInt(popup.dataset.scrollPct, 10)    || 20;
-  var delaySecs  = parseInt(popup.dataset.delaySeconds, 10)  || 5;
-  var shown      = false;
+  var scrollPct = parseInt(popup.dataset.scrollPct, 10)   || 20;
+  var delaySecs = parseInt(popup.dataset.delaySeconds, 10) || 5;
+  var shown     = false;
 
   try {
     if (sessionStorage.getItem('ihs_popup_dismissed') === '1') return;
@@ -65,10 +59,8 @@
     setTimeout(function () { popup.style.display = 'none'; }, 350);
   }
 
-  /* Trigger 1: time on page */
   var timer = setTimeout(showPopup, delaySecs * 1000);
 
-  /* Trigger 2: scroll percentage */
   function onScroll() {
     var scrolled = window.scrollY;
     var height   = document.documentElement.scrollHeight - window.innerHeight;
@@ -91,14 +83,13 @@
 
 
 /* ============================================================
-   3. NAVIGATION — burger + mobile dropdowns + desktop click
+   3. NAVIGATION
    ============================================================ */
 (function initNav() {
   var burger  = document.getElementById('navBurger');
   var navMenu = document.getElementById('navMenu');
   if (!burger || !navMenu) return;
 
-  /* Mobile burger toggle */
   burger.addEventListener('click', function () {
     burger.classList.toggle('active');
     navMenu.classList.toggle('open');
@@ -110,7 +101,6 @@
     link.addEventListener('click', function (e) {
       var item = link.parentElement;
 
-      /* Mobile: tap toggles dropdown, prevents navigation */
       if (window.innerWidth <= 900) {
         e.preventDefault();
         navMenu.querySelectorAll('.nav__item--has-drop.open').forEach(function (el) {
@@ -120,7 +110,6 @@
         return;
       }
 
-      /* Desktop: first click opens (prevents nav), second click navigates */
       var alreadyOpen = item.classList.contains('open');
       document.querySelectorAll('.nav__item--has-drop.open').forEach(function (el) {
         el.classList.remove('open');
@@ -129,11 +118,9 @@
         e.preventDefault();
         item.classList.add('open');
       }
-      /* If alreadyOpen === true, we don't preventDefault so the link navigates */
     });
   });
 
-  /* Close dropdown when clicking outside on desktop */
   document.addEventListener('click', function (e) {
     if (window.innerWidth > 900 && !e.target.closest('.nav__item--has-drop')) {
       document.querySelectorAll('.nav__item--has-drop.open').forEach(function (el) {
@@ -142,7 +129,6 @@
     }
   });
 
-  /* Close mobile nav when any non-parent link is clicked */
   navMenu.querySelectorAll('.nav__link:not(.nav__item--has-drop > .nav__link)').forEach(function (link) {
     link.addEventListener('click', function () {
       navMenu.classList.remove('open');
@@ -150,7 +136,6 @@
     });
   });
 
-  /* Close mobile nav when a dropdown child link is clicked */
   navMenu.querySelectorAll('.nav__dropdown-link').forEach(function (link) {
     link.addEventListener('click', function () {
       navMenu.classList.remove('open');
@@ -162,7 +147,6 @@
 
 /* ============================================================
    4. SCROLL REVEAL
-   Elements with .reveal animate in when they enter the viewport.
    ============================================================ */
 (function initReveal() {
   var elements = document.querySelectorAll('.reveal');
@@ -200,7 +184,6 @@
 
 /* ============================================================
    6. PAGE ANCHOR NAVIGATION
-   Highlights the active anchor tab as the user scrolls.
    ============================================================ */
 (function initAnchorNav() {
   var anchors = document.querySelectorAll('.page-anchor');
@@ -224,7 +207,6 @@
 
 /* ============================================================
    7. STAFF FILTER BUTTONS
-   UI filter on About / Academics pages.
    ============================================================ */
 (function initStaffFilter() {
   var filterBtns = document.querySelectorAll('.filter-btn');
@@ -245,4 +227,124 @@
       });
     });
   });
+}());
+
+
+/* ============================================================
+   8. WEB PUSH NOTIFICATIONS
+   Registers the service worker and handles the opt-in prompt.
+   The VAPID public key is injected by footer.php into
+   window.IHS_PUSH_KEY. Nothing runs if the key is missing
+   or if push is not supported by this browser.
+   ============================================================ */
+(function initPush() {
+
+  /* Prerequisites */
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  var publicKey = window.IHS_PUSH_KEY;
+  if (!publicKey || publicKey === 'REPLACE_WITH_YOUR_PUBLIC_KEY') return;
+
+  /* Don't prompt on admin pages */
+  if (window.location.pathname.indexOf('/admin/') !== -1) return;
+
+  /* Register service worker */
+  navigator.serviceWorker.register('/ibeku-high-school/sw.js', { scope: '/ibeku-high-school/' })
+    .then(function (reg) {
+      window._ihsSWReg = reg;
+      return reg.pushManager.getSubscription();
+    })
+    .then(function (existing) {
+
+      if (existing) {
+        /* Already subscribed — nothing to do */
+        return;
+      }
+
+      /* Show opt-in banner after 8 seconds (don't interrupt page load) */
+      try {
+        if (sessionStorage.getItem('ihs_push_dismissed') === '1') return;
+      } catch (e) {}
+
+      setTimeout(showPushBanner, 8000);
+    })
+    .catch(function (err) {
+      console.warn('IHS SW registration failed:', err);
+    });
+
+  function showPushBanner() {
+    var banner = document.getElementById('pushOptIn');
+    if (!banner) return;
+    banner.style.display = 'flex';
+    banner.classList.add('push-banner--visible');
+  }
+
+  /* Called by the "Yes, notify me" button in footer.php */
+  window.ihsSubscribePush = function () {
+    if (!window._ihsSWReg) return;
+
+    Notification.requestPermission().then(function (permission) {
+      if (permission !== 'granted') {
+        hidePushBanner(true);
+        return;
+      }
+
+      var appServerKey = urlBase64ToUint8Array(publicKey);
+
+      window._ihsSWReg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: appServerKey,
+      })
+        .then(function (subscription) {
+          return fetch('/ibeku-high-school/src/api/push-subscribe.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(subscription.toJSON()),
+          });
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.success) {
+            hidePushBanner(true);
+            showPushConfirm();
+          }
+        })
+        .catch(function (err) {
+          console.warn('IHS push subscribe error:', err);
+          hidePushBanner(true);
+        });
+    });
+  };
+
+  /* Called by the "No thanks" button */
+  window.ihsDismissPush = function () {
+    hidePushBanner(true);
+  };
+
+  function hidePushBanner(permanent) {
+    var banner = document.getElementById('pushOptIn');
+    if (banner) banner.style.display = 'none';
+    if (permanent) {
+      try { sessionStorage.setItem('ihs_push_dismissed', '1'); } catch (e) {}
+    }
+  }
+
+  function showPushConfirm() {
+    var el = document.getElementById('pushConfirm');
+    if (!el) return;
+    el.style.display = 'flex';
+    setTimeout(function () { el.style.display = 'none'; }, 4000);
+  }
+
+  /* Utility: convert VAPID public key from Base64url to Uint8Array */
+  function urlBase64ToUint8Array(base64String) {
+    var padding = '='.repeat((4 - base64String.length % 4) % 4);
+    var base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    var rawData = window.atob(base64);
+    var output  = new Uint8Array(rawData.length);
+    for (var i = 0; i < rawData.length; ++i) {
+      output[i] = rawData.charCodeAt(i);
+    }
+    return output;
+  }
+
 }());
