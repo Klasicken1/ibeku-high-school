@@ -19,13 +19,17 @@ $_site = getSettings();
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <!-- PWA -->
-<link rel="manifest" href="<?php echo BASE_PATH; ?>manifest.json"/>
-<meta name="theme-color" content="#3d1a6e"/>
-<meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="IHS"/>
-<link rel="apple-touch-icon" href="<?php echo BASE_PATH; ?>assets/images/icons/icon-192.png"/>
+
+  <!-- ═══ PWA ═══════════════════════════════════════════════ -->
+  <link rel="manifest" href="<?php echo BASE_PATH; ?>manifest.json"/>
+  <meta name="theme-color" content="#3d1a6e"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="IHS"/>
+  <link rel="apple-touch-icon" href="<?php echo BASE_PATH; ?>assets/images/icons/icon-192.png"/>
+  <!-- ═══ END PWA ════════════════════════════════════════════ -->
+
   <meta name="description" content="<?php echo htmlspecialchars($pageDesc ?? 'Official website of Ibeku High School, Umuahia, Abia State.'); ?>"/>
   <meta name="author"      content="<?php echo htmlspecialchars($_site['school_name']); ?>"/>
   <meta name="robots"      content="index, follow"/>
@@ -43,6 +47,11 @@ $_site = getSettings();
   <?php endif; ?>
 </head>
 <body>
+
+<!-- ═══════════════════════════════════════════
+     PWA SCRIPT — registered early so SW is active ASAP
+     ═══════════════════════════════════════════ -->
+<script src="<?php echo BASE_PATH; ?>assets/js/pwa.js" defer></script>
 
 <!-- ═══════════════════════════════════════════
      STICKY NAVIGATION

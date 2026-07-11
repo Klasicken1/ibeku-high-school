@@ -2,247 +2,199 @@
    IBEKU HIGH SCHOOL — SERVICE WORKER
    File: public/sw.js
 
+   PRODUCTION NOTE: No manual path changes needed.
+   BASE is derived dynamically from the service worker scope,
+   so this file works on both localhost and cPanel as-is.
+
    Caching strategy:
-   - Cache-first:    CSS, JS, fonts, images (static assets)
-   - Network-first:  All public PHP pages (fresh content)
-   - No cache:       Admin panel, results checker, portal
-                     (session-dependent or write-sensitive)
-   - Offline page:   Shown when network fails on a page request
-   - Push handler:   Receives and displays push notifications
+   - Static shell (CSS/JS/icons): cache-first, pre-cached on install
+   - Public pages: network-first → cache fallback → offline.php
+   - Images: cache-first, cached as visited (not pre-cached)
+   - Google Fonts: cache-first
+   - Admin & portal: NEVER cached — network only
    ============================================================ */
 
 'use strict';
 
-var CACHE_VERSION  = 'ihs-v1';
-var STATIC_CACHE   = CACHE_VERSION + '-static';
-var PAGES_CACHE    = CACHE_VERSION + '-pages';
+/* ── Cache names ────────────────────────────────────────── */
+const VER          = 'v1';
+const STATIC_CACHE = `ihs-static-${VER}`;
+const PAGES_CACHE  = `ihs-pages-${VER}`;
+const IMAGES_CACHE = `ihs-images-${VER}`;
+const ALL_CACHES   = [STATIC_CACHE, PAGES_CACHE, IMAGES_CACHE];
 
-/* Static assets to pre-cache on install */
-var PRECACHE_ASSETS = [
-  '/ibeku-high-school/public/assets/css/style.css',
-  '/ibeku-high-school/public/assets/css/admin-layout.css',
-  '/ibeku-high-school/public/assets/css/admin-timetables.css',
-  '/ibeku-high-school/public/assets/js/main.js',
-  '/ibeku-high-school/public/assets/js/admin.js',
-  '/ibeku-high-school/public/offline.php',
+/* ── Derive base path from scope (works on localhost + production) ── */
+const BASE = new URL(self.registration.scope).pathname.replace(/\/$/, '');
+// localhost → '/ibeku-high-school/public'
+// production → ''
+
+/* ── Static shell: pre-cached on install ────────────────── */
+const STATIC_SHELL = [
+  `${BASE}/offline.php`,
+  `${BASE}/assets/css/style.css`,
+  `${BASE}/assets/css/pages/home.css`,
+  `${BASE}/assets/css/pages/about.css`,
+  `${BASE}/assets/css/pages/academics.css`,
+  `${BASE}/assets/css/pages/admissions.css`,
+  `${BASE}/assets/css/pages/contact.css`,
+  `${BASE}/assets/css/pages/events.css`,
+  `${BASE}/assets/css/pages/gallery.css`,
+  `${BASE}/assets/css/pages/hall-of-fame.css`,
+  `${BASE}/assets/css/pages/news.css`,
+  `${BASE}/assets/css/pages/results.css`,
+  `${BASE}/assets/css/pages/students.css`,
+  `${BASE}/assets/js/main.js`,
+  `${BASE}/assets/js/pwa.js`,
+  `${BASE}/assets/js/pages/home.js`,
+  `${BASE}/assets/js/pages/gallery.js`,
+  `${BASE}/assets/js/pages/results.js`,
+  `${BASE}/assets/images/icons/icon-192.png`,
+  `${BASE}/assets/images/icons/icon-512.png`,
+  `${BASE}/assets/images/icons/icon.svg`,
 ];
 
-/* Pages to pre-cache on install (network-first in runtime,
-   but available offline as stale fallback) */
-var PRECACHE_PAGES = [
-  '/ibeku-high-school/public/index.php',
-  '/ibeku-high-school/public/about.php',
-  '/ibeku-high-school/public/academics.php',
-  '/ibeku-high-school/public/news.php',
-  '/ibeku-high-school/public/contact.php',
-];
-
-/* Paths that must NEVER be cached */
-var NO_CACHE_PATTERNS = [
-  /\/admin\//,
-  /\/portal\//,
-  /\/results\.php/,
-  /\/src\/api\//,
-  /\/verify-review\.php/,
-  /\.env/,
-];
-
-
-/* ════════════════════════════════════════
-   INSTALL — pre-cache static assets
-   ════════════════════════════════════════ */
-self.addEventListener('install', function (event) {
+/* ── INSTALL: pre-cache the static shell ────────────────── */
+self.addEventListener('install', event => {
   event.waitUntil(
-    Promise.all([
-      caches.open(STATIC_CACHE).then(function (cache) {
-        return cache.addAll(PRECACHE_ASSETS).catch(function (err) {
-          console.warn('[SW] Pre-cache static failed:', err);
-        });
-      }),
-      caches.open(PAGES_CACHE).then(function (cache) {
-        return cache.addAll(PRECACHE_PAGES).catch(function (err) {
-          console.warn('[SW] Pre-cache pages failed:', err);
-        });
-      }),
-    ]).then(function () {
-      return self.skipWaiting();
-    })
-  );
-});
-
-
-/* ════════════════════════════════════════
-   ACTIVATE — clean up old caches
-   ════════════════════════════════════════ */
-self.addEventListener('activate', function (event) {
-  event.waitUntil(
-    caches.keys().then(function (keys) {
-      return Promise.all(
-        keys.filter(function (key) {
-          return key.startsWith('ihs-') && key !== STATIC_CACHE && key !== PAGES_CACHE;
-        }).map(function (key) {
-          console.log('[SW] Deleting old cache:', key);
-          return caches.delete(key);
-        })
+    caches.open(STATIC_CACHE).then(cache => {
+      // Use allSettled so one missing file doesn't abort the whole install
+      return Promise.allSettled(
+        STATIC_SHELL.map(url =>
+          cache.add(url).catch(err =>
+            console.warn(`[SW] Pre-cache failed for: ${url}`, err)
+          )
+        )
       );
-    }).then(function () {
-      return self.clients.claim();
-    })
+    }).then(() => self.skipWaiting())
   );
 });
 
+/* ── ACTIVATE: remove old caches, claim clients ─────────── */
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(
+        keys
+          .filter(key => !ALL_CACHES.includes(key))
+          .map(key => {
+            console.log(`[SW] Deleting old cache: ${key}`);
+            return caches.delete(key);
+          })
+      ))
+      .then(() => self.clients.claim())
+  );
+});
 
-/* ════════════════════════════════════════
-   FETCH — route requests
-   ════════════════════════════════════════ */
-self.addEventListener('fetch', function (event) {
-  var url = new URL(event.request.url);
+/* ── FETCH: routing logic ───────────────────────────────── */
+self.addEventListener('fetch', event => {
+  const { request } = event;
+  const url = new URL(request.url);
 
-  /* Skip non-GET requests */
-  if (event.request.method !== 'GET') return;
+  // Only handle GET requests from our own origin
+  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
 
-  /* Skip cross-origin requests */
-  if (url.origin !== self.location.origin) return;
+  const path = url.pathname;
 
-  /* Skip no-cache patterns (admin, portal, results, APIs) */
-  if (NO_CACHE_PATTERNS.some(function (p) { return p.test(url.pathname); })) {
+  // ── NEVER intercept admin or portal ──────────────────────
+  // These require a live DB connection — fail naturally offline
+  if (
+    path.startsWith(`${BASE}/admin/`) ||
+    path.startsWith(`${BASE}/portal/`)
+  ) return;
+
+  // ── Google Fonts: cache-first ────────────────────────────
+  if (
+    url.hostname === 'fonts.googleapis.com' ||
+    url.hostname === 'fonts.gstatic.com'
+  ) {
+    event.respondWith(cacheFirst(request, STATIC_CACHE));
     return;
   }
 
-  /* Static assets: CSS, JS, fonts, images — cache-first */
-  if (isStaticAsset(url.pathname)) {
-    event.respondWith(cacheFirst(event.request, STATIC_CACHE));
+  // ── Static assets (CSS, JS, fonts, SVG): cache-first ─────
+  if (/\.(css|js|woff2?|ttf|otf|svg)$/i.test(path)) {
+    event.respondWith(cacheFirst(request, STATIC_CACHE));
     return;
   }
 
-  /* PHP pages — network-first, fall back to cache, then offline */
-  if (url.pathname.endsWith('.php') || url.pathname.endsWith('/')) {
-    event.respondWith(networkFirstPage(event.request));
+  // ── Images: cache-first, stored in dedicated image cache ─
+  if (/\.(png|jpe?g|gif|webp|ico)$/i.test(path)) {
+    event.respondWith(cacheFirst(request, IMAGES_CACHE));
+    return;
+  }
+
+  // ── PDF timetables: cache-first ──────────────────────────
+  if (/\.pdf$/i.test(path)) {
+    event.respondWith(cacheFirst(request, STATIC_CACHE));
+    return;
+  }
+
+  // ── Public PHP pages: network-first with offline fallback ─
+  if (isPublicPage(path)) {
+    event.respondWith(networkFirstWithFallback(request));
     return;
   }
 });
 
-
-/* ════════════════════════════════════════
-   STRATEGY: Cache-first
-   Serves from cache; fetches and updates
-   cache if not present.
-   ════════════════════════════════════════ */
-function cacheFirst(request, cacheName) {
-  return caches.open(cacheName).then(function (cache) {
-    return cache.match(request).then(function (cached) {
-      if (cached) return cached;
-      return fetch(request).then(function (response) {
-        if (response && response.status === 200) {
-          cache.put(request, response.clone());
-        }
-        return response;
-      });
-    });
-  });
+/* ── Route helpers ──────────────────────────────────────── */
+function isPublicPage(path) {
+  if (path === `${BASE}/` || path === `${BASE}/index.php`) return true;
+  return (
+    path.startsWith(`${BASE}/`) &&
+    path.endsWith('.php') &&
+    !path.includes('/admin/') &&
+    !path.includes('/portal/')
+  );
 }
 
+/* ── Cache strategies ───────────────────────────────────── */
 
-/* ════════════════════════════════════════
-   STRATEGY: Network-first for pages
-   Tries network; caches fresh response;
-   falls back to stale cache; then offline.
-   ════════════════════════════════════════ */
-function networkFirstPage(request) {
-  return caches.open(PAGES_CACHE).then(function (cache) {
-    return fetch(request).then(function (response) {
-      /* Cache a fresh copy of successfully fetched pages */
-      if (response && response.status === 200) {
-        cache.put(request, response.clone());
-      }
-      return response;
-    }).catch(function () {
-      /* Network failed — try stale cache */
-      return cache.match(request).then(function (cached) {
-        if (cached) return cached;
-        /* Nothing in cache — serve offline page */
-        return caches.match('/ibeku-high-school/public/offline.php');
-      });
-    });
-  });
-}
+/**
+ * Cache-first: serve from cache if available, otherwise fetch
+ * and store. Great for stable assets.
+ */
+async function cacheFirst(request, cacheName) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
 
-
-/* ════════════════════════════════════════
-   HELPER: Is this a static asset?
-   ════════════════════════════════════════ */
-function isStaticAsset(pathname) {
-  return /\.(css|js|woff2?|ttf|otf|eot|svg|png|jpg|jpeg|webp|gif|ico)$/i.test(pathname);
-}
-
-
-/* ════════════════════════════════════════
-   PUSH — receive and display notification
-   ════════════════════════════════════════ */
-self.addEventListener('push', function (event) {
-  var data = {};
-
-  if (event.data) {
-    try {
-      data = event.data.json();
-    } catch (e) {
-      data = { title: 'Ibeku High School', body: event.data.text() };
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(cacheName);
+      cache.put(request, response.clone());
     }
+    return response;
+  } catch {
+    return new Response('', { status: 408, statusText: 'Network unavailable' });
   }
+}
 
-  var title   = data.title   || 'Ibeku High School';
-  var options = {
-    body:    data.body    || 'You have a new notification from Ibeku High School.',
-    icon:    data.icon    || '/ibeku-high-school/public/assets/images/icons/icon-192.png',
-    badge:   data.badge   || '/ibeku-high-school/public/assets/images/icons/icon-192.png',
-    data:  { url: data.url || '/ibeku-high-school/public/index.php' },
-    vibrate: [200, 100, 200],
-    requireInteraction: false,
-  };
+/**
+ * Network-first: try the network, cache fresh responses, and
+ * fall back to cache or the offline page when the network fails.
+ */
+async function networkFirstWithFallback(request) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(PAGES_CACHE);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    // Network failed — try the page cache first
+    const cached = await caches.match(request);
+    if (cached) return cached;
 
-  event.waitUntil(
-    self.registration.showNotification(title, options)
-  );
-});
+    // Nothing cached — serve the offline fallback page
+    const offlinePage = await caches.match(`${BASE}/offline.php`);
+    if (offlinePage) return offlinePage;
 
-
-/* ════════════════════════════════════════
-   NOTIFICATION CLICK — open the target URL
-   ════════════════════════════════════════ */
-self.addEventListener('notificationclick', function (event) {
-  event.notification.close();
-
-  var targetUrl = (event.notification.data && event.notification.data.url)
-    ? event.notification.data.url
-    : '/ibeku-high-school/public/index.php';
-
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (windowClients) {
-      /* If a window is already open, focus it and navigate */
-      for (var i = 0; i < windowClients.length; i++) {
-        var client = windowClients[i];
-        if ('focus' in client) {
-          client.focus();
-          if ('navigate' in client) client.navigate(targetUrl);
-          return;
-        }
-      }
-      /* Otherwise open a new window */
-      if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
-      }
-    })
-  );
-});
-
-
-/* ════════════════════════════════════════
-   ONLINE / OFFLINE detection message
-   Sent to all open clients so main.js
-   can show the online/offline banner.
-   ════════════════════════════════════════ */
-self.addEventListener('message', function (event) {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
+    // Last resort plain text
+    return new Response(
+      '<h1 style="font-family:sans-serif;padding:2rem">You are offline</h1>' +
+      '<p style="font-family:sans-serif;padding:0 2rem">Please check your connection and try again.</p>',
+      { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+    );
   }
-});
+}
