@@ -120,8 +120,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     requireRole(['superadmin', 'principal', 'vp_general']);
     $rows = $pdo->query(
-        "SELECT email, created_at FROM subscribers
-         WHERE is_active = 1 ORDER BY created_at DESC"
+        "SELECT email, subscribed_at FROM subscribers
+         WHERE is_active = 1 ORDER BY subscribed_at DESC"
     )->fetchAll();
 
     header('Content-Type: text/csv; charset=utf-8');
@@ -129,7 +129,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $out = fopen('php://output', 'w');
     fputcsv($out, ['Email', 'Subscribed At']);
     foreach ($rows as $row) {
-        fputcsv($out, [$row['email'], $row['created_at']]);
+        fputcsv($out, [$row['email'], $row['subscribed_at']]);
     }
     fclose($out);
     exit;
@@ -163,7 +163,7 @@ $totalPages = (int) ceil($total / $perPage);
 
 $subStmt = $pdo->prepare(
     "SELECT * FROM subscribers WHERE $whereSQL
-     ORDER BY created_at DESC LIMIT ? OFFSET ?"
+     ORDER BY subscribed_at DESC LIMIT ? OFFSET ?"
 );
 $subStmt->execute([...$params, $perPage, $offset]);
 $subscribers = $subStmt->fetchAll();
@@ -411,7 +411,7 @@ HTML;
                       </span>
                     </td>
                     <td style="font-size:12px;color:#9b97b0">
-                      <?php echo date('d M Y', strtotime($sub['created_at'])); ?>
+                      <?php echo date('d M Y', strtotime($sub['subscribed_at'])); ?>
                     </td>
                     <td>
                       <button type="submit" name="action" value="delete"
