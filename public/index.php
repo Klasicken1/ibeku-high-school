@@ -14,9 +14,6 @@ require_once '../src/includes/header.php';
 require_once '../src/config/database.php';
 $pdo = getDB();
 
-/* ── Load settings (already loaded in header via $_site but we
-   need $pdo for the DB queries below) ── */
-
 /* ── Staff preview — first 4 by sort order ── */
 $staffPreview = $pdo->query(
     "SELECT * FROM staff WHERE is_published = 1
@@ -46,7 +43,6 @@ $relationshipLabels = [
 
 <!-- ═══════════════════════════════════════════
      HERO CAROUSEL
-     Controlled by assets/js/pages/home.js
      ═══════════════════════════════════════════ -->
 <section class="hero" id="home" aria-label="School highlights">
 
@@ -234,7 +230,7 @@ $relationshipLabels = [
       <span class="principal-section__qmark" aria-hidden="true">&ldquo;</span>
       <blockquote>
         <?php echo nl2br(htmlspecialchars(
-            $\_site['principal_ss_message'] ?:
+            $_site['principal_ss_message'] ?:
             'At Ibeku High School, we do not merely teach subjects — we shape futures. Every student who walks through our gates carries within them the potential to become a leader, a builder, a thinker. Our commitment is to help them discover that potential and develop it to its fullest through academic rigour, strong values, and a community of care that never gives up on any child.'
         )); ?>
       </blockquote>
@@ -379,7 +375,6 @@ $relationshipLabels = [
 
 <!-- ═══════════════════════════════════════════
      ONLINE RESULT CHECKER
-     Logic lives in assets/js/pages/home.js
      ═══════════════════════════════════════════ -->
 <section class="results-section" id="results">
   <div class="results-section__inner wrap">
@@ -404,15 +399,11 @@ $relationshipLabels = [
 
     <div class="checker-card reveal">
       <h3>View My Results</h3>
-
       <div class="form-group">
-        <label class="form-label form-label--light" for="rcId">
-          Student ID / Admission Number
-        </label>
+        <label class="form-label form-label--light" for="rcId">Student ID / Admission Number</label>
         <input class="form-input form-input--dark" type="text" id="rcId"
                placeholder="e.g. IHS/2024/0421" autocomplete="off"/>
       </div>
-
       <div class="form-row">
         <div class="form-group">
           <label class="form-label form-label--light" for="rcClass">Class</label>
@@ -432,17 +423,12 @@ $relationshipLabels = [
           </select>
         </div>
       </div>
-
-      <button class="btn btn--check" onclick="checkResult()">
-        Check My Results &rarr;
-      </button>
-
+      <button class="btn btn--check" onclick="checkResult()">Check My Results &rarr;</button>
       <div class="result-output" id="rcOutput" aria-live="polite">
         <span class="result-output__label" id="rcTermLabel"></span>
         <div class="result-subjects" id="rcSubjects"></div>
         <div class="result-meta"     id="rcMeta"></div>
       </div>
-
       <p class="result-not-found" id="rcNotFound" role="alert">
         No results found. Please verify your Admission Number or contact the school office.
       </p>
@@ -468,7 +454,6 @@ $relationshipLabels = [
 
     <div class="staff-grid">
       <?php if (empty($staffPreview)): ?>
-      <!-- Fallback placeholders when DB is empty -->
       <div class="staff-card reveal">
         <div class="staff-card__photo"><div class="staff-card__initials">SP</div></div>
         <div class="staff-card__body">
@@ -535,18 +520,18 @@ $relationshipLabels = [
         <div class="news-card__thumb" style="height:200px" aria-hidden="true">🏆</div>
         <div class="news-card__body">
           <span class="news-card__tag news-card__tag--blue">Achievement</span>
-          <h3>IHS Students Win Abia State Science Quiz Championship 2024</h3>
+          <h3>IHS Students Win Abia State Science Quiz Championship</h3>
           <p>Our SS2 science team took first place — the school's third consecutive state championship title.</p>
-          <span class="news-card__date">December 10, 2024</span>
+          <span class="news-card__date">Current Session</span>
         </div>
       </article>
       <article class="news-card reveal">
         <div class="news-card__thumb" style="height:148px" aria-hidden="true">📋</div>
         <div class="news-card__body">
           <span class="news-card__tag news-card__tag--purple">Academic</span>
-          <h3>First Term Examinations Timetable Released</h3>
-          <p>The 2024/2025 First Term timetable is now available. Collect from your form teacher.</p>
-          <span class="news-card__date">November 28, 2024</span>
+          <h3>Examination Timetable Released</h3>
+          <p>The current term timetable is now available. Collect from your form teacher.</p>
+          <span class="news-card__date">Current Term</span>
         </div>
       </article>
       <article class="news-card reveal">
@@ -555,7 +540,7 @@ $relationshipLabels = [
           <span class="news-card__tag news-card__tag--gold">ICT</span>
           <h3>Computer Lab Fully Refurbished by Alumni Donation</h3>
           <p>New desktops and internet access funded by the IHS old students association are now ready.</p>
-          <span class="news-card__date">November 15, 2024</span>
+          <span class="news-card__date">Current Session</span>
         </div>
       </article>
     </div>
@@ -566,19 +551,16 @@ $relationshipLabels = [
 
 <!-- ═══════════════════════════════════════════
      YOUTUBE VIDEO — from settings
-     Only rendered when a video ID is saved
      ═══════════════════════════════════════════ -->
 <?php if ($ytId): ?>
 <section class="videos-section" id="videos">
   <div class="videos-section__inner wrap">
-
     <div class="section-header reveal">
       <div>
         <span class="slabel">Watch &amp; Learn</span>
         <h2 class="stitle">School Life on <span>Video</span></h2>
       </div>
     </div>
-
     <div class="yt-embed-wrap reveal" style="max-width:720px;margin:0 auto;border-radius:14px;overflow:hidden;box-shadow:0 12px 40px rgba(61,26,110,.2)">
       <div style="position:relative;padding-top:56.25%">
         <iframe
@@ -590,13 +572,11 @@ $relationshipLabels = [
         </iframe>
       </div>
     </div>
-
     <?php if ($ytTitle): ?>
     <p style="text-align:center;margin-top:16px;font-size:14px;color:var(--muted)">
       <?php echo htmlspecialchars($ytTitle); ?>
     </p>
     <?php endif; ?>
-
   </div>
 </section>
 <?php endif; ?>
@@ -604,7 +584,6 @@ $relationshipLabels = [
 
 <!-- ═══════════════════════════════════════════
      TESTIMONIALS — from reviews table
-     Falls back to hardcoded if DB is empty
      ═══════════════════════════════════════════ -->
 <section class="testimonials-section" id="testimonials">
   <div class="testimonials-section__inner wrap">
@@ -615,7 +594,6 @@ $relationshipLabels = [
     </div>
 
     <div class="grid-3">
-
       <?php if (!empty($reviews)): ?>
       <?php foreach ($reviews as $r): ?>
       <div class="testi-card reveal">
@@ -634,18 +612,13 @@ $relationshipLabels = [
         </div>
       </div>
       <?php endforeach; ?>
-
       <?php else: ?>
-      <!-- Fallback hardcoded testimonials until reviews are submitted and approved -->
       <div class="testi-card reveal">
         <span class="testi-card__stars" aria-label="5 stars">★★★★★</span>
         <blockquote>Ibeku High School gave me the discipline and academic foundation that made me who I am today. The teachers genuinely cared about every student's future.</blockquote>
         <div class="testi-card__author">
           <div class="testi-card__avatar" aria-hidden="true">AO</div>
-          <div>
-            <strong>Alumni — Class of 2018</strong>
-            <span>Now studying Medicine, UNN</span>
-          </div>
+          <div><strong>Alumni — Class of 2018</strong><span>Now studying Medicine, UNN</span></div>
         </div>
       </div>
       <div class="testi-card reveal">
@@ -653,10 +626,7 @@ $relationshipLabels = [
         <blockquote>As a parent, I am confident my children receive not just academics but proper character formation. The school's values are truly evident in everything they do.</blockquote>
         <div class="testi-card__author">
           <div class="testi-card__avatar" aria-hidden="true">CN</div>
-          <div>
-            <strong>Parent of SS2 Student</strong>
-            <span>Umuahia, Abia State</span>
-          </div>
+          <div><strong>Parent of SS2 Student</strong><span>Umuahia, Abia State</span></div>
         </div>
       </div>
       <div class="testi-card reveal">
@@ -664,14 +634,10 @@ $relationshipLabels = [
         <blockquote>The science programme here is exceptional. Our club won the state quiz three years running. The teachers push you to be your absolute best every single day.</blockquote>
         <div class="testi-card__author">
           <div class="testi-card__avatar" aria-hidden="true">EC</div>
-          <div>
-            <strong>SSS 3 Student</strong>
-            <span>Science Department</span>
-          </div>
+          <div><strong>SSS 3 Student</strong><span>Science Department</span></div>
         </div>
       </div>
       <?php endif; ?>
-
     </div>
 
     <!-- Leave a Review CTA -->
@@ -685,17 +651,13 @@ $relationshipLabels = [
       </button>
     </div>
 
-    <!-- Review submission form — hidden until button clicked -->
+    <!-- Review submission form -->
     <div id="reviewFormWrap" style="display:none;margin-top:30px">
       <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:28px 24px;max-width:560px;margin:0 auto">
         <h3 style="color:#fff;font-family:'Playfair Display',serif;font-size:20px;margin-bottom:18px;text-align:center">
           Share Your Experience
         </h3>
-
-        <!-- Honeypot -->
         <input type="text" id="rvWebsite" style="display:none" tabindex="-1" autocomplete="off"/>
-
-        <!-- Star rating -->
         <div style="margin-bottom:16px;text-align:center">
           <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Your Rating *</div>
           <div id="starPicker" style="font-size:28px;cursor:pointer;letter-spacing:4px">
@@ -707,7 +669,6 @@ $relationshipLabels = [
           </div>
           <input type="hidden" id="rvRating" value="0"/>
         </div>
-
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
           <div>
             <label style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:5px">Your Name *</label>
@@ -718,7 +679,6 @@ $relationshipLabels = [
             <input class="form-input form-input--dark" type="email" id="rvEmail" placeholder="your@email.com"/>
           </div>
         </div>
-
         <div style="margin-bottom:12px">
           <label style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:5px">Your Relationship to the School *</label>
           <select class="form-input form-input--dark" id="rvRelationship">
@@ -730,26 +690,18 @@ $relationshipLabels = [
             <option value="visitor">Visitor</option>
           </select>
         </div>
-
         <div style="margin-bottom:16px">
           <label style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:5px">Your Review *</label>
           <textarea class="form-input form-input--dark" id="rvText" rows="4"
                     placeholder="Share your experience of Ibeku High School…"
                     style="resize:vertical"></textarea>
         </div>
-
-        <button onclick="submitReview()"
-                id="rvBtn"
+        <button onclick="submitReview()" id="rvBtn"
                 style="width:100%;background:var(--gold);color:#1a0835;border:none;padding:12px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">
           Submit Review ★
         </button>
-
-        <div id="rvError"
-             style="display:none;margin-top:10px;background:rgba(204,51,51,.2);border:1px solid rgba(204,51,51,.4);border-radius:8px;padding:10px 14px;color:#ffaaaa;font-size:13px">
-        </div>
-
-        <div id="rvSuccess"
-             style="display:none;margin-top:14px;background:rgba(26,122,58,.2);border:1px solid rgba(26,122,58,.4);border-radius:10px;padding:16px;text-align:center">
+        <div id="rvError" style="display:none;margin-top:10px;background:rgba(204,51,51,.2);border:1px solid rgba(204,51,51,.4);border-radius:8px;padding:10px 14px;color:#ffaaaa;font-size:13px"></div>
+        <div id="rvSuccess" style="display:none;margin-top:14px;background:rgba(26,122,58,.2);border:1px solid rgba(26,122,58,.4);border-radius:10px;padding:16px;text-align:center">
           <div style="font-size:24px;margin-bottom:6px">✅</div>
           <strong style="color:#fff;display:block;margin-bottom:6px">Thank you!</strong>
           <p style="color:rgba(255,255,255,.7);font-size:13px;margin-bottom:12px" id="rvSuccessMsg">
@@ -777,65 +729,60 @@ $relationshipLabels = [
       <span class="slabel">Join Our School</span>
       <h2 class="stitle">How to <span>Apply</span></h2>
       <p class="ssub mb-4">We welcome applications for JSS 1 and SSS 1 entry each academic session.</p>
-
       <div class="admission-steps">
         <div class="admission-step">
           <div class="admission-step__num" aria-hidden="true">1</div>
-          <div class="admission-step__text">
-            <h4>Submit Enquiry</h4>
-            <p>Fill the form or visit the school office to collect an application form and prospectus.</p>
-          </div>
+          <div class="admission-step__text"><h4>Submit Enquiry</h4><p>Fill the form or visit the school office to collect an application form and prospectus.</p></div>
         </div>
         <div class="admission-step">
           <div class="admission-step__num" aria-hidden="true">2</div>
-          <div class="admission-step__text">
-            <h4>Complete Application</h4>
-            <p>Return with birth certificate, primary school certificate, and 4 passport photographs.</p>
-          </div>
+          <div class="admission-step__text"><h4>Complete Application</h4><p>Return with birth certificate, primary school certificate, and 4 passport photographs.</p></div>
         </div>
         <div class="admission-step">
           <div class="admission-step__num" aria-hidden="true">3</div>
-          <div class="admission-step__text">
-            <h4>Entrance Assessment</h4>
-            <p>Eligible applicants sit a written assessment in English Language and Mathematics.</p>
-          </div>
+          <div class="admission-step__text"><h4>Entrance Assessment</h4><p>Eligible applicants sit a written assessment in English Language and Mathematics.</p></div>
         </div>
         <div class="admission-step">
           <div class="admission-step__num" aria-hidden="true">4</div>
-          <div class="admission-step__text">
-            <h4>Offer &amp; Enrolment</h4>
-            <p>Successful candidates receive an offer letter and complete registration and fee payment.</p>
-          </div>
+          <div class="admission-step__text"><h4>Offer &amp; Enrolment</h4><p>Successful candidates receive an offer letter and complete registration and fee payment.</p></div>
         </div>
       </div>
     </div>
 
+    <!-- Mini admissions form — wired to submit_admission.php -->
     <div class="admission-form-card reveal">
       <h3>Start Your Application</h3>
       <p>Register your interest and our admissions office will contact you within 48 hours.</p>
       <div class="form-group">
-        <input class="form-input" type="text" placeholder="Parent / Guardian Full Name"/>
+        <input class="form-input" type="text" id="miniParentName" placeholder="Parent / Guardian Full Name"/>
       </div>
       <div class="form-group">
-        <input class="form-input" type="text" placeholder="Student Full Name"/>
+        <input class="form-input" type="text" id="miniStudentName" placeholder="Student Full Name"/>
       </div>
       <div class="form-group">
-        <input class="form-input" type="email" placeholder="Email Address"/>
+        <input class="form-input" type="email" id="miniEmail" placeholder="Email Address"/>
       </div>
       <div class="form-group">
-        <input class="form-input" type="tel" placeholder="Phone Number"/>
+        <input class="form-input" type="tel" id="miniPhone" placeholder="Phone Number"/>
       </div>
       <div class="form-group">
-        <select class="form-input">
+        <select class="form-input" id="miniClass">
           <option value="">Applying for which class?</option>
-          <option>JSS 1 — Junior Secondary</option>
-          <option>SSS 1 — Senior Secondary</option>
+          <option value="JSS1">JSS 1 — Junior Secondary</option>
+          <option value="SSS1">SSS 1 — Senior Secondary</option>
         </select>
       </div>
-      <button class="btn btn--primary btn--full btn--lg"
-              onclick="alert('Enquiry received!\nAdmissions will contact you shortly.\n\nPhase 2: connects to PHP email backend.')">
+      <button class="btn btn--primary btn--full btn--lg" id="miniAdmBtn"
+              onclick="submitMiniAdmission()">
         Submit Enquiry &rarr;
       </button>
+      <div id="miniAdmSuccess"
+           style="display:none;margin-top:12px;background:#e6f9ed;border:1px solid #b2dfce;border-radius:8px;padding:12px 16px;font-size:13.5px;color:#1a7a3a">
+        ✅ Enquiry received! Our admissions office will contact you within 48 hours.
+      </div>
+      <div id="miniAdmError"
+           style="display:none;margin-top:10px;background:#ffe6e6;border:1px solid #ffcccc;border-radius:8px;padding:10px 14px;font-size:13px;color:#cc3333">
+      </div>
     </div>
 
   </div>
@@ -843,7 +790,7 @@ $relationshipLabels = [
 
 
 <!-- ═══════════════════════════════════════════
-     NEWSLETTER
+     NEWSLETTER — wired to subscribe.php
      ═══════════════════════════════════════════ -->
 <section class="newsletter-section">
   <div class="newsletter-section__inner">
@@ -854,10 +801,13 @@ $relationshipLabels = [
       <label for="nlEmail" class="sr-only">Email address</label>
       <input class="form-input form-input--dark" type="email" id="nlEmail"
              placeholder="Enter your email address"/>
-      <button class="btn btn--primary"
-              onclick="alert('Subscribed!\nPhase 2: connects to PHP backend.')">
+      <button class="btn btn--primary" id="nlBtn" onclick="subscribeNewsletter()">
         Subscribe
       </button>
+    </div>
+    <div id="nlSuccess"
+         style="display:none;margin-top:12px;font-size:13.5px;color:rgba(255,255,255,.85);text-align:center">
+      ✅ Subscribed! You will receive school updates by email.
     </div>
   </div>
 </section>
@@ -910,13 +860,13 @@ function submitReview() {
   successEl.style.display = 'none';
 
   if (!name || !email || !relationship || !text) {
-    errorEl.textContent    = 'Please fill in all required fields.';
-    errorEl.style.display  = 'block';
+    errorEl.textContent   = 'Please fill in all required fields.';
+    errorEl.style.display = 'block';
     return;
   }
   if (!rating || rating === '0') {
-    errorEl.textContent    = 'Please select a star rating.';
-    errorEl.style.display  = 'block';
+    errorEl.textContent   = 'Please select a star rating.';
+    errorEl.style.display = 'block';
     return;
   }
 
@@ -931,34 +881,134 @@ function submitReview() {
   btn.textContent = 'Submitting…';
   btn.disabled    = true;
 
-  fetch('/ibeku-high-school/src/api/submit_review.php', {
-    method: 'POST',
-    body: fd,
-  })
+  fetch('/ibeku-high-school/src/api/submit_review.php', { method: 'POST', body: fd })
     .then(function (r) { return r.json(); })
     .then(function (data) {
       if (data.success) {
         document.getElementById('rvSuccessMsg').textContent = data.message;
         document.getElementById('rvVerifyLink').href        = data.verify_url;
-        btn.style.display      = 'none';
+        btn.style.display       = 'none';
         successEl.style.display = 'block';
       } else if (data.errors) {
         errorEl.textContent   = Object.values(data.errors)[0];
         errorEl.style.display = 'block';
-        btn.textContent = 'Submit Review ★';
-        btn.disabled    = false;
+        btn.textContent = 'Submit Review ★'; btn.disabled = false;
       } else {
         errorEl.textContent   = data.message || 'Something went wrong. Please try again.';
         errorEl.style.display = 'block';
-        btn.textContent = 'Submit Review ★';
-        btn.disabled    = false;
+        btn.textContent = 'Submit Review ★'; btn.disabled = false;
       }
     })
-    .catch(function (err) {
-      console.error('Review error:', err);
+    .catch(function () {
       errorEl.textContent   = 'A connection error occurred. Please try again.';
       errorEl.style.display = 'block';
-      btn.textContent = 'Submit Review ★';
+      btn.textContent = 'Submit Review ★'; btn.disabled = false;
+    });
+}
+
+
+/* ═══════════════════════════════════
+   MINI ADMISSIONS FORM (homepage)
+   ═══════════════════════════════════ */
+function submitMiniAdmission() {
+  var parentName  = document.getElementById('miniParentName').value.trim();
+  var studentName = document.getElementById('miniStudentName').value.trim();
+  var email       = document.getElementById('miniEmail').value.trim();
+  var phone       = document.getElementById('miniPhone').value.trim();
+  var entryClass  = document.getElementById('miniClass').value;
+  var errorEl     = document.getElementById('miniAdmError');
+  var successEl   = document.getElementById('miniAdmSuccess');
+  var btn         = document.getElementById('miniAdmBtn');
+
+  errorEl.style.display   = 'none';
+  successEl.style.display = 'none';
+
+  if (!parentName || !studentName || !email || !phone) {
+    errorEl.textContent   = 'Please fill in your name, student name, email, and phone number.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  var nameParts   = parentName.split(' ');
+  var parentFirst = nameParts[0] || '';
+  var parentLast  = nameParts.slice(1).join(' ') || '';
+  var stuParts    = studentName.split(' ');
+  var stuFirst    = stuParts[0] || '';
+  var stuLast     = stuParts.slice(1).join(' ') || '';
+
+  var fd = new FormData();
+  fd.append('parent_first',  parentFirst);
+  fd.append('parent_last',   parentLast || parentFirst);
+  fd.append('parent_email',  email);
+  fd.append('parent_phone',  phone);
+  fd.append('student_first', stuFirst);
+  fd.append('student_last',  stuLast || stuFirst);
+  fd.append('entry_class',   entryClass || 'JSS1');
+  fd.append('session',       '<?php echo htmlspecialchars($_site['current_session'] ?? '2025/2026'); ?>');
+
+  btn.textContent = 'Submitting…';
+  btn.disabled    = true;
+
+  fetch('/ibeku-high-school/src/api/submit_admission.php', { method: 'POST', body: fd })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.success) {
+        successEl.style.display = 'block';
+        document.getElementById('miniParentName').value  = '';
+        document.getElementById('miniStudentName').value = '';
+        document.getElementById('miniEmail').value       = '';
+        document.getElementById('miniPhone').value       = '';
+        document.getElementById('miniClass').value       = '';
+      } else {
+        errorEl.textContent   = data.message || 'Something went wrong. Please try again.';
+        errorEl.style.display = 'block';
+      }
+    })
+    .catch(function () {
+      errorEl.textContent   = 'A connection error occurred. Please try again.';
+      errorEl.style.display = 'block';
+    })
+    .finally(function () {
+      btn.textContent = 'Submit Enquiry →';
+      btn.disabled    = false;
+    });
+}
+
+
+/* ═══════════════════════════════════
+   NEWSLETTER (homepage)
+   ═══════════════════════════════════ */
+function subscribeNewsletter() {
+  var input     = document.getElementById('nlEmail');
+  var successEl = document.getElementById('nlSuccess');
+  var btn       = document.getElementById('nlBtn');
+
+  if (!input || !input.value.trim()) {
+    alert('Please enter your email address.');
+    return;
+  }
+
+  var fd = new FormData();
+  fd.append('email', input.value.trim());
+
+  btn.textContent = 'Subscribing…';
+  btn.disabled    = true;
+
+  fetch('/ibeku-high-school/src/api/subscribe.php', { method: 'POST', body: fd })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.success) {
+        successEl.style.display = 'block';
+        input.value = '';
+      } else {
+        alert(data.message || 'Something went wrong. Please try again.');
+      }
+    })
+    .catch(function () {
+      alert('A connection error occurred. Please try again.');
+    })
+    .finally(function () {
+      btn.textContent = 'Subscribe';
       btn.disabled    = false;
     });
 }

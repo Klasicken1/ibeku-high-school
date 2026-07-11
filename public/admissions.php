@@ -11,10 +11,8 @@ $pageCss     = 'admissions';
 
 require_once '../src/includes/header.php';
 
-/* ── Settings — admissions toggle + contact details ── */
 $_site = getSettings();
 
-/* If admissions are closed show notice and exit */
 if ($_site['admissions_open'] !== '1'):
 ?>
 <div style="max-width:600px;margin:80px auto;text-align:center;padding:40px 24px;background:#fff;border:1px solid #e8e6f0;border-radius:16px;font-family:'DM Sans',sans-serif">
@@ -169,7 +167,6 @@ endif;
 
     <div class="requirements-grid">
 
-      <!-- JSS 1 Entry -->
       <div class="req-card reveal">
         <div class="req-card__header req-card__header--jss">
           <span class="req-card__icon" aria-hidden="true">🏫</span>
@@ -203,7 +200,6 @@ endif;
         </div>
       </div>
 
-      <!-- SSS 1 Entry -->
       <div class="req-card reveal">
         <div class="req-card__header req-card__header--sss">
           <span class="req-card__icon" aria-hidden="true">🎓</span>
@@ -244,7 +240,7 @@ endif;
 
 
 <!-- ═══════════════════════════════════════════
-     HOW TO APPLY — STEPS
+     HOW TO APPLY
      ═══════════════════════════════════════════ -->
 <section class="apply-steps-section" id="how-to-apply">
   <div class="apply-steps-section__inner wrap">
@@ -328,13 +324,13 @@ endif;
       <div class="dates-table">
         <?php
         $dates = [
-          ['Application Forms Available',   'January 2025'],
-          ['Application Deadline — JSS 1',  'March 2025'],
-          ['Application Deadline — SSS 1',  'March 2025'],
-          ['Entrance Examination',          'April 2025'],
-          ['Results Announcement',          'April 2025'],
-          ['Acceptance &amp; Registration', 'May 2025'],
-          ['Resumption — New Students',     'September 2025'],
+          ['Application Forms Available',   'January'],
+          ['Application Deadline — JSS 1',  'March'],
+          ['Application Deadline — SSS 1',  'March'],
+          ['Entrance Examination',          'April'],
+          ['Results Announcement',          'April'],
+          ['Acceptance &amp; Registration', 'May'],
+          ['Resumption — New Students',     'September'],
         ];
         foreach ($dates as $date): ?>
         <div class="dates-row">
@@ -354,12 +350,11 @@ endif;
 
 
 <!-- ═══════════════════════════════════════════
-     APPLICATION FORM
+     APPLICATION FORM — wired to submit_admission.php
      ═══════════════════════════════════════════ -->
 <section class="application-form-section" id="apply-now">
   <div class="application-form-section__inner wrap">
 
-    <!-- Left: contact info — driven by settings -->
     <div class="application-form-section__info reveal">
       <span class="slabel">Get in Touch</span>
       <h2 class="stitle">Start Your <span>Application</span></h2>
@@ -392,13 +387,12 @@ endif;
           <span class="contact-option__icon" aria-hidden="true">🕐</span>
           <div class="contact-option__text">
             <strong>Office Hours</strong>
-            <span>Monday – Friday, 8:00 AM – 3:00 PM</span>
+            <span><?php echo htmlspecialchars($_site['school_hours'] ?: 'Monday – Friday, 8:00 AM – 3:00 PM'); ?></span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Right: form -->
     <div class="application-form-card reveal">
       <h3>Admissions Enquiry</h3>
       <p>Complete this form and our admissions team will be in touch within 48 hours.</p>
@@ -407,22 +401,22 @@ endif;
 
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label" for="admParentFirst">First Name</label>
+          <label class="form-label" for="admParentFirst">First Name *</label>
           <input class="form-input" type="text" id="admParentFirst" placeholder="First name"/>
         </div>
         <div class="form-group">
-          <label class="form-label" for="admParentLast">Last Name</label>
+          <label class="form-label" for="admParentLast">Last Name *</label>
           <input class="form-input" type="text" id="admParentLast" placeholder="Last name"/>
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label" for="admEmail">Email Address</label>
+          <label class="form-label" for="admEmail">Email Address *</label>
           <input class="form-input" type="email" id="admEmail" placeholder="your@email.com"/>
         </div>
         <div class="form-group">
-          <label class="form-label" for="admPhone">Phone Number</label>
+          <label class="form-label" for="admPhone">Phone Number *</label>
           <input class="form-input" type="tel" id="admPhone" placeholder="+234 000 000 0000"/>
         </div>
       </div>
@@ -431,11 +425,11 @@ endif;
 
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label" for="admStudentFirst">Student First Name</label>
+          <label class="form-label" for="admStudentFirst">Student First Name *</label>
           <input class="form-input" type="text" id="admStudentFirst" placeholder="First name"/>
         </div>
         <div class="form-group">
-          <label class="form-label" for="admStudentLast">Student Last Name</label>
+          <label class="form-label" for="admStudentLast">Student Last Name *</label>
           <input class="form-input" type="text" id="admStudentLast" placeholder="Last name"/>
         </div>
       </div>
@@ -449,8 +443,8 @@ endif;
           <label class="form-label" for="admGender">Gender</label>
           <select class="form-input" id="admGender">
             <option value="">Select gender</option>
-            <option>Male</option>
-            <option>Female</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
           </select>
         </div>
       </div>
@@ -459,11 +453,11 @@ endif;
 
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label" for="admClass">Applying for</label>
+          <label class="form-label" for="admClass">Applying for *</label>
           <select class="form-input" id="admClass">
             <option value="">Select entry level</option>
-            <option>JSS 1 — Junior Secondary</option>
-            <option>SSS 1 — Senior Secondary</option>
+            <option value="JSS1">JSS 1 — Junior Secondary</option>
+            <option value="SSS1">SSS 1 — Senior Secondary</option>
           </select>
         </div>
         <div class="form-group">
@@ -491,19 +485,16 @@ endif;
 
       <div class="form-group">
         <label class="form-label" for="admMessage">Additional Information (optional)</label>
-        <textarea
-          class="form-input"
-          id="admMessage"
-          rows="3"
-          placeholder="Any additional information you would like us to know..."
-          style="resize:vertical"></textarea>
+        <textarea class="form-input" id="admMessage" rows="3"
+                  placeholder="Any additional information you would like us to know..."
+                  style="resize:vertical"></textarea>
       </div>
 
-      <button class="btn--apply" onclick="submitAdmissionForm()">
+      <button class="btn--apply" id="admBtn" onclick="submitAdmissionForm()">
         Submit Admissions Enquiry &rarr;
       </button>
 
-      <div class="form-success" id="admSuccess">
+      <div class="form-success" id="admSuccess" style="display:none">
         <p>✅ Enquiry Received!</p>
         <span>
           Thank you. Our admissions office will contact you at the email or phone
@@ -511,11 +502,14 @@ endif;
         </span>
       </div>
 
+      <div id="admError"
+           style="display:none;margin-top:12px;background:#ffe6e6;border:1px solid #ffcccc;border-radius:8px;padding:10px 14px;font-size:13.5px;color:#cc3333">
+      </div>
+
       <p class="form-privacy">
         Your information is kept strictly confidential and used only for
         admissions purposes. We do not share your data with third parties.
       </p>
-
     </div>
 
   </div>
@@ -571,69 +565,85 @@ endif;
 <?php require_once '../src/includes/footer.php'; ?>
 
 <script>
+/* ── Admissions form submission ── */
 function submitAdmissionForm() {
-  var required = ['admParentFirst','admParentLast','admEmail','admPhone',
-                  'admStudentFirst','admStudentLast','admClass'];
-  var allFilled = required.every(function(id) {
-    var el = document.getElementById(id);
-    return el && el.value.trim() !== '';
-  });
+  var errorEl = document.getElementById('admError');
+  var btn     = document.getElementById('admBtn');
+  errorEl.style.display = 'none';
 
-  if (!allFilled) {
-    alert('Please fill in all required fields before submitting.');
+  var fields = {
+    admParentFirst:  document.getElementById('admParentFirst').value.trim(),
+    admParentLast:   document.getElementById('admParentLast').value.trim(),
+    admEmail:        document.getElementById('admEmail').value.trim(),
+    admPhone:        document.getElementById('admPhone').value.trim(),
+    admStudentFirst: document.getElementById('admStudentFirst').value.trim(),
+    admStudentLast:  document.getElementById('admStudentLast').value.trim(),
+    admClass:        document.getElementById('admClass').value,
+  };
+
+  var missing = Object.values(fields).some(function (v) { return v === ''; });
+  if (missing) {
+    errorEl.textContent    = 'Please fill in all required fields (marked with *).';
+    errorEl.style.display  = 'block';
+    errorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     return;
   }
 
-  var formData = new FormData();
-  formData.append('parent_first',    document.getElementById('admParentFirst').value.trim());
-  formData.append('parent_last',     document.getElementById('admParentLast').value.trim());
-  formData.append('parent_email',    document.getElementById('admEmail').value.trim());
-  formData.append('parent_phone',    document.getElementById('admPhone').value.trim());
-  formData.append('student_first',   document.getElementById('admStudentFirst').value.trim());
-  formData.append('student_last',    document.getElementById('admStudentLast').value.trim());
-  formData.append('dob',             document.getElementById('admDob').value);
-  formData.append('gender',          document.getElementById('admGender').value);
-  formData.append('entry_class',     document.getElementById('admClass').value);
-  formData.append('session',         document.getElementById('admSession').value);
-  formData.append('previous_school', document.getElementById('admPrevSchool').value.trim());
-  formData.append('message',         document.getElementById('admMessage').value.trim());
+  var fd = new FormData();
+  fd.append('parent_first',    fields.admParentFirst);
+  fd.append('parent_last',     fields.admParentLast);
+  fd.append('parent_email',    fields.admEmail);
+  fd.append('parent_phone',    fields.admPhone);
+  fd.append('student_first',   fields.admStudentFirst);
+  fd.append('student_last',    fields.admStudentLast);
+  fd.append('date_of_birth',   document.getElementById('admDob').value);
+  fd.append('gender',          document.getElementById('admGender').value);
+  fd.append('entry_class',     fields.admClass);
+  fd.append('session',         document.getElementById('admSession').value);
+  fd.append('previous_school', document.getElementById('admPrevSchool').value.trim());
+  fd.append('message',         document.getElementById('admMessage').value.trim());
 
-  var btn = document.querySelector('.btn--apply');
-  if (btn) { btn.textContent = 'Submitting…'; btn.disabled = true; }
+  btn.textContent = 'Submitting…';
+  btn.disabled    = true;
 
-  fetch('/ibeku-high-school/src/api/submit_admission.php', { method: 'POST', body: formData })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
+  fetch('/ibeku-high-school/src/api/submit_admission.php', { method: 'POST', body: fd })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
       if (data.success) {
-        var successEl = document.getElementById('admSuccess');
-        successEl.querySelector('span').textContent = data.message;
-        successEl.style.display = 'block';
-        successEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        required.forEach(function(id) { document.getElementById(id).value = ''; });
-        document.getElementById('admDob').value     = '';
+        document.getElementById('admSuccess').style.display = 'block';
+        document.getElementById('admSuccess').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        /* Clear form */
+        ['admParentFirst','admParentLast','admEmail','admPhone',
+         'admStudentFirst','admStudentLast','admDob','admPrevSchool','admMessage'].forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el) el.value = '';
+        });
         document.getElementById('admGender').value  = '';
+        document.getElementById('admClass').value   = '';
         document.getElementById('admSession').value = '';
-        document.getElementById('admPrevSchool').value = '';
-        document.getElementById('admMessage').value = '';
       } else if (data.errors) {
-        alert(Object.values(data.errors)[0]);
+        errorEl.textContent   = Object.values(data.errors)[0];
+        errorEl.style.display = 'block';
       } else {
-        alert(data.message || 'Something went wrong. Please try again.');
+        errorEl.textContent   = data.message || 'Something went wrong. Please try again.';
+        errorEl.style.display = 'block';
       }
     })
-    .catch(function(err) {
-      console.error('Admission form error:', err);
-      alert('A connection error occurred. Please try again.');
+    .catch(function () {
+      errorEl.textContent   = 'A connection error occurred. Please try again.';
+      errorEl.style.display = 'block';
     })
-    .finally(function() {
-      if (btn) { btn.textContent = 'Submit Admissions Enquiry →'; btn.disabled = false; }
+    .finally(function () {
+      btn.textContent = 'Submit Admissions Enquiry →';
+      btn.disabled    = false;
     });
 }
 
+/* ── FAQ accordion ── */
 function toggleAdmFaq(index) {
   var item   = document.getElementById('admfaq-' + index);
   var isOpen = item ? item.classList.contains('open') : false;
-  document.querySelectorAll('.faq-item.open').forEach(function(el) {
+  document.querySelectorAll('.faq-item.open').forEach(function (el) {
     el.classList.remove('open');
     var b = el.querySelector('.faq-item__question');
     if (b) b.setAttribute('aria-expanded', 'false');
