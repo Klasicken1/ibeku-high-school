@@ -103,9 +103,6 @@ if ($filterStatus !== '') {
 
 $whereSQL = implode(' AND ', $where);
 
-$total = (int) $pdo->prepare("SELECT COUNT(*) FROM gallery WHERE $whereSQL")->execute($params) ?
-    $pdo->prepare("SELECT COUNT(*) FROM gallery WHERE $whereSQL")->execute($params) : 0;
-
 $countStmt = $pdo->prepare("SELECT COUNT(*) FROM gallery WHERE $whereSQL");
 $countStmt->execute($params);
 $total = (int) $countStmt->fetchColumn();
@@ -178,7 +175,7 @@ $categories = [
   .photo-card__meta { font-size:11.5px; color:#9b97b0; margin-bottom:8px; }
 
   .badge { display:inline-block; font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; text-transform:uppercase; }
-  .badge--published  { background:#e6f9ed; color:#1a7a3a; }
+  .badge--published   { background:#e6f9ed; color:#1a7a3a; }
   .badge--unpublished { background:#fff3e6; color:#8a4a00; }
 
   .photo-card__actions { display:flex; gap:6px; flex-wrap:wrap; }
@@ -275,7 +272,7 @@ $categories = [
             <img src="<?php echo $imgPath; ?>"
                  alt="<?php echo htmlspecialchars($photo['title']); ?>"
                  class="photo-card__img"
-                 onerror="this.src='../assets/images/gallery/.gitkeep';this.style.background='#f4f3f9'"/>
+                 onerror="this.onerror=null;this.src='../assets/images/icons/icon-192.png';this.style.objectFit='contain';this.style.padding='40px';this.style.background='#f4f3f9'"/>
 
             <div class="photo-card__body">
               <div class="cat-tag"><?php echo htmlspecialchars($categories[$photo['category']] ?? $photo['category']); ?></div>
