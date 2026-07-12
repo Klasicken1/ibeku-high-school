@@ -1,0 +1,34 @@
+# Ibeku High School — Student Portal
+# File: public/portal/.htaccess
+
+# Deny direct access to any file not explicitly allowed
+Options -Indexes
+
+# Force HTTPS in production (uncomment on cPanel)
+# RewriteEngine On
+# RewriteCond %{HTTPS} off
+# RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Block access to anything that isn't a PHP file
+<FilesMatch "^(?!.*\.php$)">
+  # Allow the directory itself to serve index
+</FilesMatch>
+
+# Prevent access to hidden files
+<FilesMatch "^\.">
+  Order allow,deny
+  Deny from all
+</FilesMatch>
+
+# Security headers
+<IfModule mod_headers.c>
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Session cookie security (production)
+<IfModule mod_php.c>
+  php_flag session.cookie_httponly on
+  php_flag session.use_strict_mode on
+</IfModule>
