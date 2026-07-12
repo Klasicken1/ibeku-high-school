@@ -39,7 +39,7 @@ $recentNotifs = $notifStmt->fetchAll();
 /* ── Latest published results term ── */
 $resultStmt = $pdo->prepare(
     "SELECT DISTINCT term, session FROM results
-     WHERE student_id = ? AND status = 'published'
+     WHERE student_id = ? AND is_published = 1
      ORDER BY session DESC, FIELD(term,'first','second','third') DESC
      LIMIT 1"
 );
