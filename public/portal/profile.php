@@ -17,7 +17,7 @@ $pdo     = getDB();
 /* Load full student record from DB */
 $stmt = $pdo->prepare('SELECT * FROM students WHERE id = ? LIMIT 1');
 $stmt->execute([$student['id']]);
-$s = $stmt->fetch();
+$s = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$s) {
     logoutStudent();
@@ -82,8 +82,8 @@ $deptLabels = [
           <?php echo htmlspecialchars($s['first_name'] . ' ' . ($s['other_name'] ? $s['other_name'] . ' ' : '') . $s['last_name']); ?>
         </h2>
         <p class="profile-photo-card__adm"><?php echo htmlspecialchars($s['admission_number']); ?></p>
-        <div class="profile-photo-card__status <?php echo $s['status'] === 'active' ? 'profile-photo-card__status--active' : ''; ?>">
-          <?php echo ucfirst($s['status']); ?>
+        <div class="profile-photo-card__status <?php echo ($s['status'] ?? '') === 'active' ? 'profile-photo-card__status--active' : ''; ?>">
+          <?php echo ucfirst($s['status'] ?? 'active'); ?>
         </div>
         <p class="profile-photo-card__note">
           To update your photo, speak to your class teacher or visit the school office.
@@ -104,7 +104,7 @@ $deptLabels = [
               <span class="detail-label">Last Name</span>
               <span class="detail-value"><?php echo htmlspecialchars($s['last_name']); ?></span>
             </div>
-            <?php if ($s['other_name']): ?>
+            <?php if (!empty($s['other_name'])): ?>
             <div class="detail-row">
               <span class="detail-label">Other Name</span>
               <span class="detail-value"><?php echo htmlspecialchars($s['other_name']); ?></span>
@@ -112,15 +112,15 @@ $deptLabels = [
             <?php endif; ?>
             <div class="detail-row">
               <span class="detail-label">Gender</span>
-              <span class="detail-value"><?php echo ucfirst($s['gender']); ?></span>
+              <span class="detail-value"><?php echo ucfirst($s['gender'] ?? ''); ?></span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Date of Birth</span>
               <span class="detail-value">
-                <?php echo $s['date_of_birth'] ? date('d F Y', strtotime($s['date_of_birth'])) : '—'; ?>
+                <?php echo !empty($s['date_of_birth']) ? date('d F Y', strtotime($s['date_of_birth'])) : '—'; ?>
               </span>
             </div>
-            <?php if ($s['address']): ?>
+            <?php if (!empty($s['address'])): ?>
             <div class="detail-row">
               <span class="detail-label">Address</span>
               <span class="detail-value"><?php echo htmlspecialchars($s['address']); ?></span>
@@ -134,40 +134,40 @@ $deptLabels = [
           <div class="detail-grid">
             <div class="detail-row">
               <span class="detail-label">Grade Level</span>
-              <span class="detail-value"><?php echo gradeLabel($s['grade_level']); ?></span>
+              <span class="detail-value"><?php echo gradeLabel($s['grade_level'] ?? ''); ?></span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Class</span>
-              <span class="detail-value"><?php echo htmlspecialchars($s['class']); ?></span>
+              <span class="detail-value"><?php echo htmlspecialchars($s['class'] ?? ''); ?></span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Section</span>
-              <span class="detail-value"><?php echo sectionLabel($s['section']); ?></span>
+              <span class="detail-value"><?php echo sectionLabel($s['section'] ?? ''); ?></span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Department</span>
-              <span class="detail-value"><?php echo $deptLabels[$s['department']] ?? ucfirst($s['department']); ?></span>
+              <span class="detail-value"><?php echo $deptLabels[$s['department'] ?? ''] ?? ucfirst($s['department'] ?? ''); ?></span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Date Admitted</span>
               <span class="detail-value">
-                <?php echo $s['date_admitted'] ? date('d F Y', strtotime($s['date_admitted'])) : '—'; ?>
+                <?php echo !empty($s['date_admitted']) ? date('d F Y', strtotime($s['date_admitted'])) : '—'; ?>
               </span>
             </div>
           </div>
         </div>
 
-        <?php if ($s['parent_name'] || $s['parent_phone']): ?>
+        <?php if (!empty($s['parent_name']) || !empty($s['parent_phone'])): ?>
         <div class="detail-card">
           <h3 class="detail-card__title">Parent / Guardian</h3>
           <div class="detail-grid">
-            <?php if ($s['parent_name']): ?>
+            <?php if (!empty($s['parent_name'])): ?>
             <div class="detail-row">
               <span class="detail-label">Name</span>
               <span class="detail-value"><?php echo htmlspecialchars($s['parent_name']); ?></span>
             </div>
             <?php endif; ?>
-            <?php if ($s['parent_phone']): ?>
+            <?php if (!empty($s['parent_phone'])): ?>
             <div class="detail-row">
               <span class="detail-label">Phone</span>
               <span class="detail-value">
@@ -178,7 +178,7 @@ $deptLabels = [
               </span>
             </div>
             <?php endif; ?>
-            <?php if ($s['parent_email']): ?>
+            <?php if (!empty($s['parent_email'])): ?>
             <div class="detail-row">
               <span class="detail-label">Email</span>
               <span class="detail-value"><?php echo htmlspecialchars($s['parent_email']); ?></span>
