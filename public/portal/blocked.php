@@ -5,6 +5,8 @@
 
    Shown when a student's portal_blocked flag is set to 1.
    Student can still see this page and submit a contact message.
+   Phone numbers pulled from site settings (school_phone,
+   school_phone_2) so they stay in sync with the footer.
    ============================================================ */
 
 declare(strict_types=1);
@@ -21,26 +23,37 @@ if (!studentLoggedIn()) {
 }
 
 $student = currentStudent();
+$pdo     = getDB();
 
 /* If unblocked, redirect to dashboard */
 if (!$student['portal_blocked']) {
-    /* Re-check from DB in case admin just unblocked */
-    $pdo   = getDB();
     $fresh = $pdo->prepare('SELECT portal_blocked FROM students WHERE id = ? LIMIT 1');
     $fresh->execute([$student['id']]);
-    $row   = $fresh->fetch();
+    $row = $fresh->fetch();
     if (!$row || !$row['portal_blocked']) {
         header('Location: dashboard.php');
         exit;
     }
 }
 
+/* ── Pull site settings for phone numbers ── */
+$_site = [];
+try {
+    $rows = $pdo->query("SELECT `key`, `value` FROM settings")->fetchAll(PDO::FETCH_KEY_PAIR);
+    $_site = $rows ?: [];
+} catch (PDOException $e) { /* fail silently */ }
+
+$phone1 = trim($_site['school_phone']   ?? '');
+$phone2 = trim($_site['school_phone_2'] ?? '');
+
+/* Build a clean display list — only show numbers that exist */
+$phones = array_filter([$phone1, $phone2]);
+
 $submitted = false;
 $formError = '';
 
 /* ── Contact form submission ── */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $pdo     = $pdo ?? getDB();
     $msgText = trim($_POST['message'] ?? '');
 
     if (mb_strlen($msgText) < 10) {
@@ -53,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  VALUES (?, ?, ?, ?, ?, NOW())"
             )->execute([
                 $student['first_name'] . ' ' . $student['last_name'],
-                '',   /* students have no email field */
+                '',
                 '',
                 'Portal Access Query — ' . $student['admission_number'],
                 $msgText,
@@ -100,139 +113,87 @@ $reason = $student['portal_blocked_reason'] ?? null;
       text-align: center;
     }
 
-    .block-icon {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-      display: block;
-    }
+    .block-icon { font-size: 3rem; margin-bottom: 1rem; display: block; }
 
     .badge-restricted {
       display: inline-block;
-      background: #ffe6e6;
-      color: #cc3333;
-      font-size: 0.7rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding: 3px 12px;
-      border-radius: 20px;
-      margin-bottom: 1rem;
+      background: #ffe6e6; color: #cc3333;
+      font-size: 0.7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      padding: 3px 12px; border-radius: 20px; margin-bottom: 1rem;
     }
 
     h1 {
       font-family: 'Playfair Display', serif;
-      font-size: 1.6rem;
-      color: #3d1a6e;
-      margin-bottom: 0.75rem;
+      font-size: 1.6rem; color: #3d1a6e; margin-bottom: 0.75rem;
     }
 
-    .student-name {
-      font-size: 0.9rem;
-      color: #9b97b0;
-      margin-bottom: 1rem;
-    }
+    .student-name { font-size: 0.9rem; color: #9b97b0; margin-bottom: 1rem; }
 
     .reason-box {
-      background: #fff8e6;
-      border: 1px solid #ffe0b2;
-      border-radius: 10px;
-      padding: 12px 16px;
-      font-size: 0.875rem;
-      color: #8a4a00;
-      margin-bottom: 1.5rem;
-      text-align: left;
+      background: #fff8e6; border: 1px solid #ffe0b2;
+      border-radius: 10px; padding: 12px 16px;
+      font-size: 0.875rem; color: #8a4a00;
+      margin-bottom: 1.5rem; text-align: left;
     }
-    .reason-box strong { display: block; margin-bottom: 4px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .reason-box strong {
+      display: block; margin-bottom: 4px;
+      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
+    }
 
     hr.divider { border: none; border-top: 1px solid #f0eef6; margin: 1.5rem 0; }
 
-    /* Contact info */
     .contact-section { margin-bottom: 1.5rem; }
-    .contact-section h2 {
-      font-size: 1rem;
-      font-weight: 700;
-      color: #3d1a6e;
-      margin-bottom: 0.75rem;
-    }
+    .contact-section h2 { font-size: 1rem; font-weight: 700; color: #3d1a6e; margin-bottom: 0.75rem; }
+
     .contact-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      background: #f8f7fc;
-      border: 1px solid #e8e6f0;
-      border-radius: 10px;
-      padding: 12px 16px;
-      margin-bottom: 8px;
-      font-size: 0.9rem;
-      color: #1a1a2e;
-      font-weight: 600;
-      text-decoration: none;
+      display: flex; align-items: center; justify-content: center;
+      gap: 10px; background: #f8f7fc; border: 1px solid #e8e6f0;
+      border-radius: 10px; padding: 12px 16px; margin-bottom: 8px;
+      font-size: 0.9rem; color: #1a1a2e; font-weight: 600;
+      text-decoration: none; transition: background 0.15s;
     }
     .contact-row:hover { background: #f0ecfa; }
     .contact-row .icon { font-size: 1.1rem; }
 
-    /* Message form */
-    .msg-form h2 {
-      font-size: 1rem;
-      font-weight: 700;
-      color: #3d1a6e;
-      margin-bottom: 0.75rem;
-      text-align: left;
+    .no-phone {
+      font-size: 0.85rem; color: #9b97b0;
+      background: #f8f7fc; border: 1px solid #e8e6f0;
+      border-radius: 10px; padding: 12px 16px;
     }
+
+    .msg-form h2 { font-size: 1rem; font-weight: 700; color: #3d1a6e; margin-bottom: 0.75rem; text-align: left; }
+
     textarea {
-      width: 100%;
-      padding: 11px 14px;
-      border: 1.5px solid #e2e0ea;
-      border-radius: 10px;
-      font-size: 0.9rem;
-      font-family: 'DM Sans', sans-serif;
-      color: #1a1a2e;
-      resize: vertical;
-      margin-bottom: 10px;
+      width: 100%; padding: 11px 14px;
+      border: 1.5px solid #e2e0ea; border-radius: 10px;
+      font-size: 0.9rem; font-family: 'DM Sans', sans-serif;
+      color: #1a1a2e; resize: vertical; margin-bottom: 10px;
     }
     textarea:focus { outline: none; border-color: #4a90d9; }
 
     .btn-submit {
-      width: 100%;
-      background: #3d1a6e;
-      color: #fff;
-      border: none;
-      padding: 11px;
-      border-radius: 10px;
-      font-size: 0.95rem;
-      font-weight: 700;
-      font-family: 'DM Sans', sans-serif;
-      cursor: pointer;
+      width: 100%; background: #3d1a6e; color: #fff;
+      border: none; padding: 11px; border-radius: 10px;
+      font-size: 0.95rem; font-weight: 700;
+      font-family: 'DM Sans', sans-serif; cursor: pointer;
     }
     .btn-submit:hover { background: #5a2d9e; }
 
     .success-box {
-      background: #e6f9ed;
-      border: 1px solid #b2dfce;
-      border-radius: 10px;
-      padding: 12px 16px;
-      font-size: 0.875rem;
-      color: #1a7a3a;
-      margin-bottom: 1rem;
+      background: #e6f9ed; border: 1px solid #b2dfce;
+      border-radius: 10px; padding: 12px 16px;
+      font-size: 0.875rem; color: #1a7a3a; margin-bottom: 1rem;
     }
     .error-box {
-      background: #fff0f0;
-      border: 1px solid #ffd0d0;
-      border-radius: 10px;
-      padding: 12px 16px;
-      font-size: 0.875rem;
-      color: #cc3333;
-      margin-bottom: 1rem;
+      background: #fff0f0; border: 1px solid #ffd0d0;
+      border-radius: 10px; padding: 12px 16px;
+      font-size: 0.875rem; color: #cc3333; margin-bottom: 1rem;
     }
 
     .logout-link {
-      display: block;
-      margin-top: 1.5rem;
-      font-size: 0.8rem;
-      color: #9b97b0;
-      text-decoration: none;
-      text-align: center;
+      display: block; margin-top: 1.5rem;
+      font-size: 0.8rem; color: #9b97b0; text-decoration: none; text-align: center;
     }
     .logout-link:hover { color: #3d1a6e; }
   </style>
@@ -263,22 +224,27 @@ $reason = $student['portal_blocked_reason'] ?? null;
 
     <hr class="divider"/>
 
-    <!-- Contact info -->
+    <!-- ── Contact info — pulled from site settings ── -->
     <div class="contact-section">
       <h2>Contact the School</h2>
-      <a href="tel:+2348000000000" class="contact-row">
-        <span class="icon">📞</span>
-        <span>+234 800 000 0000</span>
-      </a>
-      <a href="tel:+2348000000001" class="contact-row">
-        <span class="icon">📞</span>
-        <span>+234 800 000 0001</span>
-      </a>
+      <?php if (!empty($phones)): ?>
+        <?php foreach ($phones as $phone): ?>
+        <a href="tel:<?php echo htmlspecialchars(preg_replace('/\s+/', '', $phone)); ?>"
+           class="contact-row">
+          <span class="icon">📞</span>
+          <span><?php echo htmlspecialchars($phone); ?></span>
+        </a>
+        <?php endforeach; ?>
+      <?php else: ?>
+      <div class="no-phone">
+        Please visit the school office or ask your class teacher for assistance.
+      </div>
+      <?php endif; ?>
     </div>
 
     <hr class="divider"/>
 
-    <!-- Message form -->
+    <!-- ── Message form ── -->
     <div class="msg-form">
       <h2>Send a Message to the School</h2>
 
