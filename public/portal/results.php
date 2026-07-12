@@ -6,6 +6,7 @@
    Shows the student's own published results only.
    Respects results_blocked flag — blocked students see
    a restriction message instead of results.
+   Scores come from result_scores table joined to results.
    ============================================================ */
 
 declare(strict_types=1);
@@ -26,14 +27,14 @@ $filterSession = $_GET['session'] ?? '';
 
 $results      = [];
 $termList     = [];
-$sessionList  = [];
 
 if (!$student['results_blocked']) {
     /* Available terms for this student */
     $termStmt = $pdo->prepare(
-        "SELECT DISTINCT term, session FROM results
-         WHERE student_id = ? AND is_published = 1
-         ORDER BY session DESC, FIELD(term,'first','second','third') DESC"
+        "SELECT DISTINCT r.term, r.session
+         FROM results r
+         WHERE r.student_id = ? AND r.is_published = 1
+         ORDER BY r.session DESC, FIELD(r.term,'first','second','third') DESC"
     );
     $termStmt->execute([$student['id']]);
     $termList = $termStmt->fetchAll();
@@ -46,13 +47,14 @@ if (!$student['results_blocked']) {
 
     if ($filterTerm && $filterSession) {
         $resStmt = $pdo->prepare(
-            "SELECT r.*, sub.name AS subject_name
+            "SELECT rs.*, sub.name AS subject_name
              FROM results r
-             JOIN subjects sub ON sub.id = r.subject_id
-             WHERE r.student_id = ?
-               AND r.term       = ?
-               AND r.session    = ?
-               AND r.status     = 'published'
+             JOIN result_scores rs ON rs.result_id  = r.id
+             JOIN subjects sub     ON sub.id         = rs.subject_id
+             WHERE r.student_id   = ?
+               AND r.term         = ?
+               AND r.session      = ?
+               AND r.is_published = 1
              ORDER BY sub.name ASC"
         );
         $resStmt->execute([$student['id'], $filterTerm, $filterSession]);
@@ -192,8 +194,9 @@ function scoreColor(float $score): string {
         <thead>
           <tr>
             <th>Subject</th>
-            <th class="text-center">CA Score</th>
-            <th class="text-center">Exam Score</th>
+            <th class="text-center">CA1</th>
+            <th class="text-center">CA2</th>
+            <th class="text-center">Exam</th>
             <th class="text-center">Total</th>
             <th class="text-center">Grade</th>
             <th>Remark</th>
@@ -201,32 +204,34 @@ function scoreColor(float $score): string {
         </thead>
         <tbody>
           <?php foreach ($results as $r):
-            $total   = (float) ($r['total_score']   ?? 0);
-            $ca      = (float) ($r['ca_score']       ?? 0);
-            $exam    = (float) ($r['exam_score']     ?? 0);
-            $grade   = gradeFromScore($total);
-            $remark  = remarkFromScore($total);
-            $color   = scoreColor($total);
+            $ca1    = (float) ($r['ca1_score']    ?? 0);
+            $ca2    = (float) ($r['ca2_score']    ?? 0);
+            $exam   = (float) ($r['exam_score']   ?? 0);
+            $total  = (float) ($r['total_score']  ?? 0);
+            $grade  = $r['grade']  ?? gradeFromScore($total);
+            $remark = $r['remark'] ?? remarkFromScore($total);
+            $color  = scoreColor($total);
           ?>
           <tr>
             <td class="subject-name"><?php echo htmlspecialchars($r['subject_name']); ?></td>
-            <td class="text-center"><?php echo number_format($ca, 1); ?></td>
+            <td class="text-center"><?php echo number_format($ca1, 1); ?></td>
+            <td class="text-center"><?php echo number_format($ca2, 1); ?></td>
             <td class="text-center"><?php echo number_format($exam, 1); ?></td>
             <td class="text-center">
               <strong style="color:<?php echo $color; ?>"><?php echo number_format($total, 1); ?></strong>
             </td>
             <td class="text-center">
               <span class="grade-badge" style="color:<?php echo $color; ?>;background:<?php echo $color; ?>22">
-                <?php echo $grade; ?>
+                <?php echo htmlspecialchars($grade); ?>
               </span>
             </td>
-            <td><?php echo $remark; ?></td>
+            <td><?php echo htmlspecialchars($remark); ?></td>
           </tr>
           <?php endforeach; ?>
         </tbody>
         <tfoot>
           <tr>
-            <td colspan="3" style="font-weight:700;color:#3d1a6e">Average</td>
+            <td colspan="4" style="font-weight:700;color:#3d1a6e">Average</td>
             <td class="text-center">
               <strong style="color:<?php echo scoreColor($average); ?>">
                 <?php echo $average; ?>%
