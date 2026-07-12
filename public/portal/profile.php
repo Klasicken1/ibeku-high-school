@@ -3,7 +3,7 @@
    IBEKU HIGH SCHOOL — STUDENT PORTAL PROFILE
    File: public/portal/profile.php
    Profile is read-only for students.
-   Photo updates are handled in admin/students-edit.php only.
+   Photo updates handled in admin/students-edit.php only.
    ============================================================ */
 
 declare(strict_types=1);
@@ -27,7 +27,7 @@ if (!$s) {
 
 $photoSrc = '';
 if (!empty($s['photo'])) {
-    $photoSrc = '../assets/images/staff/' . htmlspecialchars($s['photo']);
+    $photoSrc = '../assets/images/students/' . htmlspecialchars($s['photo']);
 }
 
 $deptLabels = [

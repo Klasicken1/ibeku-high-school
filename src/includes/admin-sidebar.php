@@ -18,53 +18,56 @@ function renderAdminSidebar(array $admin, string $currentPage = ''): void {
         $unreadStmt->execute([$admin['id']]);
         $unreadCount = (int) $unreadStmt->fetchColumn();
     } catch (PDOException $e) {
-        /* Table may not exist yet on older installs — fail silently */
         $unreadCount = 0;
     }
 
     $navItems = [
-        ['dashboard',          'index.php',              '🏠', 'Dashboard',         null],
+        ['dashboard',          'index.php',               '🏠', 'Dashboard',            null],
 
-        ['timetables-ss',      'timetables-ss.php',      '📅', 'SS Timetables',     ['superadmin', 'dean']],
-        ['timetables-js',      'timetables-js.php',      '📅', 'JS Timetables',     ['superadmin', 'dean']],
+        ['timetables-ss',      'timetables-ss.php',       '📅', 'SS Timetables',        ['superadmin', 'dean']],
+        ['timetables-js',      'timetables-js.php',       '📅', 'JS Timetables',        ['superadmin', 'dean']],
 
-        ['results-entry',      'results-entry.php',      '📊', 'Enter Results',     ['superadmin', 'subject_teacher', 'form_teacher', 'vp_academics']],
-        ['results-approve',    'results-approve.php',    '🔍', 'Approve Results',   ['superadmin', 'form_teacher']],
-        ['results-publish',    'results-publish.php',    '✅', 'Publish Results',   ['superadmin', 'vp_academics']],
+        ['results-entry',      'results-entry.php',       '📊', 'Enter Results',        ['superadmin', 'subject_teacher', 'form_teacher', 'vp_academics']],
+        ['results-approve',    'results-approve.php',     '🔍', 'Approve Results',      ['superadmin', 'form_teacher']],
+        ['results-publish',    'results-publish.php',     '✅', 'Publish Results',      ['superadmin', 'vp_academics']],
 
-        ['news-create',        'news-create.php',        '📰', 'Create News',       ['superadmin', 'principal', 'vp_general']],
-        ['news',               'news.php',               '📋', 'All News',          ['superadmin', 'principal', 'vp_general']],
+        ['news-create',        'news-create.php',         '📰', 'Create News',          ['superadmin', 'principal', 'vp_general']],
+        ['news',               'news.php',                '📋', 'All News',             ['superadmin', 'principal', 'vp_general']],
 
-        ['events',             'events.php',             '📆', 'All Events',        ['superadmin', 'principal', 'vp_general', 'dean']],
-        ['events-create',      'events-create.php',      '➕', 'Create Event',      ['superadmin', 'principal', 'vp_general', 'dean']],
+        ['events',             'events.php',              '📆', 'All Events',           ['superadmin', 'principal', 'vp_general', 'dean']],
+        ['events-create',      'events-create.php',       '➕', 'Create Event',         ['superadmin', 'principal', 'vp_general', 'dean']],
 
-        ['gallery',            'gallery.php',            '🖼️', 'Gallery',           null],
-        ['gallery-upload',     'gallery-upload.php',     '📷', 'Upload Photos',     ['superadmin', 'principal', 'vp_general']],
+        ['gallery',            'gallery.php',             '🖼️', 'Gallery',              null],
+        ['gallery-upload',     'gallery-upload.php',      '📷', 'Upload Photos',        ['superadmin', 'principal', 'vp_general']],
 
-        ['students',           'students.php',           '🎒', 'Students',          ['superadmin', 'principal', 'vp_admin', 'form_teacher']],
-        ['students-promote',   'students-promote.php',   '⬆️', 'Promote Students',  ['superadmin', 'principal', 'form_teacher']],
+        ['students',           'students.php',            '🎒', 'Students',             ['superadmin', 'principal', 'vp_admin', 'form_teacher']],
+        ['students-promote',   'students-promote.php',    '⬆️', 'Promote Students',     ['superadmin', 'principal', 'form_teacher']],
 
-        ['admissions',         'admissions.php',         '🎓', 'Admissions',        null],
+        /* ── Student Portal Controls ── */
+        ['student-portal',     'student-portal.php',      '🔐', 'Portal Access',        ['superadmin', 'principal', 'vp_admin', 'vp_academics']],
+        ['student-notices',    'student-notices.php',     '📢', 'Student Notices',      ['superadmin', 'principal', 'vp_admin', 'vp_academics', 'dean', 'form_teacher']],
 
-        ['staff',              'staff.php',              '👨‍🏫', 'Staff Directory',   ['superadmin']],
-        ['milestones',         'milestones.php',         '🕐', 'History Timeline',  ['superadmin']],
-        ['clubs',              'clubs.php',              '🎭', 'Clubs & Societies', ['superadmin']],
-        ['awards',             'awards.php',             '🏆', 'Awards',            ['superadmin']],
-        ['alumni',             'alumni.php',             '🌍', 'Alumni Directory',  ['superadmin']],
-        ['scholarships',       'scholarships.php',       '🎓', 'Scholarships',      ['superadmin']],
-        ['prefects-admin',     'prefects-admin.php',     '🎖️', 'Prefects',          ['superadmin', 'principal']],
-        ['hall-of-fame-admin', 'hall-of-fame-admin.php', '🏆', 'Hall of Fame',      ['superadmin']],
-        ['nominations',        'nominations.php',        '📬', 'Nominations',       ['superadmin']],
-        ['reviews',            'reviews.php',            '⭐', 'Reviews',           ['superadmin', 'principal', 'vp_general']],
+        ['admissions',         'admissions.php',          '🎓', 'Admissions',           null],
 
-        ['messages',           'messages.php',           '💬', 'Messages',          null],
-        ['push-notifications', 'push-notifications.php', '🔔', 'Push Notifications', ['superadmin', 'principal']],
-        ['newsletter-admin', 'newsletter-admin.php', '📧', 'Newsletter', ['superadmin', 'principal', 'vp_general']],
+        ['staff',              'staff.php',               '👨‍🏫', 'Staff Directory',    ['superadmin']],
+        ['milestones',         'milestones.php',          '🕐', 'History Timeline',     ['superadmin']],
+        ['clubs',              'clubs.php',               '🎭', 'Clubs & Societies',    ['superadmin']],
+        ['awards',             'awards.php',              '🏆', 'Awards',               ['superadmin']],
+        ['alumni',             'alumni.php',              '🌍', 'Alumni Directory',     ['superadmin']],
+        ['scholarships',       'scholarships.php',        '🎓', 'Scholarships',         ['superadmin']],
+        ['prefects-admin',     'prefects-admin.php',      '🎖️', 'Prefects',             ['superadmin', 'principal']],
+        ['hall-of-fame-admin', 'hall-of-fame-admin.php',  '🏆', 'Hall of Fame',         ['superadmin']],
+        ['nominations',        'nominations.php',         '📬', 'Nominations',          ['superadmin']],
+        ['reviews',            'reviews.php',             '⭐', 'Reviews',              ['superadmin', 'principal', 'vp_general']],
 
-        ['users',              'users.php',              '👥', 'Manage Users',      ['superadmin']],
-        ['class-arms',         'class-arms.php',         '🏫', 'Manage Classes',    ['superadmin']],
-        ['subjects',           'subjects.php',           '📚', 'Manage Subjects',   ['superadmin']],
-        ['settings',           'settings.php',           '⚙️', 'Settings',          ['superadmin']],
+        ['messages',           'messages.php',            '💬', 'Messages',             null],
+        ['push-notifications', 'push-notifications.php',  '🔔', 'Push Notifications',  ['superadmin', 'principal']],
+        ['newsletter-admin',   'newsletter-admin.php',    '📧', 'Newsletter',           ['superadmin', 'principal', 'vp_general']],
+
+        ['users',              'users.php',               '👥', 'Manage Users',         ['superadmin']],
+        ['class-arms',         'class-arms.php',          '🏫', 'Manage Classes',       ['superadmin']],
+        ['subjects',           'subjects.php',            '📚', 'Manage Subjects',      ['superadmin']],
+        ['settings',           'settings.php',            '⚙️', 'Settings',             ['superadmin']],
     ];
     ?>
 
@@ -97,7 +100,6 @@ function renderAdminSidebar(array $admin, string $currentPage = ''): void {
         <?php foreach ($navItems as [$key, $href, $icon, $label, $allowedRoles]):
             if ($allowedRoles !== null && !in_array($role, $allowedRoles, true)) continue;
             $isActive = $currentPage === $key;
-            /* Append unread badge inline for the Messages link */
             $badgeHtml = ($key === 'messages' && $unreadCount > 0)
                 ? ' <span style="background:#cc3333;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;margin-left:auto">'
                   . ($unreadCount > 99 ? '99+' : $unreadCount)

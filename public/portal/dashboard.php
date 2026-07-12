@@ -49,16 +49,16 @@ $latestResult = $resultStmt->fetch();
 /* ── Photo path ── */
 $photoSrc = '';
 if (!empty($student['photo'])) {
-    $photoSrc = '../assets/images/staff/' . htmlspecialchars($student['photo']);
+    $photoSrc = '../assets/images/students/' . htmlspecialchars($student['photo']);
 }
 
 $typeLabels = [
-    'suspension'        => ['label' => 'Suspension Notice',      'color' => '#cc3333', 'bg' => '#ffe6e6', 'icon' => '⛔'],
-    'expulsion'         => ['label' => 'Expulsion Notice',        'color' => '#8a0000', 'bg' => '#ffd0d0', 'icon' => '🚫'],
-    'promotion'         => ['label' => 'Promotion Notice',        'color' => '#1a7a3a', 'bg' => '#e6f9ed', 'icon' => '🎉'],
-    'demotion'          => ['label' => 'Demotion Notice',         'color' => '#8a4a00', 'bg' => '#fff3e6', 'icon' => '⚠️'],
-    'retention'         => ['label' => 'Retention Notice',        'color' => '#8a4a00', 'bg' => '#fff3e6', 'icon' => '📋'],
-    'behavioural_remark'=> ['label' => 'Behavioural Remark',     'color' => '#4a2d8a', 'bg' => '#f0ecfa', 'icon' => '📝'],
+    'suspension'         => ['label' => 'Suspension Notice',  'color' => '#cc3333', 'bg' => '#ffe6e6', 'icon' => '⛔'],
+    'expulsion'          => ['label' => 'Expulsion Notice',   'color' => '#8a0000', 'bg' => '#ffd0d0', 'icon' => '🚫'],
+    'promotion'          => ['label' => 'Promotion Notice',   'color' => '#1a7a3a', 'bg' => '#e6f9ed', 'icon' => '🎉'],
+    'demotion'           => ['label' => 'Demotion Notice',    'color' => '#8a4a00', 'bg' => '#fff3e6', 'icon' => '⚠️'],
+    'retention'          => ['label' => 'Retention Notice',   'color' => '#8a4a00', 'bg' => '#fff3e6', 'icon' => '📋'],
+    'behavioural_remark' => ['label' => 'Behavioural Remark', 'color' => '#4a2d8a', 'bg' => '#f0ecfa', 'icon' => '📝'],
 ];
 ?>
 <!DOCTYPE html>
