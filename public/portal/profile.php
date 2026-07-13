@@ -1,6 +1,6 @@
 <?php
 /* ============================================================
-   IBEKU HIGH SCHOOL — STUDENT PORTAL PROFILE
+   IBEKU HIGH SCHOOL â€” STUDENT PORTAL PROFILE
    File: public/portal/profile.php
    Profile is read-only for students.
    Photo updates handled in admin/students-edit.php only.
@@ -17,7 +17,8 @@ $pdo     = getDB();
 /* Load full student record from DB */
 $stmt = $pdo->prepare('SELECT * FROM students WHERE id = ? LIMIT 1');
 $stmt->execute([$student['id']]);
-$s = $stmt->fetch(PDO::FETCH_ASSOC);
+$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$s = $rows[0] ?? null;
 
 if (!$s) {
     logoutStudent();
@@ -42,7 +43,7 @@ $deptLabels = [
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>My Profile — Ibeku High School Portal</title>
+  <title>My Profile â€” Ibeku High School Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="../assets/css/portal.css"/>
@@ -117,7 +118,7 @@ $deptLabels = [
             <div class="detail-row">
               <span class="detail-label">Date of Birth</span>
               <span class="detail-value">
-                <?php echo !empty($s['date_of_birth']) ? date('d F Y', strtotime($s['date_of_birth'])) : '—'; ?>
+                <?php echo !empty($s['date_of_birth']) ? date('d F Y', strtotime($s['date_of_birth'])) : 'â€”'; ?>
               </span>
             </div>
             <?php if (!empty($s['address'])): ?>
@@ -151,7 +152,7 @@ $deptLabels = [
             <div class="detail-row">
               <span class="detail-label">Date Admitted</span>
               <span class="detail-value">
-                <?php echo !empty($s['date_admitted']) ? date('d F Y', strtotime($s['date_admitted'])) : '—'; ?>
+                <?php echo !empty($s['date_admitted']) ? date('d F Y', strtotime($s['date_admitted'])) : 'â€”'; ?>
               </span>
             </div>
           </div>
