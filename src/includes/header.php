@@ -6,8 +6,10 @@
 
 if ($_SERVER['HTTP_HOST'] === 'localhost') {
     define('BASE_PATH', '/ibeku-high-school/public/');
+    define('API_PATH',  '/ibeku-high-school/src/api/');
 } else {
     define('BASE_PATH', '/');
+    define('API_PATH',  '/src/api/');
 }
 
 /* ── Load settings — used for nav, announcement bar, footer ── */
@@ -29,6 +31,15 @@ $_site = getSettings();
   <meta name="apple-mobile-web-app-title" content="IHS"/>
   <link rel="apple-touch-icon" href="<?php echo BASE_PATH; ?>assets/images/icons/icon-192.png"/>
   <!-- ═══ END PWA ════════════════════════════════════════════ -->
+
+  <!-- ═══ JS PATH GLOBALS ════════════════════════════════════
+       Makes BASE_PATH and API_PATH available to all JS files.
+       Used by main.js, results.js etc. for fetch() API calls.
+       ════════════════════════════════════════════════════════ -->
+  <script>
+    window.IHS_BASE = '<?php echo BASE_PATH; ?>';
+    window.IHS_API  = '<?php echo API_PATH; ?>';
+  </script>
 
   <meta name="description" content="<?php echo htmlspecialchars($pageDesc ?? 'Official website of Ibeku High School, Umuahia, Abia State.'); ?>"/>
   <meta name="author"      content="<?php echo htmlspecialchars($_site['school_name']); ?>"/>
@@ -55,7 +66,6 @@ $_site = getSettings();
 
 <!-- ═══════════════════════════════════════════
      STICKY NAVIGATION
-     (Topbar removed — contact info now lives in the footer)
      ═══════════════════════════════════════════ -->
 <nav class="nav">
   <div class="nav__inner">
@@ -133,8 +143,6 @@ $_site = getSettings();
 
 <!-- ═══════════════════════════════════════════
      ANNOUNCEMENT BAR — controlled from Settings
-     Dismiss handled in main.js — closes smoothly and
-     remembers dismissal for the session via sessionStorage.
      ═══════════════════════════════════════════ -->
 <?php if ($_site['announcement_show'] === '1' && $_site['announcement_text'] !== ''): ?>
 <div class="ann-bar" id="annBar" role="alert" aria-live="polite">

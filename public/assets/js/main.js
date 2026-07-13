@@ -232,35 +232,24 @@
 
 /* ============================================================
    8. WEB PUSH NOTIFICATIONS
-   Registers the service worker and handles the opt-in prompt.
-   The VAPID public key is injected by footer.php into
-   window.IHS_PUSH_KEY. Nothing runs if the key is missing
-   or if push is not supported by this browser.
    ============================================================ */
 (function initPush() {
 
-  /* Prerequisites */
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
   var publicKey = window.IHS_PUSH_KEY;
   if (!publicKey || publicKey === 'REPLACE_WITH_YOUR_PUBLIC_KEY') return;
 
-  /* Don't prompt on admin pages */
   if (window.location.pathname.indexOf('/admin/') !== -1) return;
 
-  /* Register service worker */
-  navigator.serviceWorker.register('/ibeku-high-school/sw.js', { scope: '/ibeku-high-school/' })
+  /* ── Uses window.IHS_BASE set by header.php — works on localhost and production ── */
+  navigator.serviceWorker.register(window.IHS_BASE + 'sw.js', { scope: window.IHS_BASE })
     .then(function (reg) {
       window._ihsSWReg = reg;
       return reg.pushManager.getSubscription();
     })
     .then(function (existing) {
+      if (existing) return;
 
-      if (existing) {
-        /* Already subscribed — nothing to do */
-        return;
-      }
-
-      /* Show opt-in banner after 8 seconds (don't interrupt page load) */
       try {
         if (sessionStorage.getItem('ihs_push_dismissed') === '1') return;
       } catch (e) {}
@@ -278,7 +267,6 @@
     banner.classList.add('push-banner--visible');
   }
 
-  /* Called by the "Yes, notify me" button in footer.php */
   window.ihsSubscribePush = function () {
     if (!window._ihsSWReg) return;
 
@@ -295,7 +283,8 @@
         applicationServerKey: appServerKey,
       })
         .then(function (subscription) {
-          return fetch('/ibeku-high-school/src/api/push-subscribe.php', {
+          /* ── Uses window.IHS_API set by header.php ── */
+          return fetch(window.IHS_API + 'push-subscribe.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(subscription.toJSON()),
@@ -315,7 +304,6 @@
     });
   };
 
-  /* Called by the "No thanks" button */
   window.ihsDismissPush = function () {
     hidePushBanner(true);
   };
@@ -335,7 +323,6 @@
     setTimeout(function () { el.style.display = 'none'; }, 4000);
   }
 
-  /* Utility: convert VAPID public key from Base64url to Uint8Array */
   function urlBase64ToUint8Array(base64String) {
     var padding = '='.repeat((4 - base64String.length % 4) % 4);
     var base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -349,10 +336,9 @@
 
 }());
 
+
 /* ============================================================
    9. ONLINE / OFFLINE BANNER
-   Shows a slim banner when connection is lost or restored.
-   Works independently of the service worker.
    ============================================================ */
 (function initOnlineOfflineBanner() {
   var banner = null;
@@ -373,7 +359,7 @@
 
   function showBanner(msg, bg, auto) {
     var b = getBanner();
-    b.textContent     = msg;
+    b.textContent      = msg;
     b.style.background = bg;
     b.style.color      = '#fff';
     b.style.transform  = 'translateY(0)';
@@ -383,10 +369,10 @@
   }
 
   window.addEventListener('offline', function () {
-    showBanner('⚠️ You are offline. Some content may not be available.', '#cc3333', false);
+    showBanner('You are offline. Some content may not be available.', '#cc3333', false);
   });
 
   window.addEventListener('online', function () {
-    showBanner('✅ Connection restored.', '#1a7a3a', true);
+    showBanner('Connection restored.', '#1a7a3a', true);
   });
 }());

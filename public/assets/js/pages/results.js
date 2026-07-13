@@ -1,14 +1,6 @@
 /* ============================================================
    IBEKU HIGH SCHOOL — RESULTS PAGE JAVASCRIPT
    File: public/assets/js/pages/results.js
-
-   Handles:
-     1. Full-page result checker — Grade Level + Class dropdowns
-     2. Demo ID fill button
-     3. Student status notice (expulsion, graduation etc.)
-     4. Student history timeline
-     5. Print result slip — class + grade level positions
-     6. FAQ accordion
    ============================================================ */
 
 'use strict';
@@ -51,7 +43,6 @@ function fillDemo(admissionNumber) {
   if (input) { input.value = admissionNumber; input.focus(); }
 }
 
-/* ── Status notice colours ── */
 var STATUS_CONFIG = {
   expelled:    { label: 'Expelled',    bg: '#ffe6e6', color: '#cc3333', icon: '🚫' },
   graduated:   { label: 'Graduated',   bg: '#e6f0ff', color: '#1a5a9a', icon: '🎓' },
@@ -72,7 +63,6 @@ function renderResultFull(student, subjects, history) {
   setText('rcPanelName', student.name);
   setText('rcPanelTerm', student.term + ' ' + student.session);
 
-  /* ── Status notice for non-active students ── */
   var existingNotice = document.getElementById('rcStatusNotice');
   if (existingNotice) existingNotice.remove();
 
@@ -109,7 +99,6 @@ function renderResultFull(student, subjects, history) {
     if (header) header.insertAdjacentElement('afterend', notice);
   }
 
-  /* ── Meta row (class, position, average) ── */
   var metaEl = document.getElementById('rcPanelMeta');
   if (metaEl) {
     var positionText = student.class_position
@@ -125,7 +114,6 @@ function renderResultFull(student, subjects, history) {
       '<div class="result-panel__meta-item"><p>Average</p><strong>'  + esc(String(student.average_score)) + '%</strong></div>';
   }
 
-  /* ── Subject scores ── */
   var subjEl = document.getElementById('rcPanelSubjects');
   if (subjEl) {
     subjEl.innerHTML = subjects.map(function (s) {
@@ -137,7 +125,6 @@ function renderResultFull(student, subjects, history) {
     }).join('');
   }
 
-  /* ── History timeline ── */
   var existingHistory = document.getElementById('rcHistorySection');
   if (existingHistory) existingHistory.remove();
 
@@ -158,13 +145,8 @@ function renderResultFull(student, subjects, history) {
       var cfg = EVENT_CONFIG[event.event_type] || { label: event.event_type, color: '#6b6b80', icon: '•' };
       var row = document.createElement('div');
       row.style.cssText = [
-        'display:flex',
-        'gap:10px',
-        'align-items:flex-start',
-        'background:#faf9fd',
-        'border-radius:8px',
-        'padding:8px 12px',
-        'font-size:12.5px',
+        'display:flex', 'gap:10px', 'align-items:flex-start',
+        'background:#faf9fd', 'border-radius:8px', 'padding:8px 12px', 'font-size:12.5px',
       ].join(';');
 
       var icon = '<span style="font-size:14px;flex-shrink:0">' + cfg.icon + '</span>';
@@ -197,7 +179,6 @@ function renderResultFull(student, subjects, history) {
   if (notFound) notFound.style.display = 'none';
   if (panel)    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-  /* Cache for print */
   window._lastResult = { student: student, subjects: subjects, history: history };
 }
 
@@ -218,7 +199,6 @@ function resetOutputFull() {
   if (panel)    panel.classList.remove('show');
   if (notFound) notFound.style.display = 'none';
 
-  /* Remove injected elements */
   var notice  = document.getElementById('rcStatusNotice');
   var history = document.getElementById('rcHistorySection');
   if (notice)  notice.remove();
@@ -237,7 +217,8 @@ function lookupResultFull(admissionNo) {
   formData.append('session',          session ? session.value : '');
   formData.append('term',             term    ? term.value    : '');
 
-  fetch('/ibeku-high-school/src/api/check_result.php', { method: 'POST', body: formData })
+  /* ── Uses window.IHS_API set by header.php — works on localhost and production ── */
+  fetch(window.IHS_API + 'check_result.php', { method: 'POST', body: formData })
     .then(function (r) { return r.json(); })
     .then(function (data) {
       if (data.success) renderResultFull(data.student, data.subjects, data.history || []);
