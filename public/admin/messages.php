@@ -152,14 +152,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $subject . ' — ' . mb_substr($body, 0, 80),
                         (isset($_SERVER['HTTPS']) ? 'https' : 'http')
                             . '://' . $_SERVER['HTTP_HOST']
-                            . '/ibeku-high-school/public/admin/messages.php'
+                            . (BASE_PATH . 'admin/messages.php')
                             . '?open=' . $newMsgId . '&view=inbox'
                     );
 
                     /* ── Email (fallback) ── */
                     $inboxUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http')
                         . '://' . $_SERVER['HTTP_HOST']
-                        . '/ibeku-high-school/public/admin/messages.php'
+                        . (BASE_PATH . 'admin/messages.php')
                         . '?open=' . $newMsgId . '&view=inbox';
 
                     $emailSent = sendStaffMessageEmail(

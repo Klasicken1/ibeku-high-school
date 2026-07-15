@@ -4,7 +4,7 @@
    File: public/index.php
    ============================================================ */
 
-$pageTitle   = 'Ibeku High School â€” Umuahia, Abia State';
+$pageTitle   = 'Ibeku High School Umuahia, Abia State';
 $pageDesc    = 'Official website of Ibeku High School, Umuahia. Check results online, apply for admission, read news and stay connected.';
 $currentPage = 'home';
 $pageCss     = 'home';

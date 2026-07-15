@@ -160,8 +160,8 @@ function sendPushNotification(
         'title' => $title,
         'body'  => $body,
         'url'   => $url ?: '/',
-        'icon'  => '/ibeku-high-school/public/assets/images/icons/icon-192.png',
-        'badge' => '/ibeku-high-school/public/assets/images/icons/icon-192.png',
+        'icon'  => getPushIconUrl(),
+        'badge' => getPushIconUrl(),
     ]);
 
     $endpoint  = $subscription['endpoint'];

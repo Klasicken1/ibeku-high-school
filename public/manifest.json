@@ -2,8 +2,8 @@
   "name": "Ibeku High School",
   "short_name": "IHS",
   "description": "Official website of Ibeku High School, Umuahia, Abia State — check results, news, events and more.",
-  "start_url": "/ibeku-high-school/public/",
-  "scope": "/ibeku-high-school/public/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#3d1a6e",
@@ -35,14 +35,14 @@
       "name": "Check Results",
       "short_name": "Results",
       "description": "Check your exam results",
-      "url": "/ibeku-high-school/public/results.php",
+      "url": "/results.php",
       "icons": [{ "src": "assets/images/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Latest News",
       "short_name": "News",
       "description": "Read the latest school news",
-      "url": "/ibeku-high-school/public/news.php",
+      "url": "/news.php",
       "icons": [{ "src": "assets/images/icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
