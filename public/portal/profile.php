@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /* ============================================================
    IBEKU HIGH SCHOOL - STUDENT PORTAL PROFILE
    File: public/portal/profile.php
