@@ -1,6 +1,6 @@
 ﻿<?php
 /* ============================================================
-   IBEKU HIGH SCHOOL Ã¢â‚¬â€ STUDENT PORTAL PROFILE
+   IBEKU HIGH SCHOOL - STUDENT PORTAL PROFILE
    File: public/portal/profile.php
    Profile is read-only for students.
    Photo updates handled in admin/students-edit.php only.
@@ -18,7 +18,7 @@ $pdo     = getDB();
 $stmt = $pdo->prepare('SELECT * FROM students WHERE id = ? LIMIT 1');
 $stmt->execute([$student['id']]);
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-$s = $rows[0] ?? null;
+$s    = $rows[0] ?? null;
 
 if (!$s) {
     logoutStudent();
@@ -43,7 +43,7 @@ $deptLabels = [
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>My Profile Ã¢â‚¬â€ Ibeku High School Portal</title>
+  <title>My Profile - Ibeku High School Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="../assets/css/portal.css"/>
@@ -90,7 +90,10 @@ $deptLabels = [
           To update your photo, speak to your class teacher or visit the school office.
         </p>
         <a href="change-password.php"
-           style="display:inline-block;margin-top:1rem;background:#3d1a6e;color:#fff;text-decoration:none;padding:9px 20px;border-radius:9px;font-size:0.85rem;font-weight:700;font-family:DM Sans,sans-serif;width:100%;text-align:center;box-sizing:border-box;">
+           style="display:inline-block;margin-top:1rem;background:#3d1a6e;color:#fff;
+                  text-decoration:none;padding:9px 20px;border-radius:9px;font-size:0.85rem;
+                  font-weight:700;font-family:'DM Sans',sans-serif;width:100%;text-align:center;
+                  box-sizing:border-box;">
           Change Password
         </a>
       </div>
@@ -122,7 +125,7 @@ $deptLabels = [
             <div class="detail-row">
               <span class="detail-label">Date of Birth</span>
               <span class="detail-value">
-                <?php echo !empty($s['date_of_birth']) ? date('d F Y', strtotime($s['date_of_birth'])) : 'Ã¢â‚¬â€'; ?>
+                <?php echo !empty($s['date_of_birth']) ? date('d F Y', strtotime($s['date_of_birth'])) : '-'; ?>
               </span>
             </div>
             <?php if (!empty($s['address'])): ?>
@@ -156,7 +159,7 @@ $deptLabels = [
             <div class="detail-row">
               <span class="detail-label">Date Admitted</span>
               <span class="detail-value">
-                <?php echo !empty($s['date_admitted']) ? date('d F Y', strtotime($s['date_admitted'])) : 'Ã¢â‚¬â€'; ?>
+                <?php echo !empty($s['date_admitted']) ? date('d F Y', strtotime($s['date_admitted'])) : '-'; ?>
               </span>
             </div>
           </div>
@@ -201,4 +204,3 @@ $deptLabels = [
 
 </body>
 </html>
-
