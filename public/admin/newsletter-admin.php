@@ -237,7 +237,7 @@ function buildEmailHtml(string $subject, string $body, string $schoolName): stri
           <td style="padding:20px 32px;text-align:center;font-size:12px;color:#9b97b0;line-height:1.6;">
             <p style="margin:0 0 6px;">{$schoolName}, Umuahia, Abia State</p>
             <p style="margin:0;">You are receiving this email because you subscribed to school updates on our website.<br/>
-            <a href="#" style="color:#4a90d9;">Unsubscribe</a></p>
+            <a href="<?php echo $protocol . '://' . $_SERVER['HTTP_HOST'] . BASE_PATH . 'unsubscribe.php?email=' . rawurlencode($email); ?>" style="color:#4a90d9">Unsubscribe</a></p>
           </td>
         </tr>
 
