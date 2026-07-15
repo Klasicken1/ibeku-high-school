@@ -1,10 +1,10 @@
-<?php
+﻿<?php
 /* ============================================================
-   IBEKU HIGH SCHOOL — NEWS PAGE
+   IBEKU HIGH SCHOOL â€” NEWS PAGE
    File: public/news.php
    ============================================================ */
 
-$pageTitle   = 'News & Announcements — Ibeku High School';
+$pageTitle   = 'News & Announcements â€” Ibeku High School';
 $pageDesc    = 'Latest news, announcements, and updates from Ibeku High School, Umuahia. Stay informed about school events, achievements, and important notices.';
 $currentPage = 'news';
 $pageCss     = 'news';
@@ -25,16 +25,16 @@ $categoryLabels = [
 ];
 
 $categoryIcons = [
-    'achievement'  => '🏆',
-    'academic'     => '📚',
-    'ict'          => '💻',
-    'sports'       => '⚽',
-    'announcement' => '📢',
-    'culture'      => '🎭',
-    'general'      => '📰',
+    'achievement'  => 'ðŸ†',
+    'academic'     => 'ðŸ“š',
+    'ict'          => 'ðŸ’»',
+    'sports'       => 'âš½',
+    'announcement' => 'ðŸ“¢',
+    'culture'      => 'ðŸŽ­',
+    'general'      => 'ðŸ“°',
 ];
 
-/* ── Featured article ── */
+/* â”€â”€ Featured article â”€â”€ */
 $featured = $pdo->query(
     "SELECT * FROM news WHERE is_published = 1 AND featured = 1
      ORDER BY published_at DESC LIMIT 1"
@@ -47,7 +47,7 @@ if (!$featured) {
     )->fetch();
 }
 
-/* ── Remaining articles ── */
+/* â”€â”€ Remaining articles â”€â”€ */
 $articlesStmt = $pdo->prepare(
     "SELECT * FROM news WHERE is_published = 1 AND id != ?
      ORDER BY published_at DESC"
@@ -55,32 +55,32 @@ $articlesStmt = $pdo->prepare(
 $articlesStmt->execute([$featured['id'] ?? 0]);
 $articles = $articlesStmt->fetchAll();
 
-/* ── Announcements — hardcoded until dedicated table is built ── */
+/* â”€â”€ Announcements â€” hardcoded until dedicated table is built â”€â”€ */
 $announcements = [
     [
         'badge' => 'urgent', 'badge_label' => 'URGENT',
-        'icon'  => '⚠️',
-        'title' => 'Fee Payment Deadline — Second Term',
+        'icon'  => 'âš ï¸',
+        'title' => 'Fee Payment Deadline â€” Second Term',
         'body'  => 'All students must complete Second Term fee payments by the deadline. Students with outstanding fees will not be permitted to sit Second Term examinations.',
         'date'  => 'See school notice board',
     ],
     [
         'badge' => 'notice', 'badge_label' => 'NOTICE',
-        'icon'  => '📋',
+        'icon'  => 'ðŸ“‹',
         'title' => 'New School Website Launched',
         'body'  => 'Ibeku High School has officially launched its first website. Students can now check results online, download timetables, and access school information at any time.',
         'date'  => 'Current session',
     ],
     [
         'badge' => 'info', 'badge_label' => 'INFO',
-        'icon'  => '📖',
+        'icon'  => 'ðŸ“–',
         'title' => 'Library Hours Extended for SSS 3 Students',
         'body'  => 'To support SSS 3 students preparing for WAEC, the school library will be open from 7:00 AM to 4:30 PM every school day until the examination period.',
         'date'  => 'See school notice board',
     ],
     [
         'badge' => 'notice', 'badge_label' => 'NOTICE',
-        'icon'  => '🏥',
+        'icon'  => 'ðŸ¥',
         'title' => 'Medical Examination for New JSS 1 Students',
         'body'  => 'All new JSS 1 students are required to undergo the mandatory medical examination. Parents should accompany their wards. Check notice board for date.',
         'date'  => 'See school notice board',
@@ -89,14 +89,14 @@ $announcements = [
 ?>
 
 
-<!-- ═══════════════════════════════════════════
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
      PAGE HERO
-     ═══════════════════════════════════════════ -->
+     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <div class="page-hero page-hero--news">
   <div class="page-hero__inner wrap">
     <nav class="breadcrumb" aria-label="Breadcrumb">
       <a href="<?php echo BASE_PATH; ?>index.php">Home</a>
-      <span class="breadcrumb__sep" aria-hidden="true">›</span>
+      <span class="breadcrumb__sep" aria-hidden="true">â€º</span>
       <span style="color:rgba(255,255,255,.85)">News &amp; Announcements</span>
     </nav>
     <h1>News &amp; <em>Announcements</em></h1>
@@ -105,9 +105,9 @@ $announcements = [
 </div>
 
 
-<!-- ═══════════════════════════════════════════
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
      CATEGORY FILTER BAR
-     ═══════════════════════════════════════════ -->
+     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <div class="news-filter-bar">
   <div class="news-filter-bar__inner wrap">
     <div class="news-filter-tabs">
@@ -117,16 +117,16 @@ $announcements = [
       <?php endforeach; ?>
     </div>
     <div class="news-search">
-      <span class="news-search__icon">🔍</span>
+      <span class="news-search__icon">ðŸ”</span>
       <input type="text" id="newsSearch" placeholder="Search news..." autocomplete="off"/>
     </div>
   </div>
 </div>
 
 
-<!-- ═══════════════════════════════════════════
-     FEATURED ARTICLE — from DB
-     ═══════════════════════════════════════════ -->
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     FEATURED ARTICLE â€” from DB
+     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <?php if ($featured): ?>
 <div class="featured-article" id="featured">
   <div class="featured-article__inner reveal">
@@ -139,10 +139,10 @@ $announcements = [
              style="width:100%;height:100%;object-fit:cover;"/>
         <?php else: ?>
         <div class="featured-article__img-placeholder" aria-hidden="true">
-          <?php echo $categoryIcons[$featured['category']] ?? '📰'; ?>
+          <?php echo $categoryIcons[$featured['category']] ?? 'ðŸ“°'; ?>
         </div>
         <?php endif; ?>
-        <span class="featured-article__badge">⭐ Featured Story</span>
+        <span class="featured-article__badge">â­ Featured Story</span>
       </div>
 
       <div class="featured-article__body">
@@ -152,29 +152,29 @@ $announcements = [
         <h2><?php echo htmlspecialchars($featured['title']); ?></h2>
         <div class="featured-article__meta">
           <span class="featured-article__date">
-            📅 <?php echo date('F j, Y', strtotime($featured['published_at'])); ?>
+            ðŸ“… <?php echo date('F j, Y', strtotime($featured['published_at'])); ?>
           </span>
         </div>
         <p><?php echo htmlspecialchars($featured['excerpt'] ?? ''); ?></p>
         <a href="<?php echo BASE_PATH; ?>news-single.php?slug=<?php echo urlencode($featured['slug']); ?>"
-           class="featured-article__read-more">Read Full Story →</a>
+           class="featured-article__read-more">Read Full Story â†’</a>
       </div>
 
     </div>
   </div>
 </div>
 <?php else: ?>
-<!-- No published articles yet — empty state -->
+<!-- No published articles yet â€” empty state -->
 <div style="text-align:center;padding:60px 20px;color:#6b6b80">
-  <div style="font-size:40px;margin-bottom:12px">📰</div>
+  <div style="font-size:40px;margin-bottom:12px">ðŸ“°</div>
   <p style="font-size:15px">No news articles published yet. Check back soon.</p>
 </div>
 <?php endif; ?>
 
 
-<!-- ═══════════════════════════════════════════
-     NEWS GRID — from DB
-     ═══════════════════════════════════════════ -->
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     NEWS GRID â€” from DB
+     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <section class="news-grid-section" id="news">
   <div class="news-grid-section__inner wrap">
 
@@ -188,7 +188,7 @@ $announcements = [
       <?php if (empty($articles)): ?>
       <div class="news-no-results" id="newsNoResults">
         <p>No more articles yet</p>
-        <span>Check back soon — new articles are added regularly.</span>
+        <span>Check back soon â€” new articles are added regularly.</span>
       </div>
       <?php else: ?>
 
@@ -203,7 +203,7 @@ $announcements = [
                alt="<?php echo htmlspecialchars($article['title']); ?>"
                style="width:100%;height:100%;object-fit:cover;"/>
           <?php else: ?>
-          <?php echo $categoryIcons[$article['category']] ?? '📰'; ?>
+          <?php echo $categoryIcons[$article['category']] ?? 'ðŸ“°'; ?>
           <?php endif; ?>
         </div>
 
@@ -216,7 +216,7 @@ $announcements = [
           <div class="news-card__footer">
             <span class="news-card__date"><?php echo date('F j, Y', strtotime($article['published_at'])); ?></span>
             <a href="<?php echo BASE_PATH; ?>news-single.php?slug=<?php echo urlencode($article['slug']); ?>"
-               class="news-card__link">Read more →</a>
+               class="news-card__link">Read more â†’</a>
           </div>
         </div>
 
@@ -235,10 +235,10 @@ $announcements = [
 </section>
 
 
-<!-- ═══════════════════════════════════════════
-     ANNOUNCEMENTS — hardcoded (dedicated
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     ANNOUNCEMENTS â€” hardcoded (dedicated
      table planned for a future phase)
-     ═══════════════════════════════════════════ -->
+     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <section class="announcements-band" id="announcements">
   <div class="announcements-band__inner wrap">
 
@@ -269,9 +269,9 @@ $announcements = [
 </section>
 
 
-<!-- ═══════════════════════════════════════════
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
      NEWSLETTER SIGNUP
-     ═══════════════════════════════════════════ -->
+     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <section class="news-newsletter">
   <div class="news-newsletter__inner">
     <span class="slabel">Stay Connected</span>
@@ -283,7 +283,7 @@ $announcements = [
       <button class="btn btn--secondary" onclick="subscribeNewsletter()">Subscribe</button>
     </div>
     <div class="news-newsletter__success" id="nlSuccess" style="display:none">
-      ✅ Subscribed! You will receive school updates by email.
+      âœ… Subscribed! You will receive school updates by email.
     </div>
   </div>
 </section>
@@ -292,7 +292,7 @@ $announcements = [
 <?php require_once __DIR__ . '/../src/includes/footer.php'; ?>
 
 <script>
-/* ── Category filter + search ── */
+/* â”€â”€ Category filter + search â”€â”€ */
 (function () {
   var tabs  = document.querySelectorAll('.news-tab');
   var cards = document.querySelectorAll('.news-card');
@@ -328,7 +328,7 @@ $announcements = [
   if (searchInput) searchInput.addEventListener('input', filterNews);
 }());
 
-/* ── Newsletter ── */
+/* â”€â”€ Newsletter â”€â”€ */
 function subscribeNewsletter() {
   var input   = document.getElementById('nlNewsEmail');
   var success = document.getElementById('nlSuccess');
@@ -337,11 +337,11 @@ function subscribeNewsletter() {
   var fd = new FormData();
   fd.append('email', input.value.trim());
 
-  fetch('/ibeku-high-school/src/api/subscribe.php', { method: 'POST', body: fd })
+  fetch('<?php echo API_PATH; ?>subscribe.php', { method: 'POST', body: fd })
     .then(function (r) { return r.json(); })
     .then(function (data) {
       if (data.success) {
-        if (success) { success.textContent = '✅ ' + data.message; success.style.display = 'block'; }
+        if (success) { success.textContent = 'âœ… ' + data.message; success.style.display = 'block'; }
         input.value = '';
       } else {
         alert(data.message || 'Something went wrong. Please try again.');
@@ -350,3 +350,4 @@ function subscribeNewsletter() {
     .catch(function () { alert('A connection error occurred. Please try again.'); });
 }
 </script>
+
