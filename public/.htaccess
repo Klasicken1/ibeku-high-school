@@ -1,0 +1,16 @@
+# ============================================================
+# IBEKU HIGH SCHOOL — PUBLIC ROOT .HTACCESS
+# File: public/.htaccess
+#
+# NOTE ON PATHS: ErrorDocument paths are resolved relative to
+# the Apache DocumentRoot, not the folder this file lives in.
+# On production (cPanel), public/ IS the DocumentRoot, so
+# "/404.php" resolves correctly. On local XAMPP, the site is
+# nested under /ibeku-high-school/public/, so a triggered 404
+# won't auto-resolve here until deployed — preview the page
+# directly instead at:
+#   http://localhost/ibeku-high-school/public/404.php
+# ============================================================
+
+# Custom 404 error page
+ErrorDocument 404 /404.php

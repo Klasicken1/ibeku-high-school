@@ -43,7 +43,7 @@ $_site = getSettings();
 
   <meta name="description" content="<?php echo htmlspecialchars($pageDesc ?? 'Official website of Ibeku High School, Umuahia, Abia State.'); ?>"/>
   <meta name="author"      content="<?php echo htmlspecialchars($_site['school_name']); ?>"/>
-  <meta name="robots"      content="index, follow"/>
+  <meta name="robots"      content="<?php echo htmlspecialchars($pageRobots ?? 'index, follow'); ?>"/>
   <meta property="og:title"       content="<?php echo htmlspecialchars($pageTitle ?? $_site['school_name']); ?>"/>
   <meta property="og:description" content="<?php echo htmlspecialchars($pageDesc  ?? 'Official website of Ibeku High School, Umuahia.'); ?>"/>
   <meta property="og:type"        content="website"/>
