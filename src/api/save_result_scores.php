@@ -24,6 +24,15 @@
      section-locked roles — cannot touch the other section's
        grade levels.
 
+   Position calculation:
+     After saving, recomputes "position in class" for every
+     student in this grade_level + class + subject + session +
+     term group (not just the ones just submitted, since a new
+     score can shift everyone else's rank). Ranking uses
+     standard competition ranking on (ca1+ca2+exam): tied
+     students share a position, and the next distinct total
+     skips ahead accordingly (e.g. 1, 2, 2, 4).
+
    Returns JSON: { "success": true/false, "message": "...", "saved": N }
    ============================================================ */
 
@@ -94,6 +103,17 @@ if (empty($studentIds) || !is_array($studentIds)) {
 
 try {
     $pdo = getDB();
+
+    /* ── Ensure result_scores has a position column (self-healing, same
+       pattern as push_subscriptions.user_id in push-helper.php) ── */
+    try {
+        $pdo->exec(
+            "ALTER TABLE result_scores
+             ADD COLUMN position INT UNSIGNED NULL DEFAULT NULL AFTER grade"
+        );
+    } catch (PDOException $e) {
+        /* Column already exists — fine */
+    }
 
     /* ── Permission check: subject_teacher restricted to their own subject ── */
     if ($admin['role'] === 'subject_teacher') {
@@ -220,11 +240,46 @@ try {
         $savedCount++;
     }
 
+    /* ── Step 3: recompute "position in class" for this subject/term group ──
+       Scoped to the whole grade_level + class + subject + session + term
+       group (not just the students just submitted), since new scores can
+       shift everyone else's rank up or down. ── */
+    $classParamForRank = $class !== '' ? $class : null;
+
+    $rankStmt = $pdo->prepare(
+        "SELECT rs.id, (rs.ca1_score + rs.ca2_score + rs.exam_score) AS total
+         FROM result_scores rs
+         JOIN results r ON r.id = rs.result_id
+         WHERE rs.subject_id = ?
+           AND r.grade_level = ?
+           AND r.class <=> ?
+           AND r.session = ?
+           AND r.term = ?
+         ORDER BY total DESC"
+    );
+    $rankStmt->execute([$subjectId, $gradeLevel, $classParamForRank, $session, $term]);
+    $rankRows = $rankStmt->fetchAll();
+
+    $updatePosition = $pdo->prepare('UPDATE result_scores SET position = ? WHERE id = ?');
+
+    $rowCount      = 0;
+    $currentRank   = 0;
+    $previousTotal = null;
+
+    foreach ($rankRows as $row) {
+        $rowCount++;
+        if ($previousTotal === null || (float) $row['total'] !== (float) $previousTotal) {
+            $currentRank = $rowCount;
+        }
+        $updatePosition->execute([$currentRank, $row['id']]);
+        $previousTotal = $row['total'];
+    }
+
     $pdo->commit();
 
     echo json_encode([
         'success' => true,
-        'message' => $savedCount . ' student score(s) saved successfully. Results remain in draft until published.',
+        'message' => $savedCount . ' student score(s) saved successfully. Class positions have been recalculated. Results remain in draft until published.',
         'saved'   => $savedCount,
     ]);
 

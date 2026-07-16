@@ -7,14 +7,74 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/src/config/database.php';
+require_once dirname(__DIR__, 2) . '/src/config/vapid.php';
+require_once dirname(__DIR__, 2) . '/src/includes/push-helper.php';
 require_once dirname(__DIR__, 2) . '/src/includes/auth.php';
 
 $student = requireStudentLogin();
 $pdo     = getDB();
 
+ensurePushStudentIdColumn($pdo);
+
+/* ════════════════════════════════════════════════════════════
+   AJAX: Save student push subscription (JSON POST from browser)
+   Fetch POSTs application/json with the PushSubscription object.
+   Mirrors the staff pattern in admin/messages.php.
+   ════════════════════════════════════════════════════════════ */
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST' &&
+    str_contains($_SERVER['CONTENT_TYPE'] ?? '', 'application/json')
+) {
+    header('Content-Type: application/json');
+    $input = json_decode(file_get_contents('php://input'), true);
+
+    if (
+        empty($input['endpoint']) ||
+        empty($input['keys']['auth']) ||
+        empty($input['keys']['p256dh'])
+    ) {
+        echo json_encode(['success' => false, 'error' => 'Invalid subscription data']);
+        exit;
+    }
+
+    try {
+        $pdo->prepare(
+            "INSERT INTO push_subscriptions (endpoint, auth, p256dh, student_id)
+             VALUES (?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+               auth       = VALUES(auth),
+               p256dh     = VALUES(p256dh),
+               student_id = VALUES(student_id)"
+        )->execute([
+            $input['endpoint'],
+            $input['keys']['auth'],
+            $input['keys']['p256dh'],
+            $student['id'],
+        ]);
+        echo json_encode(['success' => true]);
+    } catch (PDOException $e) {
+        error_log('[IHS student push subscribe] ' . $e->getMessage());
+        echo json_encode(['success' => false, 'error' => 'DB error']);
+    }
+    exit;
+}
+
 /* ── Refresh session from DB on every dashboard load ── */
 refreshStudentSession($pdo);
 $student = currentStudent();
+
+/* ── Check if this student already has a push subscription ── */
+$isStudentSubscribed = false;
+try {
+    $subCheck = $pdo->prepare(
+        'SELECT COUNT(*) FROM push_subscriptions WHERE student_id = ?'
+    );
+    $subCheck->execute([$student['id']]);
+    $isStudentSubscribed = (int) $subCheck->fetchColumn() > 0;
+} catch (PDOException $e) { /* push_subscriptions may not have student_id yet */ }
+
+$vapidPublicKey = defined('VAPID_PUBLIC_KEY') ? VAPID_PUBLIC_KEY : '';
+$vapidReady     = $vapidPublicKey !== '' && $vapidPublicKey !== 'REPLACE_WITH_YOUR_PUBLIC_KEY';
 
 /* ── Unread notifications count ── */
 $unreadStmt = $pdo->prepare(
@@ -70,6 +130,39 @@ $typeLabels = [
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="../assets/css/portal.css"/>
+  <style>
+    /* ── Push subscribe banner (mirrors admin/messages.php styling) ── */
+    .push-nudge {
+      background: linear-gradient(135deg, #3d1a6e, #4a3080);
+      border-radius: 12px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .push-nudge__icon { font-size: 1.4rem; flex-shrink: 0; }
+    .push-nudge__text { flex: 1; color: #fff; min-width: 200px; }
+    .push-nudge__text strong { display: block; font-size: 13.5px; margin-bottom: 2px; }
+    .push-nudge__text span   { font-size: 12px; color: rgba(255,255,255,.7); }
+    .btn-push-sub {
+      background: #e8a020; color: #fff; border: none;
+      padding: 9px 20px; border-radius: 8px; font-size: 13px;
+      font-weight: 700; font-family: 'DM Sans', sans-serif;
+      cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    }
+    .btn-push-sub:hover { background: #d4911a; }
+    .btn-push-dismiss {
+      background: none; border: none; color: rgba(255,255,255,.5);
+      font-size: 1rem; cursor: pointer; flex-shrink: 0;
+    }
+    .push-subscribed-note {
+      background: #e6f9ed; border: 1px solid #b2dfce; border-radius: 10px;
+      padding: 10px 16px; font-size: 13px; color: #1a7a3a;
+      display: flex; align-items: center; gap: 8px; margin-bottom: 20px;
+    }
+  </style>
 </head>
 <body>
 
@@ -77,6 +170,27 @@ $typeLabels = [
 
 <main class="portal-main">
   <div class="portal-inner">
+
+    <!-- ── Push notification subscribe nudge ── -->
+    <?php if ($vapidReady && !$isStudentSubscribed): ?>
+    <div class="push-nudge" id="pushNudge">
+      <div class="push-nudge__icon">🔔</div>
+      <div class="push-nudge__text">
+        <strong>Enable notice notifications</strong>
+        <span>Get instant alerts when the school sends you a notice, even when this tab is closed.</span>
+      </div>
+      <button class="btn-push-sub" onclick="subscribeToStudentNotices()">Enable Notifications</button>
+      <button class="btn-push-dismiss" onclick="dismissStudentPushNudge()" aria-label="Dismiss">✕</button>
+    </div>
+    <?php elseif ($isStudentSubscribed): ?>
+    <div class="push-subscribed-note">
+      ✅ <span>Push notifications are enabled — you'll be alerted when the school sends you a notice.</span>
+    </div>
+    <?php endif; ?>
+
+    <div id="pushSuccessNote" style="display:none" class="push-subscribed-note">
+      ✅ <span>Push notifications enabled! You'll now be alerted when the school sends you a notice.</span>
+    </div>
 
     <!-- ── Welcome banner ── -->
     <div class="welcome-card">
@@ -197,6 +311,96 @@ $typeLabels = [
 
   </div>
 </main>
+
+<script>
+  /* ── Student push subscription ──────────────────────────
+     Self-contained: registers its own service worker rather
+     than relying on main.js (which the portal never loads),
+     so this works even if the student never visits the public
+     site first. ── */
+  const VAPID_PUBLIC_KEY = <?php echo json_encode($vapidPublicKey); ?>;
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw     = window.atob(base64);
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+  }
+
+  async function ihsRegisterStudentSW() {
+    if (!('serviceWorker' in navigator)) return null;
+    try {
+      /* sw.js lives at public/sw.js — one level up from public/portal/.
+         Scope '../' resolves to the public/ root on both localhost and
+         production, matching the scope main.js already registers under. */
+      return await navigator.serviceWorker.register('../sw.js', { scope: '../' });
+    } catch (err) {
+      console.warn('[IHS] Student SW registration failed:', err);
+      return null;
+    }
+  }
+
+  async function subscribeToStudentNotices() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      alert('Push notifications are not supported in this browser.');
+      return;
+    }
+    if (!VAPID_PUBLIC_KEY) {
+      alert('Push notifications are not configured on this server yet.');
+      return;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        alert('Permission denied. You can change this in your browser settings.');
+        return;
+      }
+
+      const registration = await ihsRegisterStudentSW();
+      if (!registration) {
+        alert('Could not set up notifications on this device. Please try again.');
+        return;
+      }
+      await navigator.serviceWorker.ready;
+
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly:      true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+
+      const response = await fetch('dashboard.php', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(subscription.toJSON()),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        const nudge = document.getElementById('pushNudge');
+        if (nudge) nudge.style.display = 'none';
+        const note = document.getElementById('pushSuccessNote');
+        if (note) note.style.display = 'flex';
+      } else {
+        alert('Could not save subscription. Please try again.');
+      }
+    } catch (err) {
+      console.error('[IHS push] Student subscribe error:', err);
+      alert('Something went wrong. Please try again.');
+    }
+  }
+
+  function dismissStudentPushNudge() {
+    const nudge = document.getElementById('pushNudge');
+    if (nudge) nudge.style.display = 'none';
+    sessionStorage.setItem('student-push-nudge-dismissed', '1');
+  }
+
+  if (sessionStorage.getItem('student-push-nudge-dismissed')) {
+    const nudge = document.getElementById('pushNudge');
+    if (nudge) nudge.style.display = 'none';
+  }
+</script>
 
 </body>
 </html>

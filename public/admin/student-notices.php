@@ -11,6 +11,10 @@
    - demotion          → superadmin, principal, vp_admin, vp_academics
    - retention         → superadmin, principal, vp_admin, vp_academics
    - behavioural_remark → all above + dean + form_teacher
+
+   On send, fires a targeted Web Push notification to each
+   recipient student (if they've subscribed on the portal
+   dashboard), via push-helper.php's sendPushToStudent().
    ============================================================ */
 
 declare(strict_types=1);
@@ -20,6 +24,8 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once dirname(__DIR__, 2) . '/src/config/database.php';
+require_once dirname(__DIR__, 2) . '/src/config/vapid.php';
+require_once dirname(__DIR__, 2) . '/src/includes/push-helper.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-auth.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-sidebar.php';
 
@@ -31,6 +37,8 @@ requireRole([
 $admin = currentAdmin();
 $pdo   = getDB();
 $role  = $admin['role'];
+
+ensurePushStudentIdColumn($pdo);
 
 /* ── Which notice types this role can send ── */
 $allowedTypes = [];
@@ -96,12 +104,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     (student_id, type, title, body, issued_by)
                  VALUES (?,?,?,?,?)'
             );
-            $sent = 0;
+            $sent          = 0;
+            $pushSentTotal = 0;
+
             foreach ($ids as $sid) {
                 $stmt->execute([$sid, $type, $title, $body, $admin['id']]);
+                $notifId = (int) $pdo->lastInsertId();
                 $sent++;
+
+                /* ── Fire targeted push to this student, if subscribed ── */
+                $pushUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http')
+                    . '://' . $_SERVER['HTTP_HOST']
+                    . BASE_PATH . 'portal/notifications.php?open=' . $notifId;
+
+                $pushResult = sendPushToStudent(
+                    $pdo,
+                    $sid,
+                    $typeIcons[$type] . ' ' . $typeLabels[$type],
+                    mb_substr($title . ' — ' . $body, 0, 120),
+                    $pushUrl
+                );
+                $pushSentTotal += $pushResult['sent'] ?? 0;
             }
+
             $message = $typeIcons[$type] . ' ' . $typeLabels[$type] . ' sent to ' . $sent . ' student(s).';
+            if ($pushSentTotal > 0) {
+                $message .= ' ' . $pushSentTotal . ' push notification(s) delivered.';
+            }
             $messageType = 'success';
         } catch (PDOException $e) {
             error_log('IHS student-notices error: ' . $e->getMessage());
@@ -249,7 +278,7 @@ $gradeLevels = ['JSS1'=>'JSS 1','JSS2'=>'JSS 2','JSS3'=>'JSS 3',
 
       <div class="page-header">
         <h2>Student Notices</h2>
-        <p>Send official notices to students. All notices appear in the student's portal inbox.</p>
+        <p>Send official notices to students. All notices appear in the student's portal inbox, and trigger a push notification if they've enabled notifications.</p>
       </div>
 
       <?php if ($message): ?>

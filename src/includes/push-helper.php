@@ -5,11 +5,13 @@
 
    Shared notification utilities used by:
    - public/admin/push-notifications.php  (broadcast to all)
-   - public/admin/messages.php            (targeted per-user)
+   - public/admin/messages.php            (targeted per-staff-user)
+   - public/admin/student-notices.php     (targeted per-student)
+   - public/portal/dashboard.php          (student subscribe flow)
 
    REQUIRES before including this file:
      require_once .../src/config/vapid.php   (VAPID constants)
-     require_once .../src/config/database.php (for sendPushToUser)
+     require_once .../src/config/database.php (for sendPushToUser/sendPushToStudent)
 
    All functions are guarded with function_exists() so this file
    is safe to include alongside push-notifications.php without
@@ -129,7 +131,7 @@ if (!function_exists('sendWebPushNotification')) {
     }
 }
 
-/* ── Ensure push_subscriptions has user_id column ────────── */
+/* ── Ensure push_subscriptions has user_id column (staff) ── */
 if (!function_exists('ensurePushUserIdColumn')) {
     function ensurePushUserIdColumn(PDO $pdo): void {
         try {
@@ -137,6 +139,21 @@ if (!function_exists('ensurePushUserIdColumn')) {
                 "ALTER TABLE push_subscriptions
                  ADD COLUMN user_id INT UNSIGNED NULL DEFAULT NULL,
                  ADD INDEX  idx_push_user (user_id)"
+            );
+        } catch (PDOException $e) {
+            /* Column already exists — fine */
+        }
+    }
+}
+
+/* ── Ensure push_subscriptions has student_id column ─────── */
+if (!function_exists('ensurePushStudentIdColumn')) {
+    function ensurePushStudentIdColumn(PDO $pdo): void {
+        try {
+            $pdo->exec(
+                "ALTER TABLE push_subscriptions
+                 ADD COLUMN student_id INT UNSIGNED NULL DEFAULT NULL,
+                 ADD INDEX  idx_push_student (student_id)"
             );
         } catch (PDOException $e) {
             /* Column already exists — fine */
@@ -170,6 +187,60 @@ if (!function_exists('sendPushToUser')) {
             $subs = $stmt->fetchAll();
         } catch (PDOException $e) {
             error_log('[IHS push] Failed to load subscriptions: ' . $e->getMessage());
+            return ['sent' => 0, 'failed' => 0];
+        }
+
+        $sent = 0; $failed = 0; $expired = [];
+
+        foreach ($subs as $sub) {
+            $ok = sendWebPushNotification(
+                $sub, $title, $body, $url,
+                VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY
+            );
+            if ($ok) {
+                $sent++;
+            } else {
+                $failed++;
+                $expired[] = $sub['endpoint'];
+            }
+        }
+
+        foreach ($expired as $ep) {
+            $pdo->prepare(
+                'DELETE FROM push_subscriptions WHERE endpoint = ?'
+            )->execute([$ep]);
+        }
+
+        return ['sent' => $sent, 'failed' => $failed];
+    }
+}
+
+/* ── Send push notification to a specific student ────────── */
+if (!function_exists('sendPushToStudent')) {
+    function sendPushToStudent(
+        PDO    $pdo,
+        int    $studentId,
+        string $title,
+        string $body,
+        string $url = ''
+    ): array {
+        if (
+            !defined('VAPID_PUBLIC_KEY') ||
+            VAPID_PUBLIC_KEY === 'REPLACE_WITH_YOUR_PUBLIC_KEY'
+        ) {
+            return ['sent' => 0, 'failed' => 0, 'skipped' => true];
+        }
+
+        ensurePushStudentIdColumn($pdo);
+
+        try {
+            $stmt = $pdo->prepare(
+                'SELECT * FROM push_subscriptions WHERE student_id = ?'
+            );
+            $stmt->execute([$studentId]);
+            $subs = $stmt->fetchAll();
+        } catch (PDOException $e) {
+            error_log('[IHS push] Failed to load student subscriptions: ' . $e->getMessage());
             return ['sent' => 0, 'failed' => 0];
         }
 

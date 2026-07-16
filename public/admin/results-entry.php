@@ -16,6 +16,12 @@
    Grade Level/Class dropdowns pull live from the class_arms
    table — single source of truth shared with class-arms.php
    and users-create.php.
+
+   Position in class: displayed read-only from result_scores.
+   position, which save_result_scores.php recalculates for the
+   whole class/subject/term group every time scores are saved
+   (ranked by total_score, competition-style: ties share a
+   position, e.g. 1, 2, 2, 4).
    ============================================================ */
 
 declare(strict_types=1);
@@ -32,6 +38,19 @@ requireRole(['superadmin', 'subject_teacher', 'form_teacher', 'vp_academics']);
 
 $admin = currentAdmin();
 $pdo   = getDB();
+
+/* ── Ordinal suffix helper for position display (1st, 2nd, 3rd, 4th...) ── */
+function ordinalSuffix(int $n): string {
+    if ($n % 100 >= 11 && $n % 100 <= 13) {
+        return $n . 'th';
+    }
+    return $n . match ($n % 10) {
+        1 => 'st',
+        2 => 'nd',
+        3 => 'rd',
+        default => 'th',
+    };
+}
 
 /* ── Section restriction: non-superadmin locked to their own section ── */
 $lockedSection = ($admin['role'] !== 'superadmin' && $admin['section'] !== 'both')
@@ -153,7 +172,7 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
         $placeholders = implode(',', array_fill(0, count($studentIds), '?'));
 
         $scoreStmt = $pdo->prepare(
-            "SELECT r.student_id, rs.ca1_score, rs.ca2_score, rs.exam_score
+            "SELECT r.student_id, rs.ca1_score, rs.ca2_score, rs.exam_score, rs.position
              FROM   results r
              JOIN   result_scores rs ON rs.result_id = r.id
              WHERE  r.student_id IN ($placeholders)
@@ -190,6 +209,11 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
   .btn-filter { background:#4a90d9; color:#fff; border:none; padding:9px 22px; border-radius:7px; font-size:13px; font-weight:600; cursor:pointer; }
   .btn-filter:hover { background:#3a7dc4; }
 
+  .position-note {
+    background:#f0ecfa; color:#3d1a6e; padding:10px 16px;
+    border-radius:8px; font-size:12.5px; margin-bottom:16px;
+  }
+
   .entry-table-wrap { background:#fff; border:1px solid #e8e6f0; border-radius:14px; overflow:hidden; }
   table.entry-table { width:100%; border-collapse:collapse; font-size:13px; }
   table.entry-table th {
@@ -217,6 +241,10 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
   .grade-D { background:#fff3e6; color:#8a4a00; }
   .grade-E { background:#ffe6e6; color:#8a1a00; }
   .grade-F { background:#ffcccc; color:#cc0000; }
+
+  .position-cell { text-align:center; }
+  .position-pill { display:inline-block; padding:2px 10px; border-radius:20px; font-size:11px; font-weight:700; background:#f0ecfa; color:#3d1a6e; }
+  .position-pending { font-size:12px; color:#9b97b0; }
 
   .save-bar { padding:18px 22px; border-top:1px solid #f0eef6; display:flex; justify-content:space-between; align-items:center; }
   .btn-save { background:#3d1a6e; color:#fff; border:none; padding:11px 28px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
@@ -329,6 +357,13 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
           <div class="empty-state">No active students found in <?php echo htmlspecialchars($selectedGradeLevel . ' ' . $selectedClass); ?>.</div>
         </div>
         <?php else: ?>
+
+        <div class="position-note">
+          📊 <strong>Position in class</strong> is calculated automatically after saving — ranked by total score
+          (1st Test + 2nd Test + Exam) for this subject, within <?php echo htmlspecialchars($selectedGradeLevel . ' ' . $selectedClass); ?>.
+          Students with equal totals share the same position.
+        </div>
+
         <div class="entry-table-wrap">
           <table class="entry-table" id="scoreTable">
             <thead>
@@ -340,6 +375,7 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
                 <th class="score-col">Exam (70)</th>
                 <th class="score-col">Total</th>
                 <th class="score-col">Grade</th>
+                <th class="score-col">Position</th>
               </tr>
             </thead>
             <tbody>
@@ -348,6 +384,7 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
                 $ca1  = $existing['ca1_score']  ?? '';
                 $ca2  = $existing['ca2_score']  ?? '';
                 $exam = $existing['exam_score'] ?? '';
+                $position = $existing['position'] ?? null;
                 $fullName = trim($student['first_name'] . ' ' . ($student['other_name'] ? $student['other_name'] . ' ' : '') . $student['last_name']);
               ?>
               <tr data-student-id="<?php echo $student['id']; ?>">
@@ -364,6 +401,13 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
                 </td>
                 <td class="total-cell total-display">—</td>
                 <td class="grade-cell"><span class="grade-pill grade-display">—</span></td>
+                <td class="position-cell">
+                  <?php if ($position !== null): ?>
+                  <span class="position-pill"><?php echo ordinalSuffix((int) $position); ?></span>
+                  <?php else: ?>
+                  <span class="position-pending">—</span>
+                  <?php endif; ?>
+                </td>
               </tr>
               <?php endforeach; ?>
             </tbody>
@@ -493,12 +537,19 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
           .then(function (data) {
             statusEl.textContent = data.message;
             statusEl.className = 'save-status ' + (data.success ? 'save-status--success' : 'save-status--error');
+
+            /* Reload shortly after a successful save so the Position
+               column reflects freshly recalculated class rankings. */
+            if (data.success) {
+              setTimeout(function () { window.location.reload(); }, 1100);
+            } else {
+              saveBtn.disabled = false;
+              saveBtn.textContent = 'Save All Scores';
+            }
           })
           .catch(function () {
             statusEl.textContent = 'A connection error occurred. Please try again.';
             statusEl.className = 'save-status save-status--error';
-          })
-          .finally(function () {
             saveBtn.disabled = false;
             saveBtn.textContent = 'Save All Scores';
           });
