@@ -1,0 +1,15 @@
+name: Auto Deploy to cPanel
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger cPanel Git Pull & Deploy
+        run: |
+          curl -u "ibekjcra:${{ secrets.CPANEL_PASSWORD }}" "https://premium356.web-hosting.com:2083/json-api/cpanel?cpanel_jsonapi_user=ibekjcra&cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=VersionControl&cpanel_jsonapi_func=update&repository_root=%2Fhome%2Fibekjcra%2Fhome%2Fibekjcra%2Fibeku-src"
+          curl -u "ibekjcra:${{ secrets.CPANEL_PASSWORD }}" "https://premium356.web-hosting.com:2083/json-api/cpanel?cpanel_jsonapi_user=ibekjcra&cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=VersionControl&cpanel_jsonapi_func=deploy&repository_root=%2Fhome%2Fibekjcra%2Fhome%2Fibekjcra%2Fibeku-src"
