@@ -47,6 +47,10 @@ function renderAdminSidebar(array $admin, string $currentPage = ''): void {
         ['student-portal',     'student-portal.php',      '🔐', 'Portal Access',        ['superadmin', 'principal', 'vp_admin', 'vp_academics']],
         ['student-notices',    'student-notices.php',     '📢', 'Student Notices',      ['superadmin', 'principal', 'vp_admin', 'vp_academics', 'dean', 'form_teacher']],
 
+        /* ── Corps Members Module ── */
+        ['corps',              'corps.php',                '🧑‍🤝‍🧑', 'Corps Members',       ['superadmin', 'principal', 'vp_admin', 'vp_academics', 'vp_general', 'dean']],
+        ['corps-messages',     'corps-messages.php',       '✉️', 'Corps Messages',       ['superadmin', 'principal', 'vp_admin', 'vp_academics', 'vp_general', 'dean']],
+
         ['admissions',         'admissions.php',          '🎓', 'Admissions',           null],
 
         ['staff',              'staff.php',               '👨‍🏫', 'Staff Directory',    ['superadmin']],

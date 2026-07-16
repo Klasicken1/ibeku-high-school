@@ -260,6 +260,22 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
   pointer-events: none;
   transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
 }
+
+/* Invisible hover bridge — fills the visual gap between the trigger and
+   the dropdown so the cursor never leaves a "hoverable" descendant of
+   .nav__item while moving diagonally down into the panel. Without this,
+   the 10px gap above the dropdown is a dead zone that breaks :hover
+   before the mouse reaches the dropdown links. */
+.nav__dropdown::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: transparent;
+}
+
 .nav__item:hover .nav__dropdown,
 .nav__item.open  .nav__dropdown {
   opacity: 1;
