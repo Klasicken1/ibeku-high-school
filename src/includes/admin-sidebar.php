@@ -62,9 +62,10 @@ function renderAdminSidebar(array $admin, string $currentPage = ''): void {
         ['prefects-admin',     'prefects-admin.php',      '🎖️', 'Prefects',             ['superadmin', 'principal']],
         ['hall-of-fame-admin', 'hall-of-fame-admin.php',  '🏆', 'Hall of Fame',         ['superadmin']],
         ['nominations',        'nominations.php',         '📬', 'Nominations',          ['superadmin']],
-        ['reviews',            'reviews.php',             '⭐', 'Reviews',              ['superadmin', 'principal', 'vp_general']],
+        ['reviews',            'reviews.php',              '⭐', 'Reviews',              ['superadmin', 'principal', 'vp_general']],
 
         ['messages',           'messages.php',            '💬', 'Messages',             null],
+        ['change-password',    'change-password.php',     '🔑', 'Change Password',      null],
         ['push-notifications', 'push-notifications.php',  '🔔', 'Push Notifications',  ['superadmin', 'principal']],
         ['newsletter-admin',   'newsletter-admin.php',    '📧', 'Newsletter',           ['superadmin', 'principal', 'vp_general']],
 
