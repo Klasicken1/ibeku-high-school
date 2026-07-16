@@ -37,6 +37,9 @@ function studentLoggedIn(): bool {
  * Require student to be logged in.
  * Redirects to login page if not authenticated.
  * Also enforces portal_blocked — sends to blocked.php.
+ * Also enforces must_change_password — sends to change-password.php
+ * on first login (i.e. the student is still using their admission
+ * number as their password, per students.password being NULL in DB).
  */
 function requireStudentLogin(): array {
     portalSessionStart();
@@ -47,13 +50,24 @@ function requireStudentLogin(): array {
     }
 
     $student = currentStudent();
+    $current = basename($_SERVER['PHP_SELF']);
 
     /* Re-check blocked status on every request */
     if ($student['portal_blocked']) {
         /* Allow blocked.php itself to load (prevent redirect loop) */
-        $current = basename($_SERVER['PHP_SELF']);
         if ($current !== 'blocked.php' && $current !== 'logout.php') {
             header('Location: blocked.php');
+            exit;
+        }
+    }
+
+    /* Force a password change on first login — allow change-password.php,
+       logout.php, and blocked.php through (prevent redirect loop, and
+       don't block a student who's already been locked out anyway) */
+    if (!empty($student['must_change_password'])) {
+        $allowedPages = ['change-password.php', 'logout.php', 'blocked.php'];
+        if (!in_array($current, $allowedPages, true)) {
+            header('Location: change-password.php');
             exit;
         }
     }
@@ -85,6 +99,9 @@ function loginStudent(array $student): void {
         'results_blocked'  => (bool) $student['results_blocked'],
         'portal_blocked_reason' => $student['portal_blocked_reason'] ?? null,
         'results_blocked_reason' => $student['results_blocked_reason'] ?? null,
+        /* True until the student sets their own password (students.password
+           starts NULL and is only ever set via change-password.php) */
+        'must_change_password' => empty($student['password']),
     ];
 }
 
