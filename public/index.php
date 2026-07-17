@@ -1,6 +1,6 @@
 ﻿<?php
 /* ============================================================
-   IBEKU HIGH SCHOOL â€” HOMEPAGE
+   IBEKU HIGH SCHOOL — HOMEPAGE
    File: public/index.php
    ============================================================ */
 
@@ -14,22 +14,22 @@ require_once '../src/includes/header.php';
 require_once '../src/config/database.php';
 $pdo = getDB();
 
-/* â”€â”€ Staff preview â€” first 4 by sort order â”€â”€ */
+/* ── Staff preview — first 4 by sort order ── */
 $staffPreview = $pdo->query(
     "SELECT * FROM staff WHERE is_published = 1
      ORDER BY sort_order ASC, full_name ASC LIMIT 4"
 )->fetchAll();
 
-/* â”€â”€ Approved reviews â€” latest 3 â”€â”€ */
+/* ── Approved reviews — latest 3 ── */
 $reviews = $pdo->query(
     "SELECT * FROM reviews
      WHERE status = 'approved' AND is_verified = 1
      ORDER BY created_at DESC LIMIT 3"
 )->fetchAll();
 
-/* â”€â”€ YouTube video from settings â”€â”€ */
+/* ── YouTube video from settings ── */
 $ytId    = $_site['youtube_video_id']    ?? '';
-$ytTitle = $_site['youtube_video_title'] ?? 'Ibeku High School â€” School Life';
+$ytTitle = $_site['youtube_video_title'] ?? 'Ibeku High School — School Life';
 
 $relationshipLabels = [
     'parent'  => 'Parent / Guardian',
@@ -41,18 +41,18 @@ $relationshipLabels = [
 ?>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+<!-- ═══════════════════════════════════════════
      HERO CAROUSEL
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+     ═══════════════════════════════════════════ -->
 <section class="hero" id="home" aria-label="School highlights">
 
   <div class="hero__slide hero__slide--1 active" aria-hidden="false">
     <div class="hero__overlay"></div>
     <div class="hero__dots" aria-hidden="true"></div>
     <div class="hero__content">
-      <div class="hero__badge">â­ Est. 1954 Â· Government Secondary School Â· Umuahia</div>
+      <div class="hero__badge">⭐ Est. 1954 · Government Secondary School · Umuahia</div>
       <h1>Shaping Minds.<br/>Building <em>Character.</em><br/>Raising Leaders.</h1>
-      <p>Ibeku High School â€” where academic excellence and strong values have been forged together for over 70 years in Umuahia, Abia State.</p>
+      <p>Ibeku High School — where academic excellence and strong values have been forged together for over 70 years in Umuahia, Abia State.</p>
       <div class="hero__btns">
         <a href="<?php echo BASE_PATH; ?>admissions.php" class="btn btn--primary btn--lg">Apply for Admission</a>
         <a href="<?php echo BASE_PATH; ?>results.php"    class="btn btn--outline btn--lg">Check Results Online</a>
@@ -64,7 +64,7 @@ $relationshipLabels = [
     <div class="hero__overlay"></div>
     <div class="hero__dots" aria-hidden="true"></div>
     <div class="hero__content">
-      <div class="hero__badge">ðŸ“š Academic Excellence Â· WAEC Â· NECO Â· University Admissions</div>
+      <div class="hero__badge">📚 Academic Excellence · WAEC · NECO · University Admissions</div>
       <h1>Consistently <em>Outstanding</em><br/>Examination Results.</h1>
       <p>Our students achieve top WAEC and NECO results year after year, securing admission to the best universities in Nigeria and beyond.</p>
       <div class="hero__btns">
@@ -78,9 +78,9 @@ $relationshipLabels = [
     <div class="hero__overlay"></div>
     <div class="hero__dots" aria-hidden="true"></div>
     <div class="hero__content">
-      <div class="hero__badge">ðŸ† Sports Â· Clubs Â· Competitions Â· ICT Â· Culture</div>
+      <div class="hero__badge">🏆 Sports · Clubs · Competitions · ICT · Culture</div>
       <h1>Life Beyond the <em>Classroom</em><br/>at Ibeku High.</h1>
-      <p>15+ active clubs, a modern computer lab, sports teams, cultural events â€” we develop every dimension of every student.</p>
+      <p>15+ active clubs, a modern computer lab, sports teams, cultural events — we develop every dimension of every student.</p>
       <div class="hero__btns">
         <a href="<?php echo BASE_PATH; ?>admissions.php" class="btn btn--primary btn--lg">Join Our School</a>
         <a href="<?php echo BASE_PATH; ?>contact.php"    class="btn btn--outline btn--lg">Contact the School</a>
@@ -97,34 +97,34 @@ $relationshipLabels = [
 </section>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+<!-- ═══════════════════════════════════════════
      QUICK LINKS STRIP
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+     ═══════════════════════════════════════════ -->
 <div class="quick-links" role="navigation" aria-label="Quick links">
   <div class="quick-links__grid wrap">
     <a href="<?php echo BASE_PATH; ?>results.php" class="quick-link">
-      <div class="quick-link__icon" aria-hidden="true">ðŸ“Š</div>
+      <div class="quick-link__icon" aria-hidden="true">📊</div>
       <div class="quick-link__text">
         <strong>Check Results</strong>
         <span>Enter your student ID</span>
       </div>
     </a>
     <a href="<?php echo BASE_PATH; ?>admissions.php" class="quick-link">
-      <div class="quick-link__icon" aria-hidden="true">ðŸ“</div>
+      <div class="quick-link__icon" aria-hidden="true">📝</div>
       <div class="quick-link__text">
         <strong>Admissions</strong>
         <span>Apply for <?php echo htmlspecialchars($_site['current_session'] ?? '2025/2026'); ?></span>
       </div>
     </a>
     <a href="<?php echo BASE_PATH; ?>news.php" class="quick-link">
-      <div class="quick-link__icon" aria-hidden="true">ðŸ“¢</div>
+      <div class="quick-link__icon" aria-hidden="true">📢</div>
       <div class="quick-link__text">
         <strong>News &amp; Events</strong>
         <span>Latest updates</span>
       </div>
     </a>
     <a href="<?php echo BASE_PATH; ?>contact.php" class="quick-link">
-      <div class="quick-link__icon" aria-hidden="true">ðŸ“ž</div>
+      <div class="quick-link__icon" aria-hidden="true">📞</div>
       <div class="quick-link__text">
         <strong>Contact School</strong>
         <span>Get in touch</span>
@@ -134,9 +134,9 @@ $relationshipLabels = [
 </div>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+<!-- ═══════════════════════════════════════════
      STATS BAND
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+     ═══════════════════════════════════════════ -->
 <div class="stats-band" aria-label="School statistics">
   <div class="stats-band__grid wrap">
     <div class="stat-item reveal">
@@ -159,9 +159,9 @@ $relationshipLabels = [
 </div>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+<!-- ═══════════════════════════════════════════
      ABOUT THE SCHOOL
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+     ═══════════════════════════════════════════ -->
 <section class="about-section" id="about">
   <div class="about-section__inner wrap">
 
@@ -184,7 +184,7 @@ $relationshipLabels = [
       <span class="slabel">Our Identity</span>
       <h2 class="stitle">About <span><?php echo htmlspecialchars($_site['school_name']); ?></span></h2>
       <p>Ibeku High School, located in Umuahia, Abia State, is one of the oldest and most respected government secondary schools in South-East Nigeria. Founded over seven decades ago, we have produced professionals, leaders, and change-makers across every sector of Nigerian society.</p>
-      <p>The school runs both Junior Secondary (JSS 1â€“3) and Senior Secondary (SSS 1â€“3) programmes, each led by a dedicated principal, with departments for Sciences, Arts, and Commercial studies.</p>
+      <p>The school runs both Junior Secondary (JSS 1–3) and Senior Secondary (SSS 1–3) programmes, each led by a dedicated principal, with departments for Sciences, Arts, and Commercial studies.</p>
       <div class="pillars">
         <div class="pillar">
           <h4>Our Vision</h4>
@@ -196,11 +196,11 @@ $relationshipLabels = [
         </div>
         <div class="pillar">
           <h4>Core Values</h4>
-          <p><?php echo htmlspecialchars($_site['school_motto'] ?: 'Integrity Â· Excellence Â· Discipline Â· Community Â· Innovation'); ?>.</p>
+          <p><?php echo htmlspecialchars($_site['school_motto'] ?: 'Integrity · Excellence · Discipline · Community · Innovation'); ?>.</p>
         </div>
         <div class="pillar">
           <h4>Academic Arms</h4>
-          <p>Sciences Â· Arts Â· Commercial â€” 25+ subjects offered.</p>
+          <p>Sciences · Arts · Commercial — 25+ subjects offered.</p>
         </div>
       </div>
       <a href="<?php echo BASE_PATH; ?>about.php" class="btn btn--secondary">Read Full History</a>
@@ -210,9 +210,9 @@ $relationshipLabels = [
 </section>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-     PRINCIPAL'S MESSAGE â€” from settings
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ═══════════════════════════════════════════
+     PRINCIPAL'S MESSAGE — from settings
+     ═══════════════════════════════════════════ -->
 <section class="principal-section" id="principal-ss">
   <div class="principal-section__inner wrap">
 
@@ -231,16 +231,16 @@ $relationshipLabels = [
       <blockquote>
         <?php echo nl2br(htmlspecialchars(
             $_site['principal_ss_message'] ?:
-            'At Ibeku High School, we do not merely teach subjects â€” we shape futures. Every student who walks through our gates carries within them the potential to become a leader, a builder, a thinker. Our commitment is to help them discover that potential and develop it to its fullest through academic rigour, strong values, and a community of care that never gives up on any child.'
+            'At Ibeku High School, we do not merely teach subjects — we shape futures. Every student who walks through our gates carries within them the potential to become a leader, a builder, a thinker. Our commitment is to help them discover that potential and develop it to its fullest through academic rigour, strong values, and a community of care that never gives up on any child.'
         )); ?>
       </blockquote>
       <p class="principal-section__sig">
         <strong><?php echo htmlspecialchars($_site['principal_ss_name'] ?: '[SS Principal\'s Full Name]'); ?></strong>
-        <span>Principal, Senior Secondary â€” <?php echo htmlspecialchars($_site['school_name']); ?></span>
+        <span>Principal, Senior Secondary — <?php echo htmlspecialchars($_site['school_name']); ?></span>
       </p>
       <p class="mt-3">
         <a href="<?php echo BASE_PATH; ?>about.php#principal-js" class="btn btn--ghost">
-          Read JS Principal's Message â†’
+          Read JS Principal's Message →
         </a>
       </p>
     </div>
@@ -249,9 +249,9 @@ $relationshipLabels = [
 </section>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+<!-- ═══════════════════════════════════════════
      DEPARTMENTS
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+     ═══════════════════════════════════════════ -->
 <section class="departments-section" id="departments">
   <div class="departments-section__inner wrap">
 
@@ -265,7 +265,7 @@ $relationshipLabels = [
 
     <div class="grid-3">
       <div class="dept-card reveal">
-        <div class="dept-card__top dept-card__top--sci" aria-hidden="true">ðŸ”¬</div>
+        <div class="dept-card__top dept-card__top--sci" aria-hidden="true">🔬</div>
         <div class="dept-card__body">
           <h3>Sciences</h3>
           <p>Preparing students for medicine, engineering, and technology through rigorous lab work and theory.</p>
@@ -279,7 +279,7 @@ $relationshipLabels = [
         </div>
       </div>
       <div class="dept-card reveal">
-        <div class="dept-card__top dept-card__top--arts" aria-hidden="true">ðŸŽ­</div>
+        <div class="dept-card__top dept-card__top--arts" aria-hidden="true">🎭</div>
         <div class="dept-card__body">
           <h3>Arts &amp; Humanities</h3>
           <p>Developing critical thinkers and communicators with strong foundations in language and culture.</p>
@@ -293,7 +293,7 @@ $relationshipLabels = [
         </div>
       </div>
       <div class="dept-card reveal">
-        <div class="dept-card__top dept-card__top--com" aria-hidden="true">ðŸ’¼</div>
+        <div class="dept-card__top dept-card__top--com" aria-hidden="true">💼</div>
         <div class="dept-card__body">
           <h3>Commercial Studies</h3>
           <p>Building future entrepreneurs through accounting, commerce, and economic reasoning.</p>
@@ -311,30 +311,30 @@ $relationshipLabels = [
 </section>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+<!-- ═══════════════════════════════════════════
      BENEFITS / WHY CHOOSE IBEKU
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+     ═══════════════════════════════════════════ -->
 <section class="benefits-section" id="benefits">
   <div class="benefits-section__inner wrap">
 
     <div class="benefits-grid">
       <div class="benefit-card reveal">
-        <span class="benefit-card__icon" aria-hidden="true">ðŸ“š</span>
+        <span class="benefit-card__icon" aria-hidden="true">📚</span>
         <h3>Strong Academic Record</h3>
         <p>Consistently high WAEC and NECO results with students regularly topping state and national rankings.</p>
       </div>
       <div class="benefit-card reveal">
-        <span class="benefit-card__icon" aria-hidden="true">ðŸ†</span>
+        <span class="benefit-card__icon" aria-hidden="true">🏆</span>
         <h3>Competition Winners</h3>
         <p>Champions in science olympiads, debates, maths contests, and national quiz competitions.</p>
       </div>
       <div class="benefit-card reveal">
-        <span class="benefit-card__icon" aria-hidden="true">ðŸ’»</span>
+        <span class="benefit-card__icon" aria-hidden="true">💻</span>
         <h3>ICT Integration</h3>
         <p>Functional computer lab, internet access, and ICT classes preparing students for a digital future.</p>
       </div>
       <div class="benefit-card reveal">
-        <span class="benefit-card__icon" aria-hidden="true">âš½</span>
+        <span class="benefit-card__icon" aria-hidden="true">⚽</span>
         <h3>Sports &amp; Culture</h3>
         <p>Football, basketball, athletics, drama, Red Cross, and over 15 active student societies.</p>
       </div>
@@ -343,7 +343,7 @@ $relationshipLabels = [
     <div class="reveal">
       <span class="slabel">Why Choose Ibeku</span>
       <h2 class="stitle">A School That Builds the <span>Whole Child</span></h2>
-      <p class="ssub">Excellence here is not only academic. We develop character, leadership, discipline, and lifelong skills â€” the complete foundation every young person needs.</p>
+      <p class="ssub">Excellence here is not only academic. We develop character, leadership, discipline, and lifelong skills — the complete foundation every young person needs.</p>
       <div class="benefits-stats">
         <div class="benefit-stat">
           <div class="benefit-stat__num">98%</div>
@@ -373,9 +373,9 @@ $relationshipLabels = [
 </section>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+<!-- ═══════════════════════════════════════════
      ONLINE RESULT CHECKER
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+     ═══════════════════════════════════════════ -->
 <section class="results-section" id="results">
   <div class="results-section__inner wrap">
 
@@ -438,9 +438,9 @@ $relationshipLabels = [
 </section>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-     STAFF PREVIEW â€” from staff table
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ═══════════════════════════════════════════
+     STAFF PREVIEW — from staff table
+     ═══════════════════════════════════════════ -->
 <section class="staff-section" id="staff">
   <div class="staff-section__inner wrap">
 
@@ -501,9 +501,9 @@ $relationshipLabels = [
 </section>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+<!-- ═══════════════════════════════════════════
      NEWS & ANNOUNCEMENTS
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+     ═══════════════════════════════════════════ -->
 <section class="news-section" id="news">
   <div class="news-section__inner wrap">
 
@@ -517,16 +517,16 @@ $relationshipLabels = [
 
     <div class="news-grid">
       <article class="news-card news-card--featured reveal">
-        <div class="news-card__thumb" style="height:200px" aria-hidden="true">ðŸ†</div>
+        <div class="news-card__thumb" style="height:200px" aria-hidden="true">🏆</div>
         <div class="news-card__body">
           <span class="news-card__tag news-card__tag--blue">Achievement</span>
           <h3>IHS Students Win Abia State Science Quiz Championship</h3>
-          <p>Our SS2 science team took first place â€” the school's third consecutive state championship title.</p>
+          <p>Our SS2 science team took first place — the school's third consecutive state championship title.</p>
           <span class="news-card__date">Current Session</span>
         </div>
       </article>
       <article class="news-card reveal">
-        <div class="news-card__thumb" style="height:148px" aria-hidden="true">ðŸ“‹</div>
+        <div class="news-card__thumb" style="height:148px" aria-hidden="true">📋</div>
         <div class="news-card__body">
           <span class="news-card__tag news-card__tag--purple">Academic</span>
           <h3>Examination Timetable Released</h3>
@@ -535,7 +535,7 @@ $relationshipLabels = [
         </div>
       </article>
       <article class="news-card reveal">
-        <div class="news-card__thumb" style="height:148px" aria-hidden="true">ðŸ’»</div>
+        <div class="news-card__thumb" style="height:148px" aria-hidden="true">💻</div>
         <div class="news-card__body">
           <span class="news-card__tag news-card__tag--gold">ICT</span>
           <h3>Computer Lab Fully Refurbished by Alumni Donation</h3>
@@ -549,9 +549,9 @@ $relationshipLabels = [
 </section>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-     YOUTUBE VIDEO â€” from settings
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ═══════════════════════════════════════════
+     YOUTUBE VIDEO — from settings
+     ═══════════════════════════════════════════ -->
 <?php if ($ytId): ?>
 <section class="videos-section" id="videos">
   <div class="videos-section__inner wrap">
@@ -582,9 +582,9 @@ $relationshipLabels = [
 <?php endif; ?>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-     TESTIMONIALS â€” from reviews table
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ═══════════════════════════════════════════
+     TESTIMONIALS — from reviews table
+     ═══════════════════════════════════════════ -->
 <section class="testimonials-section" id="testimonials">
   <div class="testimonials-section__inner wrap">
 
@@ -598,7 +598,7 @@ $relationshipLabels = [
       <?php foreach ($reviews as $r): ?>
       <div class="testi-card reveal">
         <span class="testi-card__stars" aria-label="<?php echo (int)$r['rating']; ?> stars">
-          <?php echo str_repeat('â˜…', (int)$r['rating']) . str_repeat('â˜†', 5 - (int)$r['rating']); ?>
+          <?php echo str_repeat('★', (int)$r['rating']) . str_repeat('☆', 5 - (int)$r['rating']); ?>
         </span>
         <blockquote><?php echo nl2br(htmlspecialchars($r['review_text'])); ?></blockquote>
         <div class="testi-card__author">
@@ -614,15 +614,15 @@ $relationshipLabels = [
       <?php endforeach; ?>
       <?php else: ?>
       <div class="testi-card reveal">
-        <span class="testi-card__stars" aria-label="5 stars">â˜…â˜…â˜…â˜…â˜…</span>
+        <span class="testi-card__stars" aria-label="5 stars">★★★★★</span>
         <blockquote>Ibeku High School gave me the discipline and academic foundation that made me who I am today. The teachers genuinely cared about every student's future.</blockquote>
         <div class="testi-card__author">
           <div class="testi-card__avatar" aria-hidden="true">AO</div>
-          <div><strong>Alumni â€” Class of 2018</strong><span>Now studying Medicine, UNN</span></div>
+          <div><strong>Alumni — Class of 2018</strong><span>Now studying Medicine, UNN</span></div>
         </div>
       </div>
       <div class="testi-card reveal">
-        <span class="testi-card__stars" aria-label="5 stars">â˜…â˜…â˜…â˜…â˜…</span>
+        <span class="testi-card__stars" aria-label="5 stars">★★★★★</span>
         <blockquote>As a parent, I am confident my children receive not just academics but proper character formation. The school's values are truly evident in everything they do.</blockquote>
         <div class="testi-card__author">
           <div class="testi-card__avatar" aria-hidden="true">CN</div>
@@ -630,7 +630,7 @@ $relationshipLabels = [
         </div>
       </div>
       <div class="testi-card reveal">
-        <span class="testi-card__stars" aria-label="5 stars">â˜…â˜…â˜…â˜…â˜…</span>
+        <span class="testi-card__stars" aria-label="5 stars">★★★★★</span>
         <blockquote>The science programme here is exceptional. Our club won the state quiz three years running. The teachers push you to be your absolute best every single day.</blockquote>
         <div class="testi-card__author">
           <div class="testi-card__avatar" aria-hidden="true">EC</div>
@@ -647,7 +647,7 @@ $relationshipLabels = [
       </p>
       <button onclick="document.getElementById('reviewFormWrap').style.display='block';this.style.display='none';window.scrollTo({top:document.getElementById('reviewFormWrap').getBoundingClientRect().top+window.scrollY-80,behavior:'smooth'})"
               style="background:var(--gold);color:#1a0835;border:none;padding:11px 28px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">
-        Write a Review â˜…
+        Write a Review ★
       </button>
     </div>
 
@@ -661,11 +661,11 @@ $relationshipLabels = [
         <div style="margin-bottom:16px;text-align:center">
           <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Your Rating *</div>
           <div id="starPicker" style="font-size:28px;cursor:pointer;letter-spacing:4px">
-            <span class="rv-star" data-val="1">â˜†</span>
-            <span class="rv-star" data-val="2">â˜†</span>
-            <span class="rv-star" data-val="3">â˜†</span>
-            <span class="rv-star" data-val="4">â˜†</span>
-            <span class="rv-star" data-val="5">â˜†</span>
+            <span class="rv-star" data-val="1">☆</span>
+            <span class="rv-star" data-val="2">☆</span>
+            <span class="rv-star" data-val="3">☆</span>
+            <span class="rv-star" data-val="4">☆</span>
+            <span class="rv-star" data-val="5">☆</span>
           </div>
           <input type="hidden" id="rvRating" value="0"/>
         </div>
@@ -682,7 +682,7 @@ $relationshipLabels = [
         <div style="margin-bottom:12px">
           <label style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:5px">Your Relationship to the School *</label>
           <select class="form-input form-input--dark" id="rvRelationship">
-            <option value="">Selectâ€¦</option>
+            <option value="">Select…</option>
             <option value="parent">Parent / Guardian</option>
             <option value="student">Current Student</option>
             <option value="alumnus">Alumni</option>
@@ -693,23 +693,23 @@ $relationshipLabels = [
         <div style="margin-bottom:16px">
           <label style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:5px">Your Review *</label>
           <textarea class="form-input form-input--dark" id="rvText" rows="4"
-                    placeholder="Share your experience of Ibeku High Schoolâ€¦"
+                    placeholder="Share your experience of Ibeku High School…"
                     style="resize:vertical"></textarea>
         </div>
         <button onclick="submitReview()" id="rvBtn"
                 style="width:100%;background:var(--gold);color:#1a0835;border:none;padding:12px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">
-          Submit Review â˜…
+          Submit Review ★
         </button>
         <div id="rvError" style="display:none;margin-top:10px;background:rgba(204,51,51,.2);border:1px solid rgba(204,51,51,.4);border-radius:8px;padding:10px 14px;color:#ffaaaa;font-size:13px"></div>
         <div id="rvSuccess" style="display:none;margin-top:14px;background:rgba(26,122,58,.2);border:1px solid rgba(26,122,58,.4);border-radius:10px;padding:16px;text-align:center">
-          <div style="font-size:24px;margin-bottom:6px">âœ…</div>
+          <div style="font-size:24px;margin-bottom:6px">✅</div>
           <strong style="color:#fff;display:block;margin-bottom:6px">Thank you!</strong>
           <p style="color:rgba(255,255,255,.7);font-size:13px;margin-bottom:12px" id="rvSuccessMsg">
-            One more step â€” click the confirmation link below to verify your review.
+            One more step — click the confirmation link below to verify your review.
           </p>
           <a id="rvVerifyLink" href="#" target="_blank" rel="noopener noreferrer"
              style="display:inline-block;background:var(--gold);color:#1a0835;padding:9px 20px;border-radius:7px;font-size:13px;font-weight:700;text-decoration:none">
-            âœ“ Confirm My Review â†’
+            ✓ Confirm My Review →
           </a>
         </div>
       </div>
@@ -719,9 +719,9 @@ $relationshipLabels = [
 </section>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+<!-- ═══════════════════════════════════════════
      ADMISSIONS CTA
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+     ═══════════════════════════════════════════ -->
 <section class="admissions-section" id="admissions">
   <div class="admissions-section__inner wrap">
 
@@ -749,7 +749,7 @@ $relationshipLabels = [
       </div>
     </div>
 
-    <!-- Mini admissions form â€” wired to submit_admission.php -->
+    <!-- Mini admissions form — wired to submit_admission.php -->
     <div class="admission-form-card reveal">
       <h3>Start Your Application</h3>
       <p>Register your interest and our admissions office will contact you within 48 hours.</p>
@@ -768,8 +768,8 @@ $relationshipLabels = [
       <div class="form-group">
         <select class="form-input" id="miniClass">
           <option value="">Applying for which class?</option>
-          <option value="JSS1">JSS 1 â€” Junior Secondary</option>
-          <option value="SSS1">SSS 1 â€” Senior Secondary</option>
+          <option value="JSS1">JSS 1 — Junior Secondary</option>
+          <option value="SSS1">SSS 1 — Senior Secondary</option>
         </select>
       </div>
       <button class="btn btn--primary btn--full btn--lg" id="miniAdmBtn"
@@ -778,7 +778,7 @@ $relationshipLabels = [
       </button>
       <div id="miniAdmSuccess"
            style="display:none;margin-top:12px;background:#e6f9ed;border:1px solid #b2dfce;border-radius:8px;padding:12px 16px;font-size:13.5px;color:#1a7a3a">
-        âœ… Enquiry received! Our admissions office will contact you within 48 hours.
+        ✅ Enquiry received! Our admissions office will contact you within 48 hours.
       </div>
       <div id="miniAdmError"
            style="display:none;margin-top:10px;background:#ffe6e6;border:1px solid #ffcccc;border-radius:8px;padding:10px 14px;font-size:13px;color:#cc3333">
@@ -789,9 +789,9 @@ $relationshipLabels = [
 </section>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-     NEWSLETTER â€” wired to subscribe.php
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ═══════════════════════════════════════════
+     NEWSLETTER — wired to subscribe.php
+     ═══════════════════════════════════════════ -->
 <section class="newsletter-section">
   <div class="newsletter-section__inner">
     <span class="slabel slabel--light">Stay Connected</span>
@@ -807,7 +807,7 @@ $relationshipLabels = [
     </div>
     <div id="nlSuccess"
          style="display:none;margin-top:12px;font-size:13.5px;color:rgba(255,255,255,.85);text-align:center">
-      âœ… Subscribed! You will receive school updates by email.
+      ✅ Subscribed! You will receive school updates by email.
     </div>
   </div>
 </section>
@@ -817,9 +817,9 @@ $relationshipLabels = [
 
 
 <script>
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════
    STAR PICKER
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════ */
 (function () {
   var stars  = document.querySelectorAll('.rv-star');
   var hidden = document.getElementById('rvRating');
@@ -827,7 +827,7 @@ $relationshipLabels = [
 
   function paint(val) {
     stars.forEach(function (s) {
-      s.textContent = parseInt(s.dataset.val, 10) <= val ? 'â˜…' : 'â˜†';
+      s.textContent = parseInt(s.dataset.val, 10) <= val ? '★' : '☆';
       s.style.color = parseInt(s.dataset.val, 10) <= val ? '#e8a020' : 'rgba(255,255,255,.3)';
     });
   }
@@ -843,9 +843,9 @@ $relationshipLabels = [
 }());
 
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════
    REVIEW FORM SUBMISSION
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════ */
 function submitReview() {
   var name         = document.getElementById('rvName').value.trim();
   var email        = document.getElementById('rvEmail').value.trim();
@@ -878,7 +878,7 @@ function submitReview() {
   fd.append('review_text',    text);
   fd.append('website',        document.getElementById('rvWebsite').value);
 
-  btn.textContent = 'Submittingâ€¦';
+  btn.textContent = 'Submitting…';
   btn.disabled    = true;
 
   fetch('<?php echo API_PATH; ?>submit_review.php', { method: 'POST', body: fd })
@@ -892,24 +892,24 @@ function submitReview() {
       } else if (data.errors) {
         errorEl.textContent   = Object.values(data.errors)[0];
         errorEl.style.display = 'block';
-        btn.textContent = 'Submit Review â˜…'; btn.disabled = false;
+        btn.textContent = 'Submit Review ★'; btn.disabled = false;
       } else {
         errorEl.textContent   = data.message || 'Something went wrong. Please try again.';
         errorEl.style.display = 'block';
-        btn.textContent = 'Submit Review â˜…'; btn.disabled = false;
+        btn.textContent = 'Submit Review ★'; btn.disabled = false;
       }
     })
     .catch(function () {
       errorEl.textContent   = 'A connection error occurred. Please try again.';
       errorEl.style.display = 'block';
-      btn.textContent = 'Submit Review â˜…'; btn.disabled = false;
+      btn.textContent = 'Submit Review ★'; btn.disabled = false;
     });
 }
 
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════
    MINI ADMISSIONS FORM (homepage)
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════ */
 function submitMiniAdmission() {
   var parentName  = document.getElementById('miniParentName').value.trim();
   var studentName = document.getElementById('miniStudentName').value.trim();
@@ -946,7 +946,7 @@ function submitMiniAdmission() {
   fd.append('entry_class',   entryClass || 'JSS1');
   fd.append('session',       '<?php echo htmlspecialchars($_site['current_session'] ?? '2025/2026'); ?>');
 
-  btn.textContent = 'Submittingâ€¦';
+  btn.textContent = 'Submitting…';
   btn.disabled    = true;
 
   fetch('<?php echo API_PATH; ?>submit_admission.php', { method: 'POST', body: fd })
@@ -969,15 +969,15 @@ function submitMiniAdmission() {
       errorEl.style.display = 'block';
     })
     .finally(function () {
-      btn.textContent = 'Submit Enquiry â†’';
+      btn.textContent = 'Submit Enquiry →';
       btn.disabled    = false;
     });
 }
 
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════
    NEWSLETTER (homepage)
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════ */
 function subscribeNewsletter() {
   var input     = document.getElementById('nlEmail');
   var successEl = document.getElementById('nlSuccess');
@@ -991,7 +991,7 @@ function subscribeNewsletter() {
   var fd = new FormData();
   fd.append('email', input.value.trim());
 
-  btn.textContent = 'Subscribingâ€¦';
+  btn.textContent = 'Subscribing…';
   btn.disabled    = true;
 
   fetch('<?php echo API_PATH; ?>subscribe.php', { method: 'POST', body: fd })
@@ -1013,4 +1013,3 @@ function subscribeNewsletter() {
     });
 }
 </script>
-

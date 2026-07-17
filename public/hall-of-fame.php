@@ -1,10 +1,10 @@
 ﻿<?php
 /* ============================================================
-   IBEKU HIGH SCHOOL â€” HALL OF FAME PAGE
+   IBEKU HIGH SCHOOL — HALL OF FAME PAGE
    File: public/hall-of-fame.php
    ============================================================ */
 
-$pageTitle   = 'Hall of Fame â€” Ibeku High School';
+$pageTitle   = 'Hall of Fame — Ibeku High School';
 $pageDesc    = 'Celebrating the outstanding students, alumni, athletes, scholars, and leaders who have brought glory to Ibeku High School across the generations.';
 $currentPage = 'students';
 $pageCss     = 'hall-of-fame';
@@ -13,7 +13,7 @@ require_once '../src/includes/header.php';
 require_once '../src/config/database.php';
 $pdo = getDB();
 
-/* â”€â”€ Load all Hall of Fame entries by category â”€â”€ */
+/* ── Load all Hall of Fame entries by category ── */
 $allEntries = $pdo->query(
     "SELECT * FROM hall_of_fame WHERE is_published = 1 ORDER BY sort_order ASC, full_name ASC"
 )->fetchAll();
@@ -33,7 +33,7 @@ foreach ($allEntries as $entry) {
     }
 }
 
-/* â”€â”€ Load all published alumni for the alumni wall â”€â”€ */
+/* ── Load all published alumni for the alumni wall ── */
 $alumniWall = $pdo->query(
     "SELECT * FROM alumni WHERE is_published = 1 ORDER BY sort_order ASC, full_name ASC"
 )->fetchAll();
@@ -46,14 +46,14 @@ foreach ($alumniWall as $a) {
     }
 }
 
-/* â”€â”€ Stats â”€â”€ */
+/* ── Stats ── */
 $totalInductees = count($allEntries);
 ?>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-     PAGE HERO â€” GOLD THEMED
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ═══════════════════════════════════════════
+     PAGE HERO — GOLD THEMED
+     ═══════════════════════════════════════════ -->
 <div class="page-hero page-hero--hof">
 
   <div class="hof-hero__particles" aria-hidden="true">
@@ -68,13 +68,13 @@ $totalInductees = count($allEntries);
   <div class="page-hero__inner wrap">
     <nav class="breadcrumb" aria-label="Breadcrumb">
       <a href="<?php echo BASE_PATH; ?>index.php">Home</a>
-      <span class="breadcrumb__sep" aria-hidden="true">â€º</span>
+      <span class="breadcrumb__sep" aria-hidden="true">›</span>
       <a href="<?php echo BASE_PATH; ?>students.php">Students</a>
-      <span class="breadcrumb__sep" aria-hidden="true">â€º</span>
+      <span class="breadcrumb__sep" aria-hidden="true">›</span>
       <span style="color:rgba(255,255,255,.85)">Hall of Fame</span>
     </nav>
 
-    <div class="hof-hero__emblem" aria-hidden="true">ðŸ†</div>
+    <div class="hof-hero__emblem" aria-hidden="true">🏆</div>
 
     <h1>The Ibeku High School<br/><em>Hall of Fame</em></h1>
     <p>Celebrating the outstanding students, alumni, athletes, scholars, and leaders who have brought glory to Ibeku High School across the generations.</p>
@@ -102,9 +102,9 @@ $totalInductees = count($allEntries);
 </div>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-     PAGE ANCHOR NAV â€” GOLD THEMED
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ═══════════════════════════════════════════
+     PAGE ANCHOR NAV — GOLD THEMED
+     ═══════════════════════════════════════════ -->
 <div class="page-anchors page-anchors--hof">
   <div class="page-anchors__inner wrap">
     <a href="#featured"  class="page-anchor active">Distinguished Alumni</a>
@@ -117,9 +117,9 @@ $totalInductees = count($allEntries);
 </div>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-     DISTINGUISHED ALUMNI â€” from hall_of_fame table
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ═══════════════════════════════════════════
+     DISTINGUISHED ALUMNI — from hall_of_fame table
+     ═══════════════════════════════════════════ -->
 <section class="featured-section" id="featured">
   <div class="featured-section__inner wrap">
 
@@ -128,7 +128,7 @@ $totalInductees = count($allEntries);
       Our Most <span style="color:var(--gold)">Distinguished</span> Alumni
     </h2>
     <p style="color:rgba(255,255,255,.7);max-width:600px;line-height:1.8;margin-top:10px">
-      These individuals have gone on to shape Nigeria and the world â€” and they all started their journey at Ibeku High School, Umuahia.
+      These individuals have gone on to shape Nigeria and the world — and they all started their journey at Ibeku High School, Umuahia.
     </p>
 
     <?php if (empty($byCategory['alumni'])): ?>
@@ -139,7 +139,7 @@ $totalInductees = count($allEntries);
     <div class="featured-grid">
       <?php foreach ($byCategory['alumni'] as $e): ?>
       <div class="featured-card reveal">
-        <span class="featured-card__crown" aria-hidden="true">ðŸ‘‘</span>
+        <span class="featured-card__crown" aria-hidden="true">👑</span>
         <div class="featured-card__photo">
           <?php if (!empty($e['photo'])): ?>
           <img src="<?php echo BASE_PATH; ?>assets/images/staff/<?php echo htmlspecialchars($e['photo']); ?>"
@@ -171,9 +171,9 @@ $totalInductees = count($allEntries);
 </section>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-     ACADEMIC STARS â€” from hall_of_fame table
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ═══════════════════════════════════════════
+     ACADEMIC STARS — from hall_of_fame table
+     ═══════════════════════════════════════════ -->
 <section class="academic-stars-section" id="academics">
   <div class="academic-stars-section__inner wrap">
 
@@ -187,7 +187,7 @@ $totalInductees = count($allEntries);
 
     <?php
     $medalTops = ['star-card__top--gold','star-card__top--silver','star-card__top--bronze','star-card__top--blue'];
-    $medals    = ['ðŸ¥‡','ðŸ¥ˆ','ðŸ¥‰','â­'];
+    $medals    = ['🥇','🥈','🥉','⭐'];
     ?>
 
     <?php if (empty($byCategory['academic'])): ?>
@@ -235,9 +235,9 @@ $totalInductees = count($allEntries);
 </section>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-     SPORTS CHAMPIONS â€” from hall_of_fame table
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ═══════════════════════════════════════════
+     SPORTS CHAMPIONS — from hall_of_fame table
+     ═══════════════════════════════════════════ -->
 <section class="sports-section" id="sports">
   <div class="sports-section__inner wrap">
 
@@ -256,7 +256,7 @@ $totalInductees = count($allEntries);
       <?php foreach ($byCategory['sports'] as $e): ?>
       <div class="sports-card reveal">
         <span class="sports-card__icon" aria-hidden="true">
-          <?php echo !empty($e['field']) ? htmlspecialchars($e['field']) : 'ðŸ†'; ?>
+          <?php echo !empty($e['field']) ? htmlspecialchars($e['field']) : '🏆'; ?>
         </span>
         <h3><?php echo htmlspecialchars($e['full_name']); ?></h3>
         <?php if ($e['class_year']): ?>
@@ -272,9 +272,9 @@ $totalInductees = count($allEntries);
 </section>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-     HEAD PREFECTS HALL â€” from hall_of_fame table
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ═══════════════════════════════════════════
+     HEAD PREFECTS HALL — from hall_of_fame table
+     ═══════════════════════════════════════════ -->
 <section class="prefects-section" id="prefects">
   <div class="prefects-section__inner wrap">
 
@@ -282,7 +282,7 @@ $totalInductees = count($allEntries);
       <div>
         <span class="slabel">Student Leadership</span>
         <h2 class="stitle">Head Prefects <span>Hall of Fame</span></h2>
-        <p class="ssub">The students who served Ibeku High School as Head Prefect â€” the highest student leadership position in the school.</p>
+        <p class="ssub">The students who served Ibeku High School as Head Prefect — the highest student leadership position in the school.</p>
       </div>
     </div>
 
@@ -313,7 +313,7 @@ $totalInductees = count($allEntries);
         <?php if ($e['class_year']): ?>
         <span>Class of <?php echo htmlspecialchars($e['class_year']); ?></span>
         <?php endif; ?>
-        <div class="prefect-badge">ðŸŽ–ï¸ Head Prefect</div>
+        <div class="prefect-badge">🎖️ Head Prefect</div>
       </div>
       <?php endforeach; ?>
     </div>
@@ -323,9 +323,9 @@ $totalInductees = count($allEntries);
 </section>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-     ALUMNI WALL â€” from alumni table
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ═══════════════════════════════════════════
+     ALUMNI WALL — from alumni table
+     ═══════════════════════════════════════════ -->
 <section class="alumni-wall-section" id="alumni">
   <div class="alumni-wall-section__inner wrap">
 
@@ -333,7 +333,7 @@ $totalInductees = count($allEntries);
       <div>
         <span class="slabel">Our Community</span>
         <h2 class="stitle">The IHS <span>Alumni Wall</span></h2>
-        <p class="ssub">A growing directory of proud Ibeku High School alumni â€” wherever you are in the world, Ibeku is always home.</p>
+        <p class="ssub">A growing directory of proud Ibeku High School alumni — wherever you are in the world, Ibeku is always home.</p>
       </div>
     </div>
 
@@ -385,7 +385,7 @@ $totalInductees = count($allEntries);
 
     <div class="alumni-wall-section__cta">
       <a href="#nominate" class="btn btn--secondary">
-        Are you an IHS Alumnus? Register Here â†’
+        Are you an IHS Alumnus? Register Here →
       </a>
     </div>
 
@@ -393,9 +393,9 @@ $totalInductees = count($allEntries);
 </section>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-     NOMINATION FORM â€” posts to API
-     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ═══════════════════════════════════════════
+     NOMINATION FORM — posts to API
+     ═══════════════════════════════════════════ -->
 <section class="nominate-section" id="nominate">
   <div class="nominate-section__inner">
 
@@ -403,9 +403,9 @@ $totalInductees = count($allEntries);
     <h2>Nominate Someone for the<br/><em>Hall of Fame</em></h2>
     <p>Know a distinguished IHS alumnus, a remarkable student, or a legendary teacher who deserves recognition? Submit a nomination and help us honour the people who have made Ibeku High School great.</p>
 
-    <!-- Success message â€” shown by JS after submit -->
+    <!-- Success message — shown by JS after submit -->
     <div id="nomSuccess" style="display:none;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:20px 24px;margin-bottom:20px;color:#fff;text-align:center">
-      <div style="font-size:28px;margin-bottom:8px">ðŸ†</div>
+      <div style="font-size:28px;margin-bottom:8px">🏆</div>
       <strong style="font-size:16px">Nomination Received!</strong>
       <p style="margin-top:8px;color:rgba(255,255,255,.8);font-size:13.5px" id="nomSuccessMsg">
         Thank you! Your nomination has been received and will be reviewed by the Hall of Fame committee.
@@ -414,7 +414,7 @@ $totalInductees = count($allEntries);
 
     <div class="nominate-form" id="nomFormWrapper">
 
-      <!-- Honeypot field â€” hidden from real users, catches bots -->
+      <!-- Honeypot field — hidden from real users, catches bots -->
       <input type="text" name="website" style="display:none" tabindex="-1" autocomplete="off"/>
 
       <div class="form-row">
@@ -463,7 +463,7 @@ $totalInductees = count($allEntries);
       </div>
 
       <button class="btn--nominate" id="nomBtn" onclick="submitNomination()">
-        Submit Nomination ðŸ†
+        Submit Nomination 🏆
       </button>
 
       <div id="nomError" style="display:none;margin-top:12px;background:rgba(204,51,51,.2);border:1px solid rgba(204,51,51,.4);border-radius:8px;padding:10px 14px;color:#ffaaaa;font-size:13px"></div>
@@ -478,7 +478,7 @@ $totalInductees = count($allEntries);
 
 
 <script>
-/* â”€â”€ Alumni wall field filter â”€â”€ */
+/* ── Alumni wall field filter ── */
 (function () {
   var filterBtns = document.querySelectorAll('.alumni-filter-btn');
   if (!filterBtns.length) return;
@@ -501,7 +501,7 @@ $totalInductees = count($allEntries);
 }());
 
 
-/* â”€â”€ Nomination form submission â”€â”€ */
+/* ── Nomination form submission ── */
 function submitNomination() {
   var nomYourName  = document.getElementById('nomYourName').value.trim();
   var nomEmail     = document.getElementById('nomEmail').value.trim();
@@ -529,7 +529,7 @@ function submitNomination() {
   formData.append('reason',            nomReason);
   formData.append('website',           ''); /* honeypot */
 
-  btn.textContent = 'Submittingâ€¦';
+  btn.textContent = 'Submitting…';
   btn.disabled    = true;
 
   fetch('<?php echo API_PATH; ?>submit_nomination.php', {
@@ -546,12 +546,12 @@ function submitNomination() {
         var first = Object.values(data.errors)[0];
         errorEl.textContent = first;
         errorEl.style.display = 'block';
-        btn.textContent = 'Submit Nomination ðŸ†';
+        btn.textContent = 'Submit Nomination 🏆';
         btn.disabled = false;
       } else {
         errorEl.textContent = data.message || 'Something went wrong. Please try again.';
         errorEl.style.display = 'block';
-        btn.textContent = 'Submit Nomination ðŸ†';
+        btn.textContent = 'Submit Nomination 🏆';
         btn.disabled = false;
       }
     })
@@ -559,9 +559,8 @@ function submitNomination() {
       console.error('Nomination error:', err);
       errorEl.textContent = 'A connection error occurred. Please try again.';
       errorEl.style.display = 'block';
-      btn.textContent = 'Submit Nomination ðŸ†';
+      btn.textContent = 'Submit Nomination 🏆';
       btn.disabled = false;
     });
 }
 </script>
-
