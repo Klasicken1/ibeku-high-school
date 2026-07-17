@@ -113,26 +113,40 @@ try {
         $entryClassNormalised, $session, $previousSchool ?: null, $message ?: null,
     ]);
 
-    /* ── Email notification — best effort, never blocks success ── */
-    $mailTo      = $_ENV['MAIL_FROM'] ?? 'admissions@ibekuhighschool.edu.ng';
-    $mailSubject = 'New Admissions Enquiry: ' . $studentFirst . ' ' . $studentLast;
-    $mailBody    = "New admissions enquiry from the school website:\n\n"
-                 . "── Parent / Guardian ──\n"
-                 . "Name: {$parentFirst} {$parentLast}\n"
-                 . "Email: {$parentEmail}\n"
-                 . "Phone: {$parentPhone}\n\n"
-                 . "── Student ──\n"
-                 . "Name: {$studentFirst} {$studentLast}\n"
-                 . "Entry Level: {$entryClassNormalised}\n"
-                 . "Session: {$session}\n"
-                 . "Previous School: " . ($previousSchool ?: 'Not provided') . "\n\n"
-                 . "Message:\n" . ($message ?: 'None provided') . "\n";
-    $mailHeaders = "From: " . ($_ENV['MAIL_FROM_NAME'] ?? 'Ibeku High School')
-                 . " <" . ($_ENV['MAIL_FROM'] ?? 'noreply@ibekuhighschool.edu.ng') . ">\r\n"
-                 . "Reply-To: {$parentEmail}\r\n";
+    /* ── Email notification — best effort, never blocks success ──
+       PHP's mail() has no SMTP-auth concept, so gating on
+       $_ENV['MAIL_USER'] (unused by mail() anyway) meant this
+       never actually fired. cPanel shared hosting has a working
+       local mail transport out of the box — no SMTP credentials
+       needed — so this now fires on production and is skipped on
+       localhost (no MTA configured there, and attempting it can
+       hang or throw warnings on XAMPP). Failures are logged but
+       never block the success response, since the enquiry is
+       already safely saved in the DB either way. */
+    $isLocalEnv = ($_SERVER['HTTP_HOST'] ?? '') === 'localhost';
 
-    if (!empty($_ENV['MAIL_USER'])) {
-        @mail($mailTo, $mailSubject, $mailBody, $mailHeaders);
+    if (!$isLocalEnv) {
+        $mailTo      = $_ENV['MAIL_FROM'] ?? 'admissions@ibekuhighschool.edu.ng';
+        $mailSubject = 'New Admissions Enquiry: ' . $studentFirst . ' ' . $studentLast;
+        $mailBody    = "New admissions enquiry from the school website:\n\n"
+                     . "── Parent / Guardian ──\n"
+                     . "Name: {$parentFirst} {$parentLast}\n"
+                     . "Email: {$parentEmail}\n"
+                     . "Phone: {$parentPhone}\n\n"
+                     . "── Student ──\n"
+                     . "Name: {$studentFirst} {$studentLast}\n"
+                     . "Entry Level: {$entryClassNormalised}\n"
+                     . "Session: {$session}\n"
+                     . "Previous School: " . ($previousSchool ?: 'Not provided') . "\n\n"
+                     . "Message:\n" . ($message ?: 'None provided') . "\n";
+        $mailHeaders = "From: " . ($_ENV['MAIL_FROM_NAME'] ?? 'Ibeku High School')
+                     . " <" . ($_ENV['MAIL_FROM'] ?? 'noreply@ibekuhighschool.edu.ng') . ">\r\n"
+                     . "Reply-To: {$parentEmail}\r\n";
+
+        $mailSent = @mail($mailTo, $mailSubject, $mailBody, $mailHeaders);
+        if (!$mailSent) {
+            error_log('IHS submit_admission: mail() returned false for ' . $mailTo);
+        }
     }
 
     echo json_encode([

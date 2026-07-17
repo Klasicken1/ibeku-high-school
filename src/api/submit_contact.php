@@ -77,24 +77,34 @@ try {
     $stmt->execute([$firstName, $lastName, $email, $phone ?: null, $subject, $message]);
 
     /* ── Email notification — best effort, never blocks success ──
-       Phase 2 note: MAIL_USER/MAIL_PASS are empty in .env until SMTP
-       is configured. mail() will silently fail on most local XAMPP
-       setups anyway. We attempt it, log failures, but always return
-       success to the user since the message IS safely saved in the DB. */
-    $mailTo      = $_ENV['MAIL_FROM'] ?? 'info@ibekuhighschool.edu.ng';
-    $mailSubject = 'New Contact Message: ' . $subject;
-    $mailBody    = "New message from the school website contact form:\n\n"
-                 . "Name: {$firstName} {$lastName}\n"
-                 . "Email: {$email}\n"
-                 . "Phone: " . ($phone ?: 'Not provided') . "\n"
-                 . "Subject: {$subject}\n\n"
-                 . "Message:\n{$message}\n";
-    $mailHeaders = "From: " . ($_ENV['MAIL_FROM_NAME'] ?? 'Ibeku High School')
-                 . " <" . ($_ENV['MAIL_FROM'] ?? 'noreply@ibekuhighschool.edu.ng') . ">\r\n"
-                 . "Reply-To: {$email}\r\n";
+       PHP's mail() has no SMTP-auth concept, so gating on
+       $_ENV['MAIL_USER'] (unused by mail() anyway) meant this
+       never actually fired. cPanel shared hosting has a working
+       local mail transport out of the box — no SMTP credentials
+       needed — so this now fires on production and is skipped on
+       localhost (no MTA configured there, and attempting it can
+       hang or throw warnings on XAMPP). Failures are logged but
+       never block the success response, since the message is
+       already safely saved in the DB either way. */
+    $isLocalEnv = ($_SERVER['HTTP_HOST'] ?? '') === 'localhost';
 
-    if (!empty($_ENV['MAIL_USER'])) {
-        @mail($mailTo, $mailSubject, $mailBody, $mailHeaders);
+    if (!$isLocalEnv) {
+        $mailTo      = $_ENV['MAIL_FROM'] ?? 'info@ibekuhighschool.edu.ng';
+        $mailSubject = 'New Contact Message: ' . $subject;
+        $mailBody    = "New message from the school website contact form:\n\n"
+                     . "Name: {$firstName} {$lastName}\n"
+                     . "Email: {$email}\n"
+                     . "Phone: " . ($phone ?: 'Not provided') . "\n"
+                     . "Subject: {$subject}\n\n"
+                     . "Message:\n{$message}\n";
+        $mailHeaders = "From: " . ($_ENV['MAIL_FROM_NAME'] ?? 'Ibeku High School')
+                     . " <" . ($_ENV['MAIL_FROM'] ?? 'noreply@ibekuhighschool.edu.ng') . ">\r\n"
+                     . "Reply-To: {$email}\r\n";
+
+        $mailSent = @mail($mailTo, $mailSubject, $mailBody, $mailHeaders);
+        if (!$mailSent) {
+            error_log('IHS submit_contact: mail() returned false for ' . $mailTo);
+        }
     }
 
     echo json_encode([

@@ -5,12 +5,17 @@
 
    Accepts POST from the public review form (any public page).
    Validates input, generates a verification token, saves the
-   review as unverified, and returns a verification link for
-   the user to confirm their submission.
+   review as unverified, and:
+     - emails the verification link to the reviewer on production
+       (see mail() note below — this previously never fired)
+     - always returns the link in the JSON response too, so the
+       page can show a "confirm" step inline and localhost testing
+       still works without any mail setup
 
-   On cPanel without email, we return the token link in the
-   JSON response and the public page shows it as a "confirm"
-   step — no email infrastructure needed.
+   Without the email, a reviewer who closed their browser before
+   clicking the on-screen link had no way to ever verify their
+   review — it would sit in 'pending' forever with no recovery
+   path. The email is the actual persistent copy of that link.
    ============================================================ */
 
 declare(strict_types=1);
@@ -84,13 +89,36 @@ try {
     ]);
 
     /* Build verification URL */
-    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    $host     = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    $base     = $host === 'localhost'
+    $protocol   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host       = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $isLocalEnv = $host === 'localhost';
+    $base       = $isLocalEnv
         ? $protocol . '://' . $host . '/ibeku-high-school/public/'
         : $protocol . '://' . $host . '/';
 
     $verifyUrl = $base . 'verify-review.php?token=' . urlencode($token);
+
+    /* ── Email the verification link — best effort, never blocks
+       success. Same production-only gating as submit_contact.php
+       and submit_admission.php: PHP's mail() needs no SMTP
+       credentials on cPanel, and attempting it on localhost (no
+       MTA configured) can hang or throw warnings. ── */
+    if (!$isLocalEnv) {
+        $mailTo      = $email;
+        $mailSubject = 'Please confirm your review — Ibeku High School';
+        $mailBody    = "Hi {$name},\n\n"
+                     . "Thank you for sharing your feedback about Ibeku High School. "
+                     . "To publish your review, please confirm it by clicking the link below:\n\n"
+                     . "{$verifyUrl}\n\n"
+                     . "If you didn't submit this review, you can safely ignore this email.\n";
+        $mailHeaders = "From: " . ($_ENV['MAIL_FROM_NAME'] ?? 'Ibeku High School')
+                     . " <" . ($_ENV['MAIL_FROM'] ?? 'noreply@ibekuhighschool.edu.ng') . ">\r\n";
+
+        $mailSent = @mail($mailTo, $mailSubject, $mailBody, $mailHeaders);
+        if (!$mailSent) {
+            error_log('IHS submit_review: verification mail() returned false for ' . $mailTo);
+        }
+    }
 
     echo json_encode([
         'success'    => true,

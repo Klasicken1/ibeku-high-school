@@ -1,0 +1,59 @@
+<?php
+/* ============================================================
+   IBEKU HIGH SCHOOL — VAPID KEYS FOR WEB PUSH (EXAMPLE)
+   File: src/config/vapid.php.example
+
+   This is a TEMPLATE — copy it to vapid.php and fill in real
+   keys. vapid.php itself should stay gitignored and never be
+   committed with real values, since anyone with these keys
+   could send push notifications impersonating this server to
+   every subscribed browser.
+
+   HOW TO GENERATE YOUR OWN KEYS:
+   Run this once (requires OpenSSL, no Composer needed):
+
+     php -r "
+       \$key = openssl_pkey_new(['curve_name' => 'prime256v1', 'private_key_type' => OPENSSL_KEYTYPE_EC]);
+       \$details = openssl_pkey_get_details(\$key);
+       \$pub = \$details['ec']['x'] . \$details['ec']['y'];
+       function b64url(\$d) { return rtrim(strtr(base64_encode(\$d), '+/', '-_'), '='); }
+       echo 'PUBLIC:  ' . b64url(\"\x04\" . \$details['ec']['x'] . \$details['ec']['y']) . PHP_EOL;
+       openssl_pkey_export(\$key, \$pem);
+       preg_match('/-----BEGIN EC PRIVATE KEY-----(.*)-----END EC PRIVATE KEY-----/s', \$pem, \$m);
+       \$der = base64_decode(trim(\$m[1]));
+       echo 'PRIVATE: ' . b64url(substr(\$der, 7, 32)) . PHP_EOL;
+     "
+
+   Or generate them via any standard VAPID key generator and
+   paste the base64url-encoded public/private keys below.
+
+   These keys identify this server when sending Web Push
+   notifications. Generated once and never changed afterward —
+   changing them invalidates every existing browser subscription
+   (staff, students, and corps members would all need to
+   re-enable notifications).
+
+   SECURITY:
+   - vapid.php lives outside public/ — not web-accessible.
+   - Never commit vapid.php (the real file, not this .example)
+     to the repository. Confirm it's listed in .gitignore.
+   - On cPanel production, you can override these via .env
+     environment variables (VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY,
+     VAPID_SUBJECT) if your host supports it. Otherwise the
+     fallback constants below are used.
+   ============================================================ */
+
+define('VAPID_PUBLIC_KEY',
+    getenv('VAPID_PUBLIC_KEY') ?:
+    'REPLACE_WITH_YOUR_PUBLIC_KEY'
+);
+
+define('VAPID_PRIVATE_KEY',
+    getenv('VAPID_PRIVATE_KEY') ?:
+    'REPLACE_WITH_YOUR_PRIVATE_KEY'
+);
+
+define('VAPID_SUBJECT',
+    getenv('VAPID_SUBJECT') ?:
+    'mailto:you@example.com'
+);
