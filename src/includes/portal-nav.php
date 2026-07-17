@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /* ============================================================
    IBEKU HIGH SCHOOL — STUDENT PORTAL NAVIGATION
    File: src/includes/portal-nav.php
