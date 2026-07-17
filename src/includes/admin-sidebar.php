@@ -38,6 +38,7 @@ function renderAdminSidebar(array $admin, string $currentPage = ''): void {
         ['events-create',      'events-create.php',       '➕', 'Create Event',         ['superadmin', 'principal', 'vp_general', 'dean']],
 
         ['gallery',            'gallery.php',             '🖼️', 'Gallery',              null],
+        ['hero-images',        'hero-images.php',         '🌅', 'Hero Images',          ['superadmin', 'principal', 'vp_general']],
         ['gallery-upload',     'gallery-upload.php',      '📷', 'Upload Photos',        ['superadmin', 'principal', 'vp_general']],
 
         ['students',           'students.php',            '🎒', 'Students',             ['superadmin', 'principal', 'vp_admin', 'form_teacher']],

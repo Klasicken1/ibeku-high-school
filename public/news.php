@@ -92,7 +92,7 @@ $announcements = [
 <!-- ═══════════════════════════════════════════
      PAGE HERO
      ═══════════════════════════════════════════ -->
-<div class="page-hero page-hero--news">
+<div class="page-hero page-hero--news<?php echo getInnerHeroImage('news') ? ' page-hero--photo' : ''; ?>"<?php echo renderInnerHeroStyle('news'); ?>>
   <div class="page-hero__inner wrap">
     <nav class="breadcrumb" aria-label="Breadcrumb">
       <a href="<?php echo BASE_PATH; ?>index.php">Home</a>

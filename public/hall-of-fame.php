@@ -54,7 +54,7 @@ $totalInductees = count($allEntries);
 <!-- ═══════════════════════════════════════════
      PAGE HERO — GOLD THEMED
      ═══════════════════════════════════════════ -->
-<div class="page-hero page-hero--hof">
+<div class="page-hero page-hero--hof<?php echo getInnerHeroImage('hall_of_fame') ? ' page-hero--photo' : ''; ?>"<?php echo renderInnerHeroStyle('hall_of_fame'); ?>>
 
   <div class="hof-hero__particles" aria-hidden="true">
     <span class="hof-hero__particle"></span>

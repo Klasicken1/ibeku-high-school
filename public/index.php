@@ -38,60 +38,102 @@ $relationshipLabels = [
     'staff'   => 'Staff Member',
     'visitor' => 'Visitor',
 ];
+
+/* ── Hero slides — admin-managed via admin/hero-images.php.
+   Falls back to 3 built-in default slides (no photo, gradient
+   background) if none have been added yet. ── */
+$dbHeroSlides = $pdo->query(
+    'SELECT * FROM hero_slides WHERE is_active = 1 ORDER BY sort_order ASC'
+)->fetchAll();
+
+if (!empty($dbHeroSlides)) {
+    $heroSlides = array_map(function ($s) {
+        return [
+            'image'          => $s['image'],
+            'badge_text'     => $s['badge_text'],
+            'heading'        => $s['heading'],
+            'heading_is_html' => false, // admin-entered plain text — must be escaped
+            'description'    => $s['description'],
+            'cta1_text'      => $s['cta1_text'],
+            'cta1_url'       => $s['cta1_url'],
+            'cta2_text'      => $s['cta2_text'],
+            'cta2_url'       => $s['cta2_url'],
+        ];
+    }, $dbHeroSlides);
+} else {
+    // Hardcoded defaults only — safe to allow <br/>/<em> since this
+    // markup is written here, not sourced from user/admin input.
+    $heroSlides = [
+        [
+            'image' => null, 'badge_text' => '⭐ Est. 1954 · Government Secondary School · Umuahia',
+            'heading' => 'Shaping Minds.<br/>Building <em>Character.</em><br/>Raising Leaders.', 'heading_is_html' => true,
+            'description' => 'Ibeku High School — where academic excellence and strong values have been forged together for over 70 years in Umuahia, Abia State.',
+            'cta1_text' => 'Apply for Admission', 'cta1_url' => 'admissions.php',
+            'cta2_text' => 'Check Results Online', 'cta2_url' => 'results.php',
+        ],
+        [
+            'image' => null, 'badge_text' => '📚 Academic Excellence · WAEC · NECO · University Admissions',
+            'heading' => 'Consistently <em>Outstanding</em><br/>Examination Results.', 'heading_is_html' => true,
+            'description' => 'Our students achieve top WAEC and NECO results year after year, securing admission to the best universities in Nigeria and beyond.',
+            'cta1_text' => 'Explore Academics', 'cta1_url' => 'academics.php',
+            'cta2_text' => 'Learn More About Us', 'cta2_url' => 'about.php',
+        ],
+        [
+            'image' => null, 'badge_text' => '🏆 Sports · Clubs · Competitions · ICT · Culture',
+            'heading' => 'Life Beyond the <em>Classroom</em><br/>at Ibeku High.', 'heading_is_html' => true,
+            'description' => '15+ active clubs, a modern computer lab, sports teams, cultural events — we develop every dimension of every student.',
+            'cta1_text' => 'Join Our School', 'cta1_url' => 'admissions.php',
+            'cta2_text' => 'Contact the School', 'cta2_url' => 'contact.php',
+        ],
+    ];
+}
 ?>
 
 
 <!-- ═══════════════════════════════════════════
-     HERO CAROUSEL
+     HERO CAROUSEL — admin-managed, falls back to
+     3 default slides above if none uploaded yet
      ═══════════════════════════════════════════ -->
 <section class="hero" id="home" aria-label="School highlights">
 
-  <div class="hero__slide hero__slide--1 active" aria-hidden="false">
+  <?php foreach ($heroSlides as $i => $slide):
+    $isFirst        = $i === 0;
+    $gradientClass  = 'hero__slide--' . (($i % 3) + 1); // cycles for default/no-photo slides
+  ?>
+  <div class="hero__slide <?php echo $slide['image'] ? '' : $gradientClass; ?> <?php echo $isFirst ? 'active' : ''; ?>"
+       aria-hidden="<?php echo $isFirst ? 'false' : 'true'; ?>">
+    <?php if ($slide['image']): ?>
+    <img class="hero__bg" src="<?php echo BASE_PATH; ?>assets/images/hero/<?php echo htmlspecialchars($slide['image']); ?>" alt=""/>
+    <?php endif; ?>
     <div class="hero__overlay"></div>
     <div class="hero__dots" aria-hidden="true"></div>
     <div class="hero__content">
-      <div class="hero__badge">⭐ Est. 1954 · Government Secondary School · Umuahia</div>
-      <h1>Shaping Minds.<br/>Building <em>Character.</em><br/>Raising Leaders.</h1>
-      <p>Ibeku High School — where academic excellence and strong values have been forged together for over 70 years in Umuahia, Abia State.</p>
+      <?php if (!empty($slide['badge_text'])): ?>
+      <div class="hero__badge"><?php echo htmlspecialchars($slide['badge_text']); ?></div>
+      <?php endif; ?>
+      <h1><?php echo $slide['heading_is_html'] ? $slide['heading'] : nl2br(htmlspecialchars($slide['heading'])); ?></h1>
+      <?php if (!empty($slide['description'])): ?>
+      <p><?php echo htmlspecialchars($slide['description']); ?></p>
+      <?php endif; ?>
+      <?php if (!empty($slide['cta1_text']) || !empty($slide['cta2_text'])): ?>
       <div class="hero__btns">
-        <a href="<?php echo BASE_PATH; ?>admissions.php" class="btn btn--primary btn--lg">Apply for Admission</a>
-        <a href="<?php echo BASE_PATH; ?>results.php"    class="btn btn--outline btn--lg">Check Results Online</a>
+        <?php if (!empty($slide['cta1_text'])): ?>
+        <a href="<?php echo htmlspecialchars($slide['cta1_url'] ?: '#'); ?>" class="btn btn--primary btn--lg"><?php echo htmlspecialchars($slide['cta1_text']); ?></a>
+        <?php endif; ?>
+        <?php if (!empty($slide['cta2_text'])): ?>
+        <a href="<?php echo htmlspecialchars($slide['cta2_url'] ?: '#'); ?>" class="btn btn--outline btn--lg"><?php echo htmlspecialchars($slide['cta2_text']); ?></a>
+        <?php endif; ?>
       </div>
+      <?php endif; ?>
     </div>
   </div>
-
-  <div class="hero__slide hero__slide--2" aria-hidden="true">
-    <div class="hero__overlay"></div>
-    <div class="hero__dots" aria-hidden="true"></div>
-    <div class="hero__content">
-      <div class="hero__badge">📚 Academic Excellence · WAEC · NECO · University Admissions</div>
-      <h1>Consistently <em>Outstanding</em><br/>Examination Results.</h1>
-      <p>Our students achieve top WAEC and NECO results year after year, securing admission to the best universities in Nigeria and beyond.</p>
-      <div class="hero__btns">
-        <a href="<?php echo BASE_PATH; ?>academics.php" class="btn btn--primary btn--lg">Explore Academics</a>
-        <a href="<?php echo BASE_PATH; ?>about.php"     class="btn btn--outline btn--lg">Learn More About Us</a>
-      </div>
-    </div>
-  </div>
-
-  <div class="hero__slide hero__slide--3" aria-hidden="true">
-    <div class="hero__overlay"></div>
-    <div class="hero__dots" aria-hidden="true"></div>
-    <div class="hero__content">
-      <div class="hero__badge">🏆 Sports · Clubs · Competitions · ICT · Culture</div>
-      <h1>Life Beyond the <em>Classroom</em><br/>at Ibeku High.</h1>
-      <p>15+ active clubs, a modern computer lab, sports teams, cultural events — we develop every dimension of every student.</p>
-      <div class="hero__btns">
-        <a href="<?php echo BASE_PATH; ?>admissions.php" class="btn btn--primary btn--lg">Join Our School</a>
-        <a href="<?php echo BASE_PATH; ?>contact.php"    class="btn btn--outline btn--lg">Contact the School</a>
-      </div>
-    </div>
-  </div>
+  <?php endforeach; ?>
 
   <div class="hero__dots-nav" role="tablist" aria-label="Carousel navigation">
-    <button class="hero__dot active" data-slide="0" role="tab" aria-selected="true"  aria-label="Slide 1"></button>
-    <button class="hero__dot"        data-slide="1" role="tab" aria-selected="false" aria-label="Slide 2"></button>
-    <button class="hero__dot"        data-slide="2" role="tab" aria-selected="false" aria-label="Slide 3"></button>
+    <?php foreach ($heroSlides as $i => $slide): ?>
+    <button class="hero__dot <?php echo $i === 0 ? 'active' : ''; ?>" data-slide="<?php echo $i; ?>"
+            role="tab" aria-selected="<?php echo $i === 0 ? 'true' : 'false'; ?>" aria-label="Slide <?php echo $i + 1; ?>"></button>
+    <?php endforeach; ?>
   </div>
 
 </section>

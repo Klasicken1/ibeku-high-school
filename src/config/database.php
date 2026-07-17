@@ -147,3 +147,39 @@ function calculateGrade(float $total): array {
 function esc(string $value): string {
     return htmlspecialchars($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 }
+/* ── Inner-page hero background images ──
+   Stored as one JSON-encoded value under the settings key
+   'hero_images_inner', keyed by page: about, academics, students,
+   admissions, contact, hall_of_fame, news, events, gallery,
+   results, corps. Managed via admin/hero-images.php.
+   ============================================================ */
+function getInnerHeroImages(): array {
+    $settings = getSettings();
+    $raw = $settings['hero_images_inner'] ?? '';
+    if ($raw === '') return [];
+    $decoded = json_decode($raw, true);
+    return is_array($decoded) ? $decoded : [];
+}
+
+function getInnerHeroImage(string $pageKey): ?string {
+    $images = getInnerHeroImages();
+    return $images[$pageKey] ?? null;
+}
+
+/**
+ * Returns a ready-to-echo inline style attribute setting the
+ * background-image for a page-hero, or an empty string if no
+ * image has been uploaded for that page. Pair with the
+ * page-hero--photo modifier class (see style.css) which adds
+ * the dark overlay needed for text readability over a photo:
+ *
+ *   <div class="page-hero page-hero--about
+ *               <?php echo getInnerHeroImage('about') ? 'page-hero--photo' : ''; ?>"
+ *        <?php echo renderInnerHeroStyle('about'); ?>>
+ */
+function renderInnerHeroStyle(string $pageKey): string {
+    $image = getInnerHeroImage($pageKey);
+    if (!$image) return '';
+    $url = BASE_PATH . 'assets/images/hero/' . rawurlencode($image);
+    return ' style="background-image:url(\'' . htmlspecialchars($url, ENT_QUOTES) . '\')"';
+}

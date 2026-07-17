@@ -64,7 +64,7 @@ $scholarshipsToShow = !empty($scholarshipsFromDB) ? $scholarshipsFromDB : $defau
 <!-- ═══════════════════════════════════════════
      PAGE HERO
      ═══════════════════════════════════════════ -->
-<div class="page-hero page-hero--students">
+<div class="page-hero page-hero--students<?php echo getInnerHeroImage('students') ? ' page-hero--photo' : ''; ?>"<?php echo renderInnerHeroStyle('students'); ?>>
   <div class="page-hero__inner wrap">
     <nav class="breadcrumb" aria-label="Breadcrumb">
       <a href="<?php echo BASE_PATH; ?>index.php">Home</a>

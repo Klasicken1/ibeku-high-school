@@ -67,7 +67,7 @@ $isFromDB    = !empty($photosFromDB);
 <!-- ═══════════════════════════════════════════
      PAGE HERO
      ═══════════════════════════════════════════ -->
-<div class="page-hero page-hero--gallery">
+<div class="page-hero page-hero--gallery<?php echo getInnerHeroImage('gallery') ? ' page-hero--photo' : ''; ?>"<?php echo renderInnerHeroStyle('gallery'); ?>>
   <div class="page-hero__inner wrap">
     <nav class="breadcrumb" aria-label="Breadcrumb">
       <a href="<?php echo BASE_PATH; ?>index.php">Home</a>

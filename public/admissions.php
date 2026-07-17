@@ -40,7 +40,7 @@ endif;
 <!-- ═══════════════════════════════════════════
      PAGE HERO
      ═══════════════════════════════════════════ -->
-<div class="page-hero page-hero--admissions">
+<div class="page-hero page-hero--admissions<?php echo getInnerHeroImage('admissions') ? ' page-hero--photo' : ''; ?>"<?php echo renderInnerHeroStyle('admissions'); ?>>
   <div class="page-hero__inner wrap">
     <nav class="breadcrumb" aria-label="Breadcrumb">
       <a href="<?php echo BASE_PATH; ?>index.php">Home</a>

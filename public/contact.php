@@ -16,7 +16,7 @@ require_once '../src/includes/header.php';
 <!-- ═══════════════════════════════════════════
      PAGE HERO
      ═══════════════════════════════════════════ -->
-<div class="page-hero page-hero--contact">
+<div class="page-hero page-hero--contact<?php echo getInnerHeroImage('contact') ? ' page-hero--photo' : ''; ?>"<?php echo renderInnerHeroStyle('contact'); ?>>
   <div class="page-hero__inner wrap">
     <nav class="breadcrumb" aria-label="Breadcrumb">
       <a href="<?php echo BASE_PATH; ?>index.php">Home</a>

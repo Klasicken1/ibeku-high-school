@@ -26,8 +26,20 @@ $stmt = $pdo->query(
 $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
-<section class="page-hero-section" style="background:linear-gradient(135deg,#3d1a6e,#2a1050);padding:4rem 1.25rem;text-align:center">
-  <div style="max-width:700px;margin:0 auto">
+<?php
+/* Corps page predates the shared .page-hero class system, so the
+   custom photo option is wired in directly here rather than via
+   the page-hero--photo modifier used elsewhere. */
+$corpsHeroImg = getInnerHeroImage('corps');
+$corpsHeroBg  = $corpsHeroImg
+    ? "background-image:url('" . htmlspecialchars(BASE_PATH . 'assets/images/hero/' . rawurlencode($corpsHeroImg), ENT_QUOTES) . "');background-size:cover;background-position:center"
+    : 'background:linear-gradient(135deg,#3d1a6e,#2a1050)';
+?>
+<section class="page-hero-section" style="<?php echo $corpsHeroBg; ?>;padding:4rem 1.25rem;text-align:center;position:relative">
+  <?php if ($corpsHeroImg): ?>
+  <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(61,26,110,.88) 0%,rgba(90,45,158,.8) 55%,rgba(44,111,173,.82) 100%)"></div>
+  <?php endif; ?>
+  <div style="max-width:700px;margin:0 auto;position:relative;z-index:1">
     <span style="display:inline-block;background:#e8a020;color:#fff;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:4px 14px;border-radius:20px;margin-bottom:1rem">NYSC</span>
     <h1 style="font-family:'Playfair Display',serif;font-size:2.2rem;color:#fff;margin-bottom:.75rem">Corps Members</h1>
     <p style="font-size:1rem;color:rgba(255,255,255,.75)">
