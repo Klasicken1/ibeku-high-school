@@ -14,3 +14,51 @@
 
 # Custom 404 error page
 ErrorDocument 404 /404.php
+
+
+# ============================================================
+# HTTPS ENFORCEMENT
+# Skipped on localhost — XAMPP dev runs over plain HTTP, and
+# forcing HTTPS there would break local testing entirely.
+# On production (cPanel), this redirects any http:// request
+# to https://, permanently (301).
+# ============================================================
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  RewriteCond %{HTTP_HOST} !^localhost$ [NC]
+  RewriteCond %{HTTPS} off
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+
+# ============================================================
+# SECURITY HEADERS
+# Conservative choices — kept loose enough not to break
+# Google Fonts, TinyMCE-authored news content, the PWA
+# manifest/service worker, or inline styles already used
+# throughout the site's PHP templates.
+# ============================================================
+<IfModule mod_headers.c>
+
+  # Prevents browsers from guessing content types in ways that
+  # can be abused for XSS (e.g. treating an uploaded file as
+  # executable script based on sniffed content rather than its
+  # declared Content-Type).
+  Header always set X-Content-Type-Options "nosniff"
+
+  # Blocks the site from being embedded in an <iframe> on another
+  # domain — the standard clickjacking defense. SAMEORIGIN (not
+  # DENY) so the site can still frame its own pages if ever needed.
+  Header always set X-Frame-Options "SAMEORIGIN"
+
+  # Limits how much of the current page's URL is sent as the
+  # Referer header when a visitor clicks a link to another site —
+  # full URL on same-origin navigation, origin-only cross-origin.
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+  # Disables a handful of browser features the site never uses,
+  # reducing what a compromised third-party script could abuse.
+  Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+
+</IfModule>
