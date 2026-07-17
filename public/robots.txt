@@ -1,0 +1,21 @@
+# ============================================================
+# IBEKU HIGH SCHOOL — ROBOTS.TXT
+# File: public/robots.txt
+#
+# NOTE: This is a static file — search engines require it at
+# exactly /robots.txt, so it can't be PHP-generated to
+# auto-detect the domain the way sitemap.php does.
+#
+# ON DOMAIN MIGRATION (ibekuhighschool.com → .sch.ng):
+# update the Sitemap line below to the new domain. That's the
+# only change needed here.
+# ============================================================
+
+User-agent: *
+Disallow: /admin/
+Disallow: /portal/
+Disallow: /portal-corps/
+
+Allow: /
+
+Sitemap: https://ibekuhighschool.com/sitemap.php
