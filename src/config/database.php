@@ -151,7 +151,11 @@ function esc(string $value): string {
    Stored as one JSON-encoded value under the settings key
    'hero_images_inner', keyed by page: about, academics, students,
    admissions, contact, hall_of_fame, news, events, gallery,
-   results, corps. Managed via admin/hero-images.php.
+   results, corps. Each entry is either:
+     - a plain string filename (legacy format, defaults to center focal point)
+     - an object {"image": "...", "position": "top center"} (current format,
+       lets an admin choose which part of the photo survives the crop)
+   Managed via admin/hero-images.php.
    ============================================================ */
 function getInnerHeroImages(): array {
     $settings = getSettings();
@@ -161,25 +165,49 @@ function getInnerHeroImages(): array {
     return is_array($decoded) ? $decoded : [];
 }
 
-function getInnerHeroImage(string $pageKey): ?string {
+/* Normalises either storage format into ['image' => ..., 'position' => ...] */
+function getInnerHeroEntry(string $pageKey): ?array {
     $images = getInnerHeroImages();
-    return $images[$pageKey] ?? null;
+    $entry  = $images[$pageKey] ?? null;
+    if (!$entry) return null;
+
+    if (is_string($entry)) {
+        return ['image' => $entry, 'position' => 'center center'];
+    }
+    if (is_array($entry) && !empty($entry['image'])) {
+        return [
+            'image'    => $entry['image'],
+            'position' => $entry['position'] ?? 'center center',
+        ];
+    }
+    return null;
+}
+
+function getInnerHeroImage(string $pageKey): ?string {
+    $entry = getInnerHeroEntry($pageKey);
+    return $entry['image'] ?? null;
+}
+
+function getInnerHeroPosition(string $pageKey): string {
+    $entry = getInnerHeroEntry($pageKey);
+    return $entry['position'] ?? 'center center';
 }
 
 /**
  * Returns a ready-to-echo inline style attribute setting the
- * background-image for a page-hero, or an empty string if no
- * image has been uploaded for that page. Pair with the
- * page-hero--photo modifier class (see style.css) which adds
- * the dark overlay needed for text readability over a photo:
+ * background-image AND background-position for a page-hero, or an
+ * empty string if no image has been uploaded for that page. Pair
+ * with the page-hero--photo modifier class (see style.css) which
+ * adds the dark overlay needed for text readability over a photo:
  *
  *   <div class="page-hero page-hero--about
  *               <?php echo getInnerHeroImage('about') ? 'page-hero--photo' : ''; ?>"
  *        <?php echo renderInnerHeroStyle('about'); ?>>
  */
 function renderInnerHeroStyle(string $pageKey): string {
-    $image = getInnerHeroImage($pageKey);
-    if (!$image) return '';
-    $url = BASE_PATH . 'assets/images/hero/' . rawurlencode($image);
-    return ' style="background-image:url(\'' . htmlspecialchars($url, ENT_QUOTES) . '\')"';
+    $entry = getInnerHeroEntry($pageKey);
+    if (!$entry) return '';
+    $url = BASE_PATH . 'assets/images/hero/' . rawurlencode($entry['image']);
+    $pos = htmlspecialchars($entry['position'], ENT_QUOTES);
+    return ' style="background-image:url(\'' . htmlspecialchars($url, ENT_QUOTES) . '\');background-position:' . $pos . '"';
 }

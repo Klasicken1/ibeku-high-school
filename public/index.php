@@ -100,7 +100,7 @@ if (!empty($dbHeroSlides)) {
     $isFirst        = $i === 0;
     $gradientClass  = 'hero__slide--' . (($i % 3) + 1); // cycles for default/no-photo slides
   ?>
-  <div class="hero__slide <?php echo $slide['image'] ? '' : $gradientClass; ?> <?php echo $isFirst ? 'active' : ''; ?>"
+  <div class="hero__slide <?php echo $gradientClass; ?> <?php echo $isFirst ? 'active' : ''; ?>"
        aria-hidden="<?php echo $isFirst ? 'false' : 'true'; ?>">
     <?php if ($slide['image']): ?>
     <img class="hero__bg" src="<?php echo BASE_PATH; ?>assets/images/hero/<?php echo htmlspecialchars($slide['image']); ?>" alt=""/>

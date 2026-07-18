@@ -52,6 +52,23 @@ $pdo->exec(
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
 );
 
+/* Self-healing column add — same pattern as push_subscriptions.user_id */
+try {
+    $pdo->exec(
+        "ALTER TABLE hero_slides ADD COLUMN focal_position VARCHAR(20) NOT NULL DEFAULT 'center center' AFTER image"
+    );
+} catch (PDOException $e) {
+    /* Column already exists — fine */
+}
+
+/* Valid focal point values — shared by both the homepage slide form
+   and each inner-page card's picker */
+$focalPositions = [
+    'top left', 'top center', 'top right',
+    'center left', 'center center', 'center right',
+    'bottom left', 'bottom center', 'bottom right',
+];
+
 $message     = '';
 $messageType = '';
 
@@ -103,15 +120,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     /* ── Save (add or update) a homepage slide ── */
     if ($action === 'save_slide') {
-        $id          = (int) ($_POST['id'] ?? 0);
-        $badgeText   = trim($_POST['badge_text']  ?? '');
-        $heading     = trim($_POST['heading']     ?? '');
-        $description = trim($_POST['description'] ?? '');
-        $cta1Text    = trim($_POST['cta1_text']   ?? '');
-        $cta1Url     = trim($_POST['cta1_url']    ?? '');
-        $cta2Text    = trim($_POST['cta2_text']   ?? '');
-        $cta2Url     = trim($_POST['cta2_url']    ?? '');
-        $isActive    = isset($_POST['is_active']) ? 1 : 0;
+        $id            = (int) ($_POST['id'] ?? 0);
+        $badgeText     = trim($_POST['badge_text']  ?? '');
+        $heading       = trim($_POST['heading']     ?? '');
+        $description   = trim($_POST['description'] ?? '');
+        $cta1Text      = trim($_POST['cta1_text']   ?? '');
+        $cta1Url       = trim($_POST['cta1_url']    ?? '');
+        $cta2Text      = trim($_POST['cta2_text']   ?? '');
+        $cta2Url       = trim($_POST['cta2_url']    ?? '');
+        $isActive      = isset($_POST['is_active']) ? 1 : 0;
+        $focalPosition = trim($_POST['focal_position'] ?? 'center center');
+        if (!in_array($focalPosition, $focalPositions, true)) {
+            $focalPosition = 'center center';
+        }
 
         if ($heading === '') {
             $message = 'Heading is required.'; $messageType = 'error';
@@ -128,22 +149,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if ($uploadedImage) {
                             $pdo->prepare(
                                 'UPDATE hero_slides SET
-                                    image = ?, badge_text = ?, heading = ?, description = ?,
+                                    image = ?, focal_position = ?, badge_text = ?, heading = ?, description = ?,
                                     cta1_text = ?, cta1_url = ?, cta2_text = ?, cta2_url = ?, is_active = ?
                                  WHERE id = ?'
                             )->execute([
-                                $uploadedImage, $badgeText ?: null, $heading, $description ?: null,
+                                $uploadedImage, $focalPosition, $badgeText ?: null, $heading, $description ?: null,
                                 $cta1Text ?: null, $cta1Url ?: null, $cta2Text ?: null, $cta2Url ?: null,
                                 $isActive, $id,
                             ]);
                         } else {
                             $pdo->prepare(
                                 'UPDATE hero_slides SET
-                                    badge_text = ?, heading = ?, description = ?,
+                                    focal_position = ?, badge_text = ?, heading = ?, description = ?,
                                     cta1_text = ?, cta1_url = ?, cta2_text = ?, cta2_url = ?, is_active = ?
                                  WHERE id = ?'
                             )->execute([
-                                $badgeText ?: null, $heading, $description ?: null,
+                                $focalPosition, $badgeText ?: null, $heading, $description ?: null,
                                 $cta1Text ?: null, $cta1Url ?: null, $cta2Text ?: null, $cta2Url ?: null,
                                 $isActive, $id,
                             ]);
@@ -153,10 +174,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $maxOrder = (int) $pdo->query('SELECT COALESCE(MAX(sort_order), -1) FROM hero_slides')->fetchColumn();
                         $pdo->prepare(
                             'INSERT INTO hero_slides
-                                (image, badge_text, heading, description, cta1_text, cta1_url, cta2_text, cta2_url, sort_order, is_active)
-                             VALUES (?,?,?,?,?,?,?,?,?,?)'
+                                (image, focal_position, badge_text, heading, description, cta1_text, cta1_url, cta2_text, cta2_url, sort_order, is_active)
+                             VALUES (?,?,?,?,?,?,?,?,?,?,?)'
                         )->execute([
-                            $uploadedImage, $badgeText ?: null, $heading, $description ?: null,
+                            $uploadedImage, $focalPosition, $badgeText ?: null, $heading, $description ?: null,
                             $cta1Text ?: null, $cta1Url ?: null, $cta2Text ?: null, $cta2Url ?: null,
                             $maxOrder + 1, $isActive,
                         ]);
@@ -213,14 +234,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $current = getInnerHeroImages();
 
         foreach (array_keys($innerPages) as $pageKey) {
-            $fileKey = 'inner_' . $pageKey;
+            $fileKey     = 'inner_' . $pageKey;
+            $posKey      = 'position_' . $pageKey;
+            $submittedPos = trim($_POST[$posKey] ?? 'center center');
+            if (!in_array($submittedPos, $focalPositions, true)) {
+                $submittedPos = 'center center';
+            }
+
             if (!empty($_FILES[$fileKey]['name'])) {
+                /* New photo uploaded — replace image, use the submitted position */
                 [$uploadedImage, $uploadError] = handleHeroImageUpload($_FILES[$fileKey], $uploadDir);
                 if ($uploadError) {
                     $message = htmlspecialchars($innerPages[$pageKey]) . ': ' . $uploadError;
                     $messageType = 'error';
                 } elseif ($uploadedImage) {
-                    $current[$pageKey] = $uploadedImage;
+                    $current[$pageKey] = ['image' => $uploadedImage, 'position' => $submittedPos];
+                }
+            } elseif (isset($current[$pageKey])) {
+                /* No new upload, but the focal point may have changed for the
+                   existing photo — normalise legacy string entries too */
+                $existingImage = is_string($current[$pageKey])
+                    ? $current[$pageKey]
+                    : ($current[$pageKey]['image'] ?? null);
+                if ($existingImage) {
+                    $current[$pageKey] = ['image' => $existingImage, 'position' => $submittedPos];
                 }
             }
         }
@@ -319,6 +356,15 @@ $innerImages = getInnerHeroImages();
   .inner-item__remove { font-size:11px; color:#cc3333; background:none; border:none; cursor:pointer; margin-top:6px; padding:0; }
 
   .empty-state { padding:30px 20px; text-align:center; color:#9b97b0; font-size:13px; }
+
+  /* Focal point picker — 3x3 grid */
+  .focal-picker { display:inline-grid; grid-template-columns:repeat(3,28px); grid-template-rows:repeat(3,28px); gap:3px; margin-top:8px; }
+  .focal-picker__cell { width:28px; height:28px; border:1.5px solid #e2e0ea; border-radius:5px; background:#fff; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center; }
+  .focal-picker__cell:hover { border-color:#4a90d9; }
+  .focal-picker__cell.selected { background:#3d1a6e; border-color:#3d1a6e; }
+  .focal-picker__cell.selected::after { content:''; width:8px; height:8px; border-radius:50%; background:#fff; }
+  .focal-picker__wrap { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .focal-picker__hint { font-size:11.5px; color:#9b97b0; max-width:220px; }
 </style>
 </head>
 <body>
@@ -358,6 +404,23 @@ $innerImages = getInnerHeroImages();
               <?php if ($editSlide): ?>
               <img src="../assets/images/hero/<?php echo htmlspecialchars($editSlide['image']); ?>" style="width:160px;height:90px;object-fit:cover;border-radius:8px;margin-top:8px"/>
               <?php endif; ?>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Focal Point</label>
+              <div class="focal-picker__wrap">
+                <div class="focal-picker" data-target="slideFocalPosition">
+                  <?php
+                  $slideCurrentPos = $editSlide['focal_position'] ?? 'center center';
+                  foreach ($focalPositions as $fp):
+                  ?>
+                  <button type="button" class="focal-picker__cell <?php echo $fp === $slideCurrentPos ? 'selected' : ''; ?>"
+                          data-position="<?php echo $fp; ?>" title="<?php echo ucwords($fp); ?>"></button>
+                  <?php endforeach; ?>
+                </div>
+                <p class="focal-picker__hint">Choose which part of the photo stays visible when it's cropped to fit the wide banner shape.</p>
+              </div>
+              <input type="hidden" name="focal_position" id="slideFocalPosition" value="<?php echo htmlspecialchars($slideCurrentPos); ?>"/>
             </div>
 
             <div class="form-row">
@@ -469,17 +532,34 @@ $innerImages = getInnerHeroImages();
             <input type="hidden" name="action" value="save_inner_images"/>
 
             <div class="inner-grid">
-              <?php foreach ($innerPages as $key => $label): ?>
+              <?php foreach ($innerPages as $key => $label):
+                $entry = getInnerHeroEntry($key);
+                $entryImage = $entry['image']    ?? null;
+                $entryPos   = $entry['position'] ?? 'center center';
+              ?>
               <div class="inner-item">
                 <div class="inner-item__label"><?php echo htmlspecialchars($label); ?></div>
-                <?php if (!empty($innerImages[$key])): ?>
-                <img src="../assets/images/hero/<?php echo htmlspecialchars($innerImages[$key]); ?>" class="inner-item__thumb" alt=""/>
+                <?php if ($entryImage): ?>
+                <img src="../assets/images/hero/<?php echo htmlspecialchars($entryImage); ?>" class="inner-item__thumb" alt=""/>
                 <?php else: ?>
                 <div class="inner-item__empty">No image set</div>
                 <?php endif; ?>
                 <input type="file" name="inner_<?php echo $key; ?>" accept="image/jpeg,image/png,image/webp"/>
-                <?php if (!empty($innerImages[$key])): ?>
+                <?php if ($entryImage): ?>
                 <button type="button" class="inner-item__remove" onclick="removeInnerImage('<?php echo $key; ?>')">Remove image</button>
+
+                <div style="margin-top:10px">
+                  <div style="font-size:11px;font-weight:600;color:#3d1a6e;text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px">Focal Point</div>
+                  <div class="focal-picker" data-target="pos_<?php echo $key; ?>">
+                    <?php foreach ($focalPositions as $fp): ?>
+                    <button type="button" class="focal-picker__cell <?php echo $fp === $entryPos ? 'selected' : ''; ?>"
+                            data-position="<?php echo $fp; ?>" title="<?php echo ucwords($fp); ?>"></button>
+                    <?php endforeach; ?>
+                  </div>
+                  <input type="hidden" name="position_<?php echo $key; ?>" id="pos_<?php echo $key; ?>" value="<?php echo htmlspecialchars($entryPos); ?>"/>
+                </div>
+                <?php else: ?>
+                <input type="hidden" name="position_<?php echo $key; ?>" value="center center"/>
                 <?php endif; ?>
               </div>
               <?php endforeach; ?>
@@ -506,6 +586,23 @@ $innerImages = getInnerHeroImages();
       document.getElementById('removeInnerKey').value = key;
       document.getElementById('removeInnerForm').submit();
     }
+
+    /* ── Focal point pickers — works for both the slide form's single
+       picker and every inner-page card's picker, keyed by data-target ── */
+    document.querySelectorAll('.focal-picker').forEach(function (picker) {
+      var hiddenInput = document.getElementById(picker.dataset.target);
+      if (!hiddenInput) return;
+
+      picker.querySelectorAll('.focal-picker__cell').forEach(function (cell) {
+        cell.addEventListener('click', function () {
+          picker.querySelectorAll('.focal-picker__cell').forEach(function (c) {
+            c.classList.remove('selected');
+          });
+          cell.classList.add('selected');
+          hiddenInput.value = cell.dataset.position;
+        });
+      });
+    });
   </script>
 
 </body>
