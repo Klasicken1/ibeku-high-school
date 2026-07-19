@@ -42,6 +42,30 @@ $relationshipLabels = [
 /* ── Hero slides — admin-managed via admin/hero-images.php.
    Falls back to 3 built-in default slides (no photo, gradient
    background) if none have been added yet. ── */
+/* Self-healing: ensure hero_slides exists even if admin/hero-images.php
+   (which normally creates it) hasn't been visited yet on a fresh
+   deployment — prevents the homepage itself from ever fataling on this. */
+try {
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS hero_slides (
+            id             INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            image          VARCHAR(255) NOT NULL,
+            focal_position VARCHAR(20) NOT NULL DEFAULT 'center center',
+            badge_text     VARCHAR(150) NULL,
+            heading        VARCHAR(255) NOT NULL,
+            description    TEXT NULL,
+            cta1_text      VARCHAR(60)  NULL,
+            cta1_url       VARCHAR(255) NULL,
+            cta2_text      VARCHAR(60)  NULL,
+            cta2_url       VARCHAR(255) NULL,
+            sort_order     SMALLINT NOT NULL DEFAULT 0,
+            is_active      TINYINT(1) NOT NULL DEFAULT 1,
+            created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+} catch (PDOException $e) { /* already exists — fine */ }
+
 $dbHeroSlides = $pdo->query(
     'SELECT * FROM hero_slides WHERE is_active = 1 ORDER BY sort_order ASC'
 )->fetchAll();
