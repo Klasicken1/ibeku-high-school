@@ -17,6 +17,13 @@ requireRole(['superadmin', 'principal', 'vp_admin', 'vp_academics', 'vp_general'
 $admin = currentAdmin();
 $pdo   = getDB();
 
+/* Self-healing column add — same pattern used throughout the app */
+try {
+    $pdo->exec("ALTER TABLE corps_members ADD COLUMN call_up_number VARCHAR(30) NULL AFTER state_code");
+} catch (PDOException $e) {
+    /* Column already exists — fine */
+}
+
 $id = (int) ($_GET['id'] ?? 0);
 if (!$id) { header('Location: corps.php'); exit; }
 
@@ -30,6 +37,7 @@ $message = ''; $messageType = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stateCode     = strtoupper(trim($_POST['state_code']     ?? ''));
+    $callUpNumber  = strtoupper(trim($_POST['call_up_number']  ?? ''));
     $fullName      = trim($_POST['full_name']      ?? '');
     $stateOrigin   = trim($_POST['state_of_origin'] ?? '');
     $batch         = trim($_POST['batch']          ?? '');
@@ -84,14 +92,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $pdo->prepare(
                 'UPDATE corps_members SET
-                    state_code=?,full_name=?,photo=?,state_of_origin=?,batch=?,
+                    state_code=?,call_up_number=?,full_name=?,photo=?,state_of_origin=?,batch=?,
                     institution=?,course_studied=?,cds_group=?,cds_day=?,
                     subject_taught=?,section=?,class_arms=?,phone=?,
                     bank_name=?,account_name=?,account_number=?,status=?,
                     status_changed_by=?,status_changed_at=NOW()
                  WHERE id=?'
             )->execute([
-                $stateCode,$fullName,$photoFilename,$stateOrigin,$batch,
+                $stateCode,$callUpNumber ?: null,$fullName,$photoFilename,$stateOrigin,$batch,
                 $institution,$course,$cdsGroup,$cdsDay,
                 $subject,$section,$classArms,$phone,
                 $bankName,$accountName,$accountNumber,$status,
@@ -165,6 +173,16 @@ $photoSrc = !empty($member['photo']) ? '../assets/images/corps/' . htmlspecialch
               <label class="form-label">Full Name *</label>
               <input type="text" class="form-input" name="full_name" required maxlength="200"
                      value="<?php echo htmlspecialchars($member['full_name']); ?>"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Call Up Number</label>
+              <input type="text" class="form-input" name="call_up_number" maxlength="30"
+                     value="<?php echo htmlspecialchars($member['call_up_number'] ?? ''); ?>"
+                     placeholder="e.g. NYSC/2025/1234567"
+                     oninput="this.value=this.value.toUpperCase()"/>
+              <p class="hint">Printed on the monthly clearance letter.</p>
             </div>
           </div>
           <div class="form-row">

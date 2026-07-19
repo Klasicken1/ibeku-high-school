@@ -307,7 +307,7 @@ endif;
             <div class="rs-comment-box__line" id="rsPrintPrincipalComment"></div>
             <div class="rs-comment-box__line"></div>
             <div class="rs-comment-box__sig">
-              <span>Signature: _______________</span>
+              <span>Signature: <span id="rsPrintPrincipalSigWrap">_______________</span></span>
               <span>Date: _______________</span>
             </div>
           </div>
@@ -319,7 +319,7 @@ endif;
             <strong>Next Term Resumption</strong>
             <span id="rsPrintResumption"></span>
           </div>
-          <div class="rs-footer__stamp">
+          <div class="rs-footer__stamp" id="rsPrintStampWrap">
             SCHOOL<br/>STAMP
           </div>
           <div class="rs-footer__generated">

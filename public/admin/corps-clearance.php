@@ -17,6 +17,15 @@ requireRole(['superadmin', 'principal', 'vp_admin', 'vp_academics', 'vp_general'
 $admin = currentAdmin();
 $pdo   = getDB();
 
+/* Self-healing column adds — same pattern used throughout the app */
+try {
+    $pdo->exec(
+        "ALTER TABLE corps_clearance
+         ADD COLUMN conduct_rating ENUM('diligently','well','deceitfully','grudgingly') NOT NULL DEFAULT 'diligently',
+         ADD COLUMN payment_status ENUM('allowed','not_allowed') NOT NULL DEFAULT 'allowed'"
+    );
+} catch (PDOException $e) { /* Columns already exist — fine */ }
+
 $memberId = (int) ($_GET['id'] ?? 0);
 if (!$memberId) { header('Location: corps.php'); exit; }
 
@@ -33,6 +42,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $year     = (int) ($_POST['year']      ?? 0);
     $cleared  = (int) ($_POST['is_cleared'] ?? 0);
     $remarks  = trim($_POST['remarks']     ?? '');
+    $conduct  = $_POST['conduct_rating'] ?? 'diligently';
+    $payment  = $_POST['payment_status'] ?? 'allowed';
+
+    $validConduct = ['diligently', 'well', 'deceitfully', 'grudgingly'];
+    $validPayment = ['allowed', 'not_allowed'];
+    if (!in_array($conduct, $validConduct, true)) $conduct = 'diligently';
+    if (!in_array($payment, $validPayment, true)) $payment = 'allowed';
 
     if ($month < 1 || $month > 12 || $year < 2020) {
         $message = 'Invalid month or year.'; $messageType = 'error';
@@ -40,18 +56,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $pdo->prepare(
                 "INSERT INTO corps_clearance
-                    (corps_member_id, month, year, is_cleared, cleared_by, cleared_at, remarks)
-                 VALUES (?,?,?,?,?,?,?)
+                    (corps_member_id, month, year, is_cleared, cleared_by, cleared_at, remarks, conduct_rating, payment_status)
+                 VALUES (?,?,?,?,?,?,?,?,?)
                  ON DUPLICATE KEY UPDATE
-                    is_cleared  = VALUES(is_cleared),
-                    cleared_by  = VALUES(cleared_by),
-                    cleared_at  = VALUES(cleared_at),
-                    remarks     = VALUES(remarks)"
+                    is_cleared     = VALUES(is_cleared),
+                    cleared_by     = VALUES(cleared_by),
+                    cleared_at     = VALUES(cleared_at),
+                    remarks        = VALUES(remarks),
+                    conduct_rating = VALUES(conduct_rating),
+                    payment_status = VALUES(payment_status)"
             )->execute([
                 $memberId, $month, $year, $cleared,
                 $cleared ? $admin['id'] : null,
                 $cleared ? date('Y-m-d H:i:s') : null,
                 $remarks ?: null,
+                $conduct, $payment,
             ]);
             $message = 'Clearance record saved.'; $messageType = 'success';
         } catch (PDOException $e) {
@@ -103,6 +122,8 @@ $years = range($currentYear, $currentYear - 3);
     .btn-save{background:#3d1a6e;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:13.5px;font-weight:700;cursor:pointer;width:100%}
     .btn-save:hover{background:#5a2d9e}
     .toggle-btns{display:flex;gap:8px;margin-bottom:6px}
+    .radio-row{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;color:#1a1a2e}
+    .radio-row label{display:flex;align-items:center;gap:5px;cursor:pointer}
     .toggle-btn{flex:1;padding:9px;border-radius:8px;border:2px solid #e2e0ea;background:#fff;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:.15s}
     .toggle-btn.cleared{border-color:#1a7a3a;background:#e6f9ed;color:#1a7a3a}
     .toggle-btn.pending{border-color:#cc3333;background:#fff0f0;color:#cc3333}
@@ -182,6 +203,22 @@ $years = range($currentYear, $currentYear - 3);
               <input type="hidden" name="is_cleared" id="isClearedInput" value=""/>
             </div>
             <div class="form-group">
+              <label class="form-label">Conduct — "The corps member served the school..."</label>
+              <div class="radio-row">
+                <label><input type="radio" name="conduct_rating" value="diligently" checked/> Diligently</label>
+                <label><input type="radio" name="conduct_rating" value="well"/> Well</label>
+                <label><input type="radio" name="conduct_rating" value="deceitfully"/> Deceitfully</label>
+                <label><input type="radio" name="conduct_rating" value="grudgingly"/> Grudgingly</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Payment — "He/She should be..."</label>
+              <div class="radio-row">
+                <label><input type="radio" name="payment_status" value="allowed" checked/> Allowed to sign &amp; be paid</label>
+                <label><input type="radio" name="payment_status" value="not_allowed"/> Not allowed</label>
+              </div>
+            </div>
+            <div class="form-group">
               <label class="form-label">Remarks</label>
               <textarea class="form-textarea" name="remarks" rows="3"
                         placeholder="Optional remarks..."></textarea>
@@ -205,13 +242,18 @@ $years = range($currentYear, $currentYear - 3);
             <tr>
               <th>Month</th>
               <th>Status</th>
+              <th>Conduct / Payment</th>
               <th>Cleared By</th>
               <th>Date</th>
               <th>Letter</th>
             </tr>
           </thead>
           <tbody>
-            <?php foreach ($clearances as $c): ?>
+            <?php
+            $conductLabels = ['diligently' => 'Diligently', 'well' => 'Well', 'deceitfully' => 'Deceitfully', 'grudgingly' => 'Grudgingly'];
+            $paymentLabels = ['allowed' => 'Allowed', 'not_allowed' => 'Not Allowed'];
+            foreach ($clearances as $c):
+            ?>
             <tr>
               <td><?php echo $months[$c['month']] . ' ' . $c['year']; ?></td>
               <td>
@@ -220,6 +262,11 @@ $years = range($currentYear, $currentYear - 3);
                 <?php else: ?>
                 <span class="badge-pending">Pending</span>
                 <?php endif; ?>
+              </td>
+              <td style="font-size:11.5px;color:#6b6b80">
+                <?php echo htmlspecialchars($conductLabels[$c['conduct_rating'] ?? 'diligently'] ?? 'Diligently'); ?>
+                /
+                <?php echo htmlspecialchars($paymentLabels[$c['payment_status'] ?? 'allowed'] ?? 'Allowed'); ?>
               </td>
               <td style="font-size:12px;color:#6b6b80"><?php echo htmlspecialchars($c['cleared_by_name'] ?? '-'); ?></td>
               <td style="font-size:12px;color:#9b97b0">

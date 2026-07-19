@@ -68,6 +68,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'principal_js_message' => trim($_POST['principal_js_message'] ?? ''),
         ];
 
+        /* ── Signature/stamp uploads — one optional file per field.
+           Keeps the existing saved filename if no new file is chosen. ── */
+        $sigUploadDir = dirname(__DIR__) . '/assets/images/signatures/';
+        if (!is_dir($sigUploadDir)) mkdir($sigUploadDir, 0755, true);
+
+        foreach (['principal_ss_signature', 'principal_ss_stamp', 'principal_js_signature', 'principal_js_stamp'] as $fieldKey) {
+            if (!empty($_FILES[$fieldKey]['name'])) {
+                $ext     = strtolower(pathinfo($_FILES[$fieldKey]['name'], PATHINFO_EXTENSION));
+                $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+                if (!in_array($ext, $allowed, true)) {
+                    $message = ucwords(str_replace('_', ' ', $fieldKey)) . ' must be JPG, PNG, or WEBP.';
+                    $messageType = 'error';
+                } elseif ($_FILES[$fieldKey]['size'] > 1 * 1024 * 1024) {
+                    $message = ucwords(str_replace('_', ' ', $fieldKey)) . ' must be under 1MB.';
+                    $messageType = 'error';
+                } else {
+                    $newFilename = uniqid('sig_', true) . '.' . $ext;
+                    if (move_uploaded_file($_FILES[$fieldKey]['tmp_name'], $sigUploadDir . $newFilename)) {
+                        $toSave[$fieldKey] = $newFilename;
+                    }
+                }
+            }
+        }
+
     } elseif ($section === 'academic') {
         $session = trim($_POST['current_session'] ?? '');
         if ($session && !preg_match('/^\d{4}\/\d{4}$/', $session)) {
@@ -333,7 +357,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
            PRINCIPALS
            ════════════════════════════════════════ -->
       <div class="settings-panel" id="panel-principals">
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
           <input type="hidden" name="section" value="principals"/>
 
           <div class="settings-card">
@@ -350,6 +374,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         placeholder="Message shown on the About page and Homepage..."><?php echo htmlspecialchars($s['principal_ss_message']); ?></textarea>
               <p class="char-hint">Shown on the About page (Principal's Message) and the Homepage principal section.</p>
             </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Signature Image</label>
+                <?php if (!empty($s['principal_ss_signature'])): ?>
+                <img src="../assets/images/signatures/<?php echo htmlspecialchars($s['principal_ss_signature']); ?>"
+                     style="height:50px;display:block;margin-bottom:8px;background:#f8f7fc;border-radius:6px;padding:4px"/>
+                <?php endif; ?>
+                <input type="file" class="form-input" name="principal_ss_signature" accept="image/png,image/jpeg,image/webp"/>
+                <p class="char-hint">PNG with transparent background works best. Used on clearance letters and result sheets.</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Stamp Image</label>
+                <?php if (!empty($s['principal_ss_stamp'])): ?>
+                <img src="../assets/images/signatures/<?php echo htmlspecialchars($s['principal_ss_stamp']); ?>"
+                     style="height:50px;display:block;margin-bottom:8px;background:#f8f7fc;border-radius:6px;padding:4px"/>
+                <?php endif; ?>
+                <input type="file" class="form-input" name="principal_ss_stamp" accept="image/png,image/jpeg,image/webp"/>
+              </div>
+            </div>
           </div>
 
           <div class="settings-card">
@@ -365,6 +408,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <textarea class="form-textarea" name="principal_js_message" rows="5"
                         placeholder="Message shown on the About page..."><?php echo htmlspecialchars($s['principal_js_message']); ?></textarea>
               <p class="char-hint">Shown on the About page under the JS Principal's Message section.</p>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Signature Image</label>
+                <?php if (!empty($s['principal_js_signature'])): ?>
+                <img src="../assets/images/signatures/<?php echo htmlspecialchars($s['principal_js_signature']); ?>"
+                     style="height:50px;display:block;margin-bottom:8px;background:#f8f7fc;border-radius:6px;padding:4px"/>
+                <?php endif; ?>
+                <input type="file" class="form-input" name="principal_js_signature" accept="image/png,image/jpeg,image/webp"/>
+                <p class="char-hint">PNG with transparent background works best. Used on clearance letters and result sheets.</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Stamp Image</label>
+                <?php if (!empty($s['principal_js_stamp'])): ?>
+                <img src="../assets/images/signatures/<?php echo htmlspecialchars($s['principal_js_stamp']); ?>"
+                     style="height:50px;display:block;margin-bottom:8px;background:#f8f7fc;border-radius:6px;padding:4px"/>
+                <?php endif; ?>
+                <input type="file" class="form-input" name="principal_js_stamp" accept="image/png,image/jpeg,image/webp"/>
+              </div>
             </div>
           </div>
 

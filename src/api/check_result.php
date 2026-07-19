@@ -170,6 +170,9 @@ try {
         ($student['other_name'] ? $student['other_name'] . ' ' : '') .
         $student['last_name']);
 
+    /* Principal auto-fill — chosen by the student's section (js/ss) */
+    $principal = getPrincipalAssets($student['section'] ?? 'ss');
+
     echo json_encode([
         'success' => true,
         'student' => [
@@ -188,6 +191,9 @@ try {
             'total_score'                   => $result['total_score'],
             'form_teacher_comment'          => $result['form_teacher_comment'],
             'principal_comment'             => $result['principal_comment'],
+            'principal_name'                => $principal['name'],
+            'principal_signature'           => $principal['signature'] ?: null,
+            'principal_stamp'               => $principal['stamp']     ?: null,
             'next_term_resumption'          => $result['next_term_resumption'],
             /* Student status — frontend shows notice for non-active statuses */
             'status'                        => $student['status'],

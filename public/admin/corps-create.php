@@ -17,10 +17,18 @@ requireRole(['superadmin', 'principal', 'vp_admin', 'vp_academics', 'vp_general'
 $admin = currentAdmin();
 $pdo   = getDB();
 
+/* Self-healing column add — same pattern used throughout the app */
+try {
+    $pdo->exec("ALTER TABLE corps_members ADD COLUMN call_up_number VARCHAR(30) NULL AFTER state_code");
+} catch (PDOException $e) {
+    /* Column already exists — fine */
+}
+
 $message = ''; $messageType = ''; $formData = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stateCode    = strtoupper(trim($_POST['state_code']    ?? ''));
+    $callUpNumber = strtoupper(trim($_POST['call_up_number'] ?? ''));
     $fullName     = trim($_POST['full_name']     ?? '');
     $stateOrigin  = trim($_POST['state_of_origin'] ?? '');
     $batch        = trim($_POST['batch']         ?? '');
@@ -36,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $accountName  = trim($_POST['account_name']  ?? '');
     $accountNumber= trim($_POST['account_number'] ?? '');
 
-    $formData = compact('stateCode','fullName','stateOrigin','batch','institution','course',
+    $formData = compact('stateCode','callUpNumber','fullName','stateOrigin','batch','institution','course',
         'cdsGroup','cdsDay','subject','section','classArms','phone','bankName','accountName','accountNumber');
 
     if (!$stateCode || !$fullName || !$stateOrigin || !$batch || !$institution || !$course) {
@@ -74,12 +82,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $defaultPw = password_hash($stateCode, PASSWORD_DEFAULT);
             $pdo->prepare(
                 'INSERT INTO corps_members
-                    (state_code,full_name,photo,state_of_origin,batch,institution,
+                    (state_code,call_up_number,full_name,photo,state_of_origin,batch,institution,
                      course_studied,cds_group,cds_day,subject_taught,section,class_arms,
                      phone,bank_name,account_name,account_number,password,created_by)
-                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
             )->execute([
-                $stateCode,$fullName,$photoFilename,$stateOrigin,$batch,$institution,
+                $stateCode,$callUpNumber ?: null,$fullName,$photoFilename,$stateOrigin,$batch,$institution,
                 $course,$cdsGroup,$cdsDay,$subject,$section,$classArms,
                 $phone,$bankName,$accountName,$accountNumber,$defaultPw,$admin['id']
             ]);
@@ -166,6 +174,16 @@ $days     = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
               <input type="text" class="form-input" name="batch" required maxlength="20"
                      value="<?php echo htmlspecialchars($formData['batch'] ?? ''); ?>"
                      placeholder="e.g. 2025 Batch C"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Call Up Number</label>
+              <input type="text" class="form-input" name="call_up_number" maxlength="30"
+                     value="<?php echo htmlspecialchars(strtoupper($formData['callUpNumber'] ?? '')); ?>"
+                     placeholder="e.g. NYSC/2025/1234567"
+                     oninput="this.value=this.value.toUpperCase()"/>
+              <p class="hint">Printed on the monthly clearance letter.</p>
             </div>
           </div>
           <div class="form-group">

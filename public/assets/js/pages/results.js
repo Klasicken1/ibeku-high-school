@@ -309,6 +309,28 @@ function printResult() {
     day: '2-digit', month: 'long', year: 'numeric'
   }));
 
+  /* ── Principal signature: image if uploaded, else the typed name,
+     else fall back to the original blank line ── */
+  var sigWrap = document.getElementById('rsPrintPrincipalSigWrap');
+  if (sigWrap) {
+    if (student.principal_signature) {
+      sigWrap.innerHTML = '<img src="' + window.IHS_BASE + 'assets/images/signatures/' +
+        encodeURIComponent(student.principal_signature) + '" style="height:36px;vertical-align:middle"/>';
+    } else if (student.principal_name) {
+      sigWrap.textContent = student.principal_name;
+    } else {
+      sigWrap.textContent = '_______________';
+    }
+  }
+
+  /* ── School stamp: image if uploaded, else leave the existing
+     "SCHOOL STAMP" placeholder text untouched ── */
+  var stampWrap = document.getElementById('rsPrintStampWrap');
+  if (stampWrap && student.principal_stamp) {
+    stampWrap.innerHTML = '<img src="' + window.IHS_BASE + 'assets/images/signatures/' +
+      encodeURIComponent(student.principal_stamp) + '" style="max-height:70px;max-width:100%"/>';
+  }
+
   var tbody = document.getElementById('rsPrintSubjects');
   if (tbody) {
     tbody.innerHTML = subjects.map(function (s) {

@@ -4,10 +4,18 @@
    File: public/admin/corps-letter.php
    Also accessible from portal-corps/clearance-letter.php
 
-   Generates a printable/downloadable clearance letter.
-   Layout: placeholder until official JPG design is provided.
-   To update: replace the HTML inside .letter-body with the
-   actual design based on the uploaded JPG template.
+   Faithful reproduction of the official Abia State Secondary
+   Education Management Board clearance letter template, with
+   member details, call up number, month, and bank account
+   details auto-filled, plus the conduct/payment selections
+   made by admin on corps-clearance.php rendered as checked
+   boxes.
+
+   Print/PDF: same approach as the public result slip — a
+   dedicated @page rule and a hidden no-print bar, so "Print /
+   Save as PDF" produces a clean page with no extra browser
+   chrome. Principal's name, Sign, and Stamp are left blank for
+   physical completion, matching how the paper form is used.
    ============================================================ */
 
 declare(strict_types=1);
@@ -39,6 +47,21 @@ if (!$isAdmin && !$isCorpsMember) {
 }
 
 $pdo = getDB();
+
+/* Self-healing column adds — same columns corps-create.php,
+   corps-edit.php, and corps-clearance.php already ensure, kept
+   here too so this page never fatals if visited before those
+   have run once. */
+try {
+    $pdo->exec("ALTER TABLE corps_members ADD COLUMN call_up_number VARCHAR(30) NULL AFTER state_code");
+} catch (PDOException $e) { /* already exists */ }
+try {
+    $pdo->exec(
+        "ALTER TABLE corps_clearance
+         ADD COLUMN conduct_rating ENUM('diligently','well','deceitfully','grudgingly') NOT NULL DEFAULT 'diligently',
+         ADD COLUMN payment_status ENUM('allowed','not_allowed') NOT NULL DEFAULT 'allowed'"
+    );
+} catch (PDOException $e) { /* already exists */ }
 
 /* Get params */
 $memberId = (int) ($_GET['id']    ?? ($_SESSION['corps_member']['id'] ?? 0));
@@ -80,9 +103,11 @@ if (!$clearance) {
 
 /* Load school settings */
 $_site = getDB()->query("SELECT `key`, `value` FROM settings")->fetchAll(PDO::FETCH_KEY_PAIR);
-$schoolName  = $_site['school_name']  ?? 'Ibeku High School';
-$schoolPhone = $_site['school_phone'] ?? '';
-$schoolEmail = $_site['school_email'] ?? '';
+$schoolName = $_site['school_name'] ?? 'Ibeku High School';
+
+/* Principal auto-fill — chosen by the corps member's section.
+   'both' defaults to the SS Principal. */
+$principal = getPrincipalAssets($member['section'] ?? 'ss');
 
 $months = ['','January','February','March','April','May','June',
            'July','August','September','October','November','December'];
@@ -90,6 +115,9 @@ $months = ['','January','February','March','April','May','June',
 $monthName  = $months[$month];
 $letterDate = date('d F Y', strtotime($clearance['cleared_at'] ?? 'now'));
 $refNo      = 'IHS/NYSC/CL/' . $year . '/' . str_pad((string)$month, 2, '0', STR_PAD_LEFT) . '/' . $member['id'];
+
+$conductRating = $clearance['conduct_rating'] ?? 'diligently';
+$paymentStatus = $clearance['payment_status'] ?? 'allowed';
 
 /* PDF download via browser print */
 if ($download) {
@@ -111,58 +139,72 @@ if ($download) {
     .no-print-bar span{flex:1;font-size:13.5px}
     .btn-print{background:#e8a020;color:#fff;border:none;padding:8px 20px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
     .btn-back{background:rgba(255,255,255,.15);color:#fff;text-decoration:none;padding:8px 16px;border-radius:7px;font-size:13px;font-weight:600}
-    @media print{.no-print-bar{display:none}body{background:#fff;padding:0}
-    .letter{box-shadow:none;border-radius:0;page-break-inside:avoid}}
+
+    /* ── Print: mirrors the public result-slip approach exactly —
+       a dedicated @page rule and hiding everything except the
+       letter itself, so Save-as-PDF produces a clean page with
+       no browser header/footer/URL/date strip. ── */
+    @media print {
+      @page { size: A4 portrait; margin: 14mm 16mm; }
+      .no-print-bar { display: none !important; }
+      body { background: #fff; padding: 0; }
+      .letter { box-shadow: none; border: none; border-radius: 0; width: 100%; min-height: 0; }
+    }
 
     /* ── LETTER ── */
-    .letter{background:#fff;width:780px;max-width:100%;min-height:1050px;padding:48px 56px;box-shadow:0 8px 40px rgba(0,0,0,.15);border-radius:8px;position:relative}
+    .letter{background:#fff;width:780px;max-width:100%;padding:44px 52px;box-shadow:0 8px 40px rgba(0,0,0,.15);border-radius:8px;position:relative;font-size:14px;line-height:1.7;color:#1a1a1a}
 
-    /* Header */
-    .letter-header{text-align:center;border-bottom:3px double #3d1a6e;padding-bottom:20px;margin-bottom:24px}
-    .letter-header__logo{font-family:'Playfair Display',serif;font-size:2rem;font-weight:900;color:#3d1a6e;letter-spacing:3px;margin-bottom:4px}
-    .letter-header__name{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:#1a1a2e;margin-bottom:2px}
-    .letter-header__address{font-size:.82rem;color:#6b6b80;margin-bottom:8px}
-    .letter-header__contact{font-size:.78rem;color:#9b97b0}
-    .nysc-tag{display:inline-block;background:#e8a020;color:#fff;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:3px 12px;border-radius:20px;margin-top:8px}
+    /* Letterhead */
+    .letterhead{display:flex;align-items:center;gap:18px;border-bottom:3px double #1a1a1a;padding-bottom:14px;margin-bottom:10px}
+    .letterhead__crest{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#3d1a6e,#4a90d9);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid #1a1a1a}
+    .letterhead__crest span{font-family:'Playfair Display',serif;font-weight:900;font-size:1.1rem;color:#fff;letter-spacing:1px}
+    .letterhead__text{flex:1;text-align:center}
+    .letterhead__gov{font-size:.8rem;font-weight:700;letter-spacing:.04em;color:#3a3a3a;text-transform:uppercase}
+    .letterhead__board{font-size:.72rem;font-weight:600;color:#5a5a5a;text-transform:uppercase;letter-spacing:.03em;margin-top:1px}
+    .letterhead__school{font-family:'Playfair Display',serif;font-size:1.7rem;font-weight:900;color:#1a1a1a;margin-top:4px;letter-spacing:.5px}
+    .letterhead__address{font-size:.75rem;color:#5a5a5a;margin-top:2px;letter-spacing:.03em}
 
-    /* Meta line */
-    .letter-meta{display:flex;justify-content:space-between;margin-bottom:24px;font-size:.82rem;color:#6b6b80}
-    .letter-meta strong{color:#3d1a6e}
+    /* Ref/date line */
+    .ref-line{display:flex;justify-content:space-between;border-bottom:1px solid #1a1a1a;padding-bottom:8px;margin-bottom:22px;font-size:.8rem}
+    .ref-line span strong{font-weight:700}
 
-    /* Title */
-    .letter-title{text-align:center;margin-bottom:24px}
-    .letter-title h2{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:#3d1a6e;text-transform:uppercase;letter-spacing:.05em;text-decoration:underline;text-underline-offset:6px}
-    .letter-title .month-year{font-size:1rem;color:#6b6b80;margin-top:4px}
+    /* Recipient block */
+    .recipient{margin-bottom:20px;font-size:.9rem}
+    .recipient div{margin-bottom:1px}
 
-    /* Body */
-    .letter-body{font-size:.9rem;color:#1a1a2e;line-height:1.9;margin-bottom:24px}
-    .letter-body p{margin-bottom:12px}
-    .letter-body strong{color:#3d1a6e}
+    .salutation{margin-bottom:14px}
 
-    /* Details box */
-    .details-box{background:#f8f7fc;border:1px solid #e8e6f0;border-radius:8px;padding:18px 22px;margin:20px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px 24px}
-    .details-box__row{display:contents}
-    .details-label{font-size:.75rem;font-weight:600;color:#9b97b0;text-transform:uppercase;letter-spacing:.04em}
-    .details-value{font-size:.875rem;color:#1a1a2e;font-weight:500}
+    .letter-title{font-weight:700;text-decoration:underline;text-underline-offset:4px;margin-bottom:14px;font-size:1rem}
+
+    .intro-text{margin-bottom:20px}
+
+    /* Fill-in field rows: LABEL: ..........value.......... */
+    .fill-row{display:flex;align-items:baseline;gap:6px;margin-bottom:16px}
+    .fill-row__label{font-weight:700;white-space:nowrap;flex-shrink:0}
+    .fill-row__value{flex:1;border-bottom:1px dotted #1a1a1a;padding-bottom:2px;font-weight:600;min-height:1.3em}
 
     /* Bank details box */
-    .bank-box{border:2px solid #3d1a6e;border-radius:8px;padding:16px 20px;margin:16px 0}
-    .bank-box__title{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#3d1a6e;margin-bottom:10px}
-    .bank-box__grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .bank-box__label{font-size:.75rem;color:#9b97b0;font-weight:600;text-transform:uppercase}
-    .bank-box__value{font-size:.875rem;color:#1a1a2e;font-weight:600}
+    .bank-box{border:1.5px solid #1a1a1a;border-radius:4px;padding:12px 16px;margin:18px 0 22px}
+    .bank-box__title{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+    .bank-box__grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;font-size:.85rem}
+    .bank-box__label{font-weight:600;color:#5a5a5a}
+
+    /* Conduct/payment checkbox rows */
+    .check-block{margin-bottom:16px}
+    .check-block__intro{margin-bottom:8px}
+    .check-row{display:flex;flex-wrap:wrap;gap:18px;margin-left:4px}
+    .check-item{display:flex;align-items:center;gap:6px;font-size:.9rem}
+    .checkbox{width:15px;height:15px;border:1.5px solid #1a1a1a;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:900;line-height:1}
+    .checkbox.checked::after{content:'✓'}
 
     /* Signature */
-    .signature-section{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:40px}
-    .signature-block{border-top:1px solid #1a1a2e;padding-top:8px}
-    .signature-block__name{font-size:.875rem;font-weight:700;color:#1a1a2e;margin-bottom:2px}
-    .signature-block__title{font-size:.78rem;color:#6b6b80}
+    .signoff{margin-top:26px}
+    .signoff__line{margin-bottom:14px}
+    .signoff-row{display:flex;align-items:baseline;gap:6px;margin-bottom:16px}
+    .signoff-row__label{font-weight:700;white-space:nowrap;flex-shrink:0}
+    .signoff-row__blank{flex:1;border-bottom:1px dotted #1a1a1a;min-height:1.3em}
 
-    /* Stamp area */
-    .stamp-area{position:absolute;bottom:120px;right:56px;width:120px;height:120px;border:3px solid #3d1a6e;border-radius:50%;display:flex;align-items:center;justify-content:center;text-align:center;color:#3d1a6e;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;opacity:.4}
-
-    /* Footer */
-    .letter-footer{border-top:1px solid #e8e6f0;padding-top:12px;margin-top:24px;text-align:center;font-size:.72rem;color:#9b97b0}
+    .letter-footer{border-top:1px solid #e2e0ea;padding-top:10px;margin-top:26px;text-align:center;font-size:.68rem;color:#9b97b0}
   </style>
 </head>
 <body>
@@ -177,119 +219,132 @@ if ($download) {
 <!-- THE LETTER -->
 <div class="letter">
 
-  <!-- Header -->
-  <div class="letter-header">
-    <div class="letter-header__logo">IHS</div>
-    <div class="letter-header__name"><?php echo htmlspecialchars($schoolName); ?></div>
-    <div class="letter-header__address">Umuahia, Abia State, Nigeria</div>
-    <div class="letter-header__contact">
-      <?php if ($schoolPhone): ?>Tel: <?php echo htmlspecialchars($schoolPhone); ?>&nbsp;&nbsp;<?php endif; ?>
-      <?php if ($schoolEmail): ?>Email: <?php echo htmlspecialchars($schoolEmail); ?><?php endif; ?>
+  <!-- Letterhead -->
+  <div class="letterhead">
+    <div class="letterhead__crest"><span>IHS</span></div>
+    <div class="letterhead__text">
+      <div class="letterhead__gov">Government of Abia State</div>
+      <div class="letterhead__board">Secondary Education Management Board</div>
+      <div class="letterhead__school"><?php echo htmlspecialchars(strtoupper($schoolName)); ?></div>
+      <div class="letterhead__address">P.O. BOX 168, UMUAHIA, ABIA STATE</div>
     </div>
-    <span class="nysc-tag">NYSC Host Institution</span>
+    <div class="letterhead__crest" style="visibility:hidden"><span>IHS</span></div>
   </div>
 
-  <!-- Meta -->
-  <div class="letter-meta">
-    <span><strong>Ref No:</strong> <?php echo htmlspecialchars($refNo); ?></span>
-    <span><strong>Date:</strong> <?php echo $letterDate; ?></span>
+  <!-- Ref/Date line -->
+  <div class="ref-line">
+    <span>OUR REF: <strong><?php echo htmlspecialchars($refNo); ?></strong></span>
+    <span>YOUR REF: <strong>&nbsp;</strong></span>
+    <span>DATE: <strong><?php echo $letterDate; ?></strong></span>
   </div>
 
-  <!-- Title -->
-  <div class="letter-title">
-    <h2>Monthly Clearance Letter</h2>
-    <div class="month-year"><?php echo $monthName . ' ' . $year; ?></div>
+  <!-- Recipient -->
+  <div class="recipient">
+    <div>THE STATE COORDINATOR</div>
+    <div>NYSC</div>
+    <div>UMUAHIA</div>
   </div>
 
-  <!-- Body -->
-  <div class="letter-body">
-    <p>This is to certify that the following NYSC Corps Member has satisfactorily served at
-    <strong><?php echo htmlspecialchars($schoolName); ?></strong>, Umuahia, Abia State, and is hereby
-    cleared for the month of <strong><?php echo $monthName . ' ' . $year; ?></strong>.</p>
+  <div class="salutation">Sir,</div>
 
-    <!-- Member details -->
-    <div class="details-box">
-      <span class="details-label">Full Name</span>
-      <span class="details-value"><?php echo htmlspecialchars($member['full_name']); ?></span>
+  <div class="letter-title">CLEARANCE FOR CORPS MEMBER</div>
 
-      <span class="details-label">State Code</span>
-      <span class="details-value"><?php echo htmlspecialchars($member['state_code']); ?></span>
+  <p class="intro-text">
+    I hereby issue the named corps member serving in the school with his/her
+    clearance for the month stated below:
+  </p>
 
-      <span class="details-label">Batch</span>
-      <span class="details-value"><?php echo htmlspecialchars($member['batch']); ?></span>
-
-      <span class="details-label">State of Origin</span>
-      <span class="details-value"><?php echo htmlspecialchars($member['state_of_origin']); ?></span>
-
-      <span class="details-label">Institution</span>
-      <span class="details-value"><?php echo htmlspecialchars($member['institution']); ?></span>
-
-      <span class="details-label">Course Studied</span>
-      <span class="details-value"><?php echo htmlspecialchars($member['course_studied']); ?></span>
-
-      <span class="details-label">Subject Taught</span>
-      <span class="details-value"><?php echo htmlspecialchars($member['subject_taught'] ?? '-'); ?></span>
-
-      <span class="details-label">Section / Class</span>
-      <span class="details-value"><?php echo strtoupper($member['section']); ?> &nbsp;—&nbsp; <?php echo htmlspecialchars($member['class_arms'] ?? '-'); ?></span>
-
-      <span class="details-label">CDS Group</span>
-      <span class="details-value"><?php echo htmlspecialchars($member['cds_group'] ?? '-'); ?></span>
-
-      <span class="details-label">CDS Day</span>
-      <span class="details-value"><?php echo htmlspecialchars($member['cds_day'] ?? '-'); ?></span>
-    </div>
-
-    <!-- Bank details -->
-    <div class="bank-box">
-      <div class="bank-box__title">Bank Details for Allawee Payment</div>
-      <div class="bank-box__grid">
-        <div>
-          <div class="bank-box__label">Bank Name</div>
-          <div class="bank-box__value"><?php echo htmlspecialchars($member['bank_name'] ?? '-'); ?></div>
-        </div>
-        <div>
-          <div class="bank-box__label">Account Number</div>
-          <div class="bank-box__value"><?php echo htmlspecialchars($member['account_number'] ?? '-'); ?></div>
-        </div>
-        <div style="grid-column:span 2">
-          <div class="bank-box__label">Account Name</div>
-          <div class="bank-box__value"><?php echo htmlspecialchars($member['account_name'] ?? '-'); ?></div>
-        </div>
-      </div>
-    </div>
-
-    <?php if ($clearance['remarks']): ?>
-    <p><strong>Remarks:</strong> <?php echo htmlspecialchars($clearance['remarks']); ?></p>
-    <?php endif; ?>
-
-    <p>This letter is issued in good faith and is valid only for the month stated above.
-    For verification, please contact the school directly.</p>
+  <!-- Fill-in fields -->
+  <div class="fill-row">
+    <span class="fill-row__label">NAME:</span>
+    <span class="fill-row__value"><?php echo htmlspecialchars($member['full_name']); ?></span>
+  </div>
+  <div class="fill-row">
+    <span class="fill-row__label">STATE CODE:</span>
+    <span class="fill-row__value"><?php echo htmlspecialchars($member['state_code']); ?></span>
+  </div>
+  <div class="fill-row">
+    <span class="fill-row__label">CALL UP NUMBER:</span>
+    <span class="fill-row__value"><?php echo htmlspecialchars($member['call_up_number'] ?? ''); ?></span>
+  </div>
+  <div class="fill-row">
+    <span class="fill-row__label">MONTH:</span>
+    <span class="fill-row__value"><?php echo htmlspecialchars($monthName . ' ' . $year); ?></span>
   </div>
 
-  <!-- Signatures -->
-  <div class="signature-section">
-    <div class="signature-block">
-      <div style="height:50px"></div><!-- space for signature -->
-      <div class="signature-block__name">Principal</div>
-      <div class="signature-block__title"><?php echo htmlspecialchars($schoolName); ?></div>
-    </div>
-    <div class="signature-block">
-      <div style="height:50px"></div>
-      <div class="signature-block__name">School Supervisor</div>
-      <div class="signature-block__title">NYSC Liaison</div>
+  <!-- Bank details -->
+  <div class="bank-box">
+    <div class="bank-box__title">Corps Account Details</div>
+    <div class="bank-box__grid">
+      <div><span class="bank-box__label">Bank Name:</span> <?php echo htmlspecialchars($member['bank_name'] ?? '—'); ?></div>
+      <div><span class="bank-box__label">Account Number:</span> <?php echo htmlspecialchars($member['account_number'] ?? '—'); ?></div>
     </div>
   </div>
 
-  <!-- Stamp placeholder -->
-  <div class="stamp-area">Official<br/>Stamp</div>
+  <!-- Conduct -->
+  <div class="check-block">
+    <p class="check-block__intro">The corps member served the school</p>
+    <div class="check-row">
+      <?php
+      $conductOptions = ['diligently' => 'Diligently', 'well' => 'Well', 'deceitfully' => 'Deceitfully', 'grudgingly' => 'Grudgingly'];
+      foreach ($conductOptions as $val => $label):
+      ?>
+      <span class="check-item">
+        <span class="checkbox <?php echo $conductRating === $val ? 'checked' : ''; ?>"></span>
+        <?php echo $label; ?>
+      </span>
+      <?php endforeach; ?>
+    </div>
+  </div>
+
+  <!-- Payment -->
+  <div class="check-block">
+    <p class="check-block__intro">He/She should be</p>
+    <div class="check-row">
+      <span class="check-item">
+        <span class="checkbox <?php echo $paymentStatus === 'allowed' ? 'checked' : ''; ?>"></span>
+        Allowed to sign and be paid the month's allowance
+      </span>
+      <span class="check-item">
+        <span class="checkbox <?php echo $paymentStatus === 'not_allowed' ? 'checked' : ''; ?>"></span>
+        Not allowed
+      </span>
+    </div>
+  </div>
+
+  <?php if (!empty($clearance['remarks'])): ?>
+  <p style="margin-bottom:16px"><strong>Remarks:</strong> <?php echo htmlspecialchars($clearance['remarks']); ?></p>
+  <?php endif; ?>
+
+  <!-- Sign-off -->
+  <div class="signoff">
+    <p class="signoff__line">Yours faithfully</p>
+
+    <div class="signoff-row">
+      <span class="signoff-row__label">Principal's name:</span>
+      <span class="signoff-row__blank"><?php echo htmlspecialchars($principal['name']); ?></span>
+    </div>
+    <div class="signoff-row">
+      <span class="signoff-row__label">Sign:</span>
+      <span class="signoff-row__blank">
+        <?php if (!empty($principal['signature'])): ?>
+        <img src="../assets/images/signatures/<?php echo htmlspecialchars($principal['signature']); ?>" style="height:44px;vertical-align:bottom"/>
+        <?php endif; ?>
+      </span>
+    </div>
+    <div class="signoff-row">
+      <span class="signoff-row__label">Stamp:</span>
+      <span class="signoff-row__blank">
+        <?php if (!empty($principal['stamp'])): ?>
+        <img src="../assets/images/signatures/<?php echo htmlspecialchars($principal['stamp']); ?>" style="height:70px;vertical-align:bottom"/>
+        <?php endif; ?>
+      </span>
+    </div>
+  </div>
 
   <!-- Footer -->
   <div class="letter-footer">
-    <?php echo htmlspecialchars($schoolName); ?> &nbsp;·&nbsp; Umuahia, Abia State, Nigeria
-    &nbsp;·&nbsp; NYSC Host Institution &nbsp;·&nbsp;
-    Cleared by: <?php echo htmlspecialchars($clearance['cleared_by_name'] ?? 'Admin'); ?>
-    on <?php echo $letterDate; ?>
+    <?php echo htmlspecialchars($schoolName); ?> &nbsp;·&nbsp; Umuahia, Abia State, Nigeria &nbsp;·&nbsp; NYSC Host Institution
   </div>
 
 </div>

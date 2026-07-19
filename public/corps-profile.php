@@ -76,9 +76,6 @@ $clearRow      = $clearStmt->fetch(PDO::FETCH_ASSOC);
 $isClearedNow  = $clearRow && (int) $clearRow['is_cleared'] === 1;
 $currentMonthLabel = date('F Y');
 
-$photoSrc = !empty($member['photo'])
-    ? BASE_PATH . 'assets/images/corps/' . htmlspecialchars($member['photo'])
-    : '';
 $initial = strtoupper(substr($member['full_name'], 0, 1));
 
 $sectionLabels = ['ss' => 'Senior Secondary', 'js' => 'Junior Secondary', 'both' => 'Both Sections'];
@@ -88,6 +85,12 @@ $pageDesc    = htmlspecialchars($member['full_name']) . ', NYSC corps member ser
 $currentPage = 'corps';
 
 require_once dirname(__DIR__) . '/src/includes/header.php';
+
+/* BASE_PATH is only defined once header.php has run, so this
+   must come after the require above, not before it. */
+$photoSrc = !empty($member['photo'])
+    ? BASE_PATH . 'assets/images/corps/' . htmlspecialchars($member['photo'])
+    : '';
 ?>
 
 <section class="page-hero">

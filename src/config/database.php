@@ -88,8 +88,12 @@ function getSettings(): array {
         /* Principals */
         'principal_ss_name'      => '[SS Principal\'s Full Name]',
         'principal_ss_message'   => 'At Ibeku High School, we do not merely teach subjects — we shape futures. Every student who walks through our gates carries within them the potential to become a leader, a builder, a thinker.',
+        'principal_ss_signature' => '',
+        'principal_ss_stamp'     => '',
         'principal_js_name'      => '[JS Principal\'s Full Name]',
         'principal_js_message'   => 'The junior secondary years are the most formative in a child\'s academic journey. At Ibeku High School, we ensure every JSS student builds a solid foundation — not just in Mathematics and English, but in confidence, curiosity, and the love of learning.',
+        'principal_js_signature' => '',
+        'principal_js_stamp'     => '',
 
         /* Academic Year */
         'current_session'        => '2025/2026',
@@ -210,4 +214,29 @@ function renderInnerHeroStyle(string $pageKey): string {
     $url = BASE_PATH . 'assets/images/hero/' . rawurlencode($entry['image']);
     $pos = htmlspecialchars($entry['position'], ENT_QUOTES);
     return ' style="background-image:url(\'' . htmlspecialchars($url, ENT_QUOTES) . '\');background-position:' . $pos . '"';
+}
+/* ── Principal signature/stamp assets ──
+   Returns the correct principal's name, signature filename, and
+   stamp filename for a given section ('ss' or 'js'). 'both' or
+   any unrecognised value defaults to 'ss'. Filenames are stored
+   in public/assets/images/signatures/ — managed via
+   admin/settings.php's Principals panel.
+
+   Callers construct the actual URL themselves rather than this
+   helper returning one, since BASE_PATH isn't defined in every
+   context that needs these assets (e.g. corps-letter.php doesn't
+   load header.php, and check_result.php is a JSON API that lets
+   the frontend prefix filenames with window.IHS_BASE instead).
+   ============================================================ */
+function getPrincipalAssets(string $section): array {
+    $s = strtolower($section);
+    if ($s !== 'ss' && $s !== 'js') $s = 'ss';
+
+    $settings = getSettings();
+    return [
+        'section'   => $s,
+        'name'      => $settings["principal_{$s}_name"]      ?? '',
+        'signature' => $settings["principal_{$s}_signature"] ?? '',
+        'stamp'     => $settings["principal_{$s}_stamp"]     ?? '',
+    ];
 }
