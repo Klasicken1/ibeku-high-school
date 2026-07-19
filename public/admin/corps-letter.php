@@ -20,24 +20,32 @@
 
 declare(strict_types=1);
 
-if (session_status() === PHP_SESSION_NONE) session_start();
-
 require_once dirname(__DIR__, 2) . '/src/config/database.php';
 
-/* Auth: accept both admin and corps member sessions */
+/* ── Auth: accept both admin and corps member sessions ──
+   These use two DIFFERENT named PHP sessions (admin uses the
+   default session; the corps portal uses session_name('ihs_corps')
+   via corps-auth.php's corpsSessionStart()). Switching between
+   named sessions mid-request via session_write_close() proved
+   unreliable in practice, so instead we check which session
+   cookie the browser actually sent BEFORE starting either
+   session, and only start the one that matches. ── */
+require_once dirname(__DIR__, 2) . '/src/includes/corps-auth.php';
+
 $isAdmin       = false;
 $isCorpsMember = false;
 
-/* Check admin session */
-if (!empty($_SESSION['admin_user'])) {
-    require_once dirname(__DIR__, 2) . '/src/includes/admin-auth.php';
-    $isAdmin = isLoggedIn();
+if (isset($_COOKIE['ihs_corps'])) {
+    /* This browser has an active (or recently active) corps portal
+       session — check that one first. */
+    corpsSessionStart();
+    $isCorpsMember = corpsLoggedIn();
 }
 
-/* Check corps session */
-if (!$isAdmin && !empty($_SESSION['corps_member'])) {
-    require_once dirname(__DIR__, 2) . '/src/includes/corps-auth.php';
-    $isCorpsMember = corpsLoggedIn();
+if (!$isCorpsMember) {
+    /* No valid corps session — check the admin (default) session instead. */
+    require_once dirname(__DIR__, 2) . '/src/includes/admin-auth.php';
+    $isAdmin = isLoggedIn();
 }
 
 if (!$isAdmin && !$isCorpsMember) {
@@ -145,66 +153,64 @@ if ($download) {
        letter itself, so Save-as-PDF produces a clean page with
        no browser header/footer/URL/date strip. ── */
     @media print {
-      @page { size: A4 portrait; margin: 14mm 16mm; }
+      @page { size: A4 portrait; margin: 11mm 14mm; }
       .no-print-bar { display: none !important; }
       body { background: #fff; padding: 0; }
       .letter { box-shadow: none; border: none; border-radius: 0; width: 100%; min-height: 0; }
     }
 
     /* ── LETTER ── */
-    .letter{background:#fff;width:780px;max-width:100%;padding:44px 52px;box-shadow:0 8px 40px rgba(0,0,0,.15);border-radius:8px;position:relative;font-size:14px;line-height:1.7;color:#1a1a1a}
+    .letter{background:#fff;width:780px;max-width:100%;padding:30px 44px;box-shadow:0 8px 40px rgba(0,0,0,.15);border-radius:8px;position:relative;font-size:13.5px;line-height:1.5;color:#1a1a1a}
 
     /* Letterhead */
-    .letterhead{display:flex;align-items:center;gap:18px;border-bottom:3px double #1a1a1a;padding-bottom:14px;margin-bottom:10px}
-    .letterhead__crest{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#3d1a6e,#4a90d9);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid #1a1a1a}
-    .letterhead__crest span{font-family:'Playfair Display',serif;font-weight:900;font-size:1.1rem;color:#fff;letter-spacing:1px}
+    .letterhead{display:flex;align-items:center;gap:18px;border-bottom:3px double #1a1a1a;padding-bottom:10px;margin-bottom:8px}
+    .letterhead__crest{width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#3d1a6e,#4a90d9);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid #1a1a1a}
+    .letterhead__crest span{font-family:'Playfair Display',serif;font-weight:900;font-size:1.05rem;color:#fff;letter-spacing:1px}
     .letterhead__text{flex:1;text-align:center}
-    .letterhead__gov{font-size:.8rem;font-weight:700;letter-spacing:.04em;color:#3a3a3a;text-transform:uppercase}
-    .letterhead__board{font-size:.72rem;font-weight:600;color:#5a5a5a;text-transform:uppercase;letter-spacing:.03em;margin-top:1px}
-    .letterhead__school{font-family:'Playfair Display',serif;font-size:1.7rem;font-weight:900;color:#1a1a1a;margin-top:4px;letter-spacing:.5px}
-    .letterhead__address{font-size:.75rem;color:#5a5a5a;margin-top:2px;letter-spacing:.03em}
+    .letterhead__gov{font-size:.78rem;font-weight:700;letter-spacing:.04em;color:#3a3a3a;text-transform:uppercase}
+    .letterhead__board{font-size:.7rem;font-weight:600;color:#5a5a5a;text-transform:uppercase;letter-spacing:.03em;margin-top:1px}
+    .letterhead__school{font-family:'Playfair Display',serif;font-size:1.55rem;font-weight:900;color:#1a1a1a;margin-top:3px;letter-spacing:.5px}
+    .letterhead__address{font-size:.72rem;color:#5a5a5a;margin-top:2px;letter-spacing:.03em}
 
     /* Ref/date line */
-    .ref-line{display:flex;justify-content:space-between;border-bottom:1px solid #1a1a1a;padding-bottom:8px;margin-bottom:22px;font-size:.8rem}
+    .ref-line{display:flex;justify-content:space-between;border-bottom:1px solid #1a1a1a;padding-bottom:6px;margin-bottom:14px;font-size:.78rem}
     .ref-line span strong{font-weight:700}
 
     /* Recipient block */
-    .recipient{margin-bottom:20px;font-size:.9rem}
+    .recipient{margin-bottom:12px;font-size:.88rem}
     .recipient div{margin-bottom:1px}
 
-    .salutation{margin-bottom:14px}
+    .salutation{margin-bottom:8px}
 
-    .letter-title{font-weight:700;text-decoration:underline;text-underline-offset:4px;margin-bottom:14px;font-size:1rem}
+    .letter-title{font-weight:700;text-decoration:underline;text-underline-offset:4px;margin-bottom:8px;font-size:.98rem}
 
-    .intro-text{margin-bottom:20px}
+    .intro-text{margin-bottom:12px}
 
     /* Fill-in field rows: LABEL: ..........value.......... */
-    .fill-row{display:flex;align-items:baseline;gap:6px;margin-bottom:16px}
+    .fill-row{display:flex;align-items:baseline;gap:6px;margin-bottom:10px}
     .fill-row__label{font-weight:700;white-space:nowrap;flex-shrink:0}
     .fill-row__value{flex:1;border-bottom:1px dotted #1a1a1a;padding-bottom:2px;font-weight:600;min-height:1.3em}
 
     /* Bank details box */
-    .bank-box{border:1.5px solid #1a1a1a;border-radius:4px;padding:12px 16px;margin:18px 0 22px}
-    .bank-box__title{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
-    .bank-box__grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;font-size:.85rem}
+    .bank-box{border:1.5px solid #1a1a1a;border-radius:4px;padding:10px 14px;margin:12px 0 14px}
+    .bank-box__title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+    .bank-box__grid{display:grid;grid-template-columns:1fr 1fr;gap:5px 20px;font-size:.83rem}
     .bank-box__label{font-weight:600;color:#5a5a5a}
 
     /* Conduct/payment checkbox rows */
-    .check-block{margin-bottom:16px}
-    .check-block__intro{margin-bottom:8px}
-    .check-row{display:flex;flex-wrap:wrap;gap:18px;margin-left:4px}
-    .check-item{display:flex;align-items:center;gap:6px;font-size:.9rem}
-    .checkbox{width:15px;height:15px;border:1.5px solid #1a1a1a;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:900;line-height:1}
+    .check-block{margin-bottom:10px}
+    .check-block__intro{margin-bottom:6px}
+    .check-row{display:flex;flex-wrap:wrap;gap:16px;margin-left:4px}
+    .check-item{display:flex;align-items:center;gap:6px;font-size:.88rem}
+    .checkbox{width:14px;height:14px;border:1.5px solid #1a1a1a;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:900;line-height:1}
     .checkbox.checked::after{content:'✓'}
 
     /* Signature */
-    .signoff{margin-top:26px}
-    .signoff__line{margin-bottom:14px}
-    .signoff-row{display:flex;align-items:baseline;gap:6px;margin-bottom:16px}
+    .signoff{margin-top:14px}
+    .signoff__line{margin-bottom:8px}
+    .signoff-row{display:flex;align-items:baseline;gap:6px;margin-bottom:10px}
     .signoff-row__label{font-weight:700;white-space:nowrap;flex-shrink:0}
     .signoff-row__blank{flex:1;border-bottom:1px dotted #1a1a1a;min-height:1.3em}
-
-    .letter-footer{border-top:1px solid #e2e0ea;padding-top:10px;margin-top:26px;text-align:center;font-size:.68rem;color:#9b97b0}
   </style>
 </head>
 <body>
@@ -213,7 +219,11 @@ if ($download) {
 <div class="no-print-bar">
   <span>Clearance Letter — <?php echo htmlspecialchars($member['full_name']); ?> — <?php echo $monthName . ' ' . $year; ?></span>
   <button class="btn-print" onclick="window.print()">Print / Save as PDF</button>
-  <a href="javascript:history.back()" class="btn-back">Back</a>
+  <?php if ($isAdmin): ?>
+  <a href="corps-clearance.php?id=<?php echo $memberId; ?>" class="btn-back">Back</a>
+  <?php else: ?>
+  <a href="../portal-corps/clearance.php?year=<?php echo $year; ?>&month=<?php echo $month; ?>" class="btn-back">Back</a>
+  <?php endif; ?>
 </div>
 
 <!-- THE LETTER -->
@@ -340,11 +350,6 @@ if ($download) {
         <?php endif; ?>
       </span>
     </div>
-  </div>
-
-  <!-- Footer -->
-  <div class="letter-footer">
-    <?php echo htmlspecialchars($schoolName); ?> &nbsp;·&nbsp; Umuahia, Abia State, Nigeria &nbsp;·&nbsp; NYSC Host Institution
   </div>
 
 </div>

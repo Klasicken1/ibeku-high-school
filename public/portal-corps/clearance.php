@@ -85,9 +85,9 @@ if ($selectedYear && $selectedMonth) {
         <div class="month-card__date"><?php echo date('d M Y', strtotime($c['cleared_at'])); ?></div>
         <?php endif; ?>
         <?php if ($c['is_cleared']): ?>
-        <div style="margin-top:8px">
+        <div style="margin-top:10px">
           <a href="?year=<?php echo $c['year']; ?>&month=<?php echo $c['month']; ?>"
-             style="font-size:.75rem;font-weight:700;color:#3d1a6e;text-decoration:none">
+             class="btn-download" style="padding:7px 16px;font-size:.75rem;width:100%;justify-content:center">
             View Letter
           </a>
         </div>
