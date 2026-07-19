@@ -237,6 +237,7 @@ $years = range($currentYear, $currentYear - 3);
         <?php if (empty($clearances)): ?>
         <div class="empty-state">No clearance records yet. Add one using the form.</div>
         <?php else: ?>
+        <div style="overflow-x:auto">
         <table class="cl-table">
           <thead>
             <tr>
@@ -292,6 +293,7 @@ $years = range($currentYear, $currentYear - 3);
             <?php endforeach; ?>
           </tbody>
         </table>
+        </div>
         <?php endif; ?>
       </div>
     </div>

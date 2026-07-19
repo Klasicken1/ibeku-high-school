@@ -365,6 +365,13 @@ $innerImages = getInnerHeroImages();
   .focal-picker__cell.selected::after { content:''; width:8px; height:8px; border-radius:50%; background:#fff; }
   .focal-picker__wrap { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
   .focal-picker__hint { font-size:11.5px; color:#9b97b0; max-width:220px; }
+
+  @media (max-width: 700px) {
+    .slide-row { flex-wrap: wrap; }
+    .slide-row__body { flex-basis: 100%; order: 3; }
+    .slide-row__actions { margin-left: auto; }
+    .form-row { flex-direction: column; gap: 0; }
+  }
 </style>
 </head>
 <body>

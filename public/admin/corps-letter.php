@@ -211,6 +211,21 @@ if ($download) {
     .signoff-row{display:flex;align-items:baseline;gap:6px;margin-bottom:10px}
     .signoff-row__label{font-weight:700;white-space:nowrap;flex-shrink:0}
     .signoff-row__blank{flex:1;border-bottom:1px dotted #1a1a1a;min-height:1.3em}
+
+    /* ── On-screen mobile viewing only — the @media print rules
+       above are untouched and still target A4 for the actual
+       printed/PDF output. This just keeps the preview usable on
+       a phone before printing. ── */
+    @media screen and (max-width: 700px) {
+      body { padding: 0.75rem; }
+      .no-print-bar { flex-direction: column; align-items: stretch; text-align: center; }
+      .no-print-bar span { flex: none; margin-bottom: 4px; }
+      .letter { padding: 20px 18px; font-size: 12.5px; }
+      .letterhead { flex-wrap: wrap; justify-content: center; text-align: center; }
+      .letterhead__crest:last-child { display: none; }
+      .ref-line { flex-direction: column; gap: 4px; }
+      .bank-box__grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>

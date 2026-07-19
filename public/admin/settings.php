@@ -253,6 +253,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   .info-row { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; font-size:13px; padding-top:4px; }
   .info-item__label { font-size:11px; font-weight:700; color:#9b97b0; text-transform:uppercase; margin-bottom:3px; }
+
+  @media (max-width: 600px) {
+    .form-row { flex-direction: column; gap: 0; }
+    .settings-tabs { flex-wrap: wrap; }
+    .settings-tab { flex: 1 1 33%; }
+  }
 </style>
 </head>
 <body>
