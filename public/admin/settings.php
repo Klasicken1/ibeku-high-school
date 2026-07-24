@@ -60,6 +60,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = 'School name is required.'; $messageType = 'error';
         }
 
+        /* ── School logo + Abia State emblem uploads — optional,
+           keeps existing file if no new one is chosen ── */
+        foreach (['school_logo', 'abia_state_emblem'] as $imgField) {
+            if (!empty($_FILES[$imgField]['name'])) {
+                $ext     = strtolower(pathinfo($_FILES[$imgField]['name'], PATHINFO_EXTENSION));
+                $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+                $label   = $imgField === 'school_logo' ? 'School Logo' : 'Abia State Emblem';
+                if (!in_array($ext, $allowed, true)) {
+                    $message = $label . ' must be JPG, PNG, or WEBP.'; $messageType = 'error';
+                } elseif ($_FILES[$imgField]['size'] > 1 * 1024 * 1024) {
+                    $message = $label . ' must be under 1MB.'; $messageType = 'error';
+                } else {
+                    $imgDir = dirname(__DIR__) . '/assets/images/settings/';
+                    if (!is_dir($imgDir)) mkdir($imgDir, 0755, true);
+                    $newFilename = uniqid(($imgField === 'school_logo' ? 'logo_' : 'emblem_'), true) . '.' . $ext;
+                    if (move_uploaded_file($_FILES[$imgField]['tmp_name'], $imgDir . $newFilename)) {
+                        $toSave[$imgField] = $newFilename;
+                    }
+                }
+            }
+        }
+
     } elseif ($section === 'principals') {
         $toSave = [
             'principal_ss_name'    => trim($_POST['principal_ss_name']    ?? ''),
@@ -293,7 +315,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
            SCHOOL INFO
            ════════════════════════════════════════ -->
       <div class="settings-panel settings-panel--active" id="panel-school">
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
           <input type="hidden" name="section" value="school"/>
 
           <div class="settings-card">
@@ -315,6 +337,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                      value="<?php echo htmlspecialchars($s['school_motto']); ?>"
                      placeholder="e.g. Knowledge, Discipline, Excellence"/>
               <p class="char-hint">Printed on result slips.</p>
+            </div>
+            <div class="form-group">
+              <label class="form-label">School Logo / Crest</label>
+              <?php if (!empty($s['school_logo'])): ?>
+              <img src="../assets/images/settings/<?php echo htmlspecialchars($s['school_logo']); ?>"
+                   style="height:50px;display:block;margin-bottom:8px;background:#f8f7fc;border-radius:6px;padding:4px"/>
+              <?php endif; ?>
+              <input type="file" class="form-input" name="school_logo" accept="image/png,image/jpeg,image/webp"/>
+              <p class="char-hint">Your actual IHS crest image. Used as a watermark on result slips and corps clearance letters. PNG with a transparent background works best.</p>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Abia State Emblem</label>
+              <?php if (!empty($s['abia_state_emblem'])): ?>
+              <img src="../assets/images/settings/<?php echo htmlspecialchars($s['abia_state_emblem']); ?>"
+                   style="height:50px;display:block;margin-bottom:8px;background:#f8f7fc;border-radius:6px;padding:4px"/>
+              <?php endif; ?>
+              <input type="file" class="form-input" name="abia_state_emblem" accept="image/png,image/jpeg,image/webp"/>
+              <p class="char-hint">Shown on the corps clearance letter alongside the school crest and Nigerian flag, as a light anti-forgery measure. PNG works best.</p>
             </div>
           </div>
 

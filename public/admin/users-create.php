@@ -23,16 +23,43 @@ require_once dirname(__DIR__, 2) . '/src/config/database.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-auth.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-sidebar.php';
 
-requireRole(['superadmin']);
+requireRole(['superadmin', 'section_admin']);
 
-$admin = currentAdmin();
-$pdo   = getDB();
+$admin           = currentAdmin();
+$isSectionAdmin  = $admin['role'] === 'section_admin';
+$adminOwnSection = $admin['section'];
+$pdo             = getDB();
+
+/* Self-healing column adds — phone and gender weren't in the
+   original schema, add them here so the page never fatals
+   regardless of which admin page runs first. */
+try {
+    $pdo->exec("ALTER TABLE users ADD COLUMN phone VARCHAR(20) NULL AFTER email");
+} catch (PDOException $e) { /* already exists */ }
+try {
+    $pdo->exec("ALTER TABLE users ADD COLUMN gender ENUM('male','female') NULL AFTER phone");
+} catch (PDOException $e) { /* already exists */ }
+try {
+    $pdo->exec(
+        "ALTER TABLE users MODIFY COLUMN role
+         ENUM('superadmin','section_admin','principal','vp_admin','vp_academics','vp_general','vp_student_affairs','dean','counselor','hod','form_teacher','subject_teacher')
+         NOT NULL"
+    );
+} catch (PDOException $e) { /* already includes section_admin */ }
 
 $message = '';
 $messageType = '';
 
-/* ── Roles that need a department field (HOD, Subject Teacher) ── */
-$departmentRoles = ['hod', 'subject_teacher'];
+/* ── Roles that can optionally have a department/subject —
+   expanded so administrators who also teach a subject (VPs, Dean,
+   Principal, Counselor) can be granted subject-teacher capability
+   too, not just dedicated HOD/Subject Teacher roles. Only HOD and
+   Subject Teacher have this as their core function; for everyone
+   else it's an optional addition. ── */
+$departmentRoles = [
+    'principal', 'vp_admin', 'vp_academics', 'vp_general', 'vp_student_affairs',
+    'dean', 'counselor', 'hod', 'form_teacher', 'subject_teacher',
+];
 /* ── Roles that need a class_assigned field ── */
 $classRoles = ['form_teacher'];
 
@@ -57,17 +84,27 @@ $roleLabels = [
     'vp_admin'        => 'Vice Principal (Administration)',
     'vp_academics'    => 'Vice Principal (Academics)',
     'vp_general'      => 'Vice Principal (General Duties)',
+    'vp_student_affairs' => 'Vice Principal (Student Affairs)',
     'dean'            => 'Dean of Studies',
     'counselor'       => 'Guidance Counsellor',
     'hod'             => 'Head of Department',
     'form_teacher'    => 'Form Teacher',
     'subject_teacher' => 'Subject Teacher',
+    'section_admin'   => 'Section Admin',
     'superadmin'      => 'System Administrator',
 ];
+
+/* Section admins can only create "regular" staff — never another
+   Section Admin or a System Administrator account. */
+if ($isSectionAdmin) {
+    unset($roleLabels['section_admin'], $roleLabels['superadmin']);
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $fullName       = trim($_POST['full_name']       ?? '');
     $email          = trim($_POST['email']            ?? '');
+    $phone          = trim($_POST['phone']            ?? '');
+    $gender         = trim($_POST['gender']           ?? '');
     $password       = $_POST['password']              ?? '';
     $role           = trim($_POST['role']             ?? '');
     $section        = trim($_POST['section']          ?? '');
@@ -78,6 +115,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $validRoles    = array_keys($roleLabels);
     $validSections = ['ss', 'js', 'both'];
+    $validGenders  = ['male', 'female', ''];
+
+    /* Section admins can only ever create accounts within their own
+       section — force this server-side regardless of what was
+       submitted, so tampering with the form can't bypass it. */
+    if ($isSectionAdmin) {
+        $section = $adminOwnSection;
+    }
 
     if ($fullName === '') {
         $message = 'Full name is required.';
@@ -85,14 +130,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $message = 'A valid email address is required.';
         $messageType = 'error';
+    } elseif (!in_array($gender, $validGenders, true)) {
+        $message = 'Please select a valid gender.';
+        $messageType = 'error';
     } elseif (strlen($password) < 8) {
         $message = 'Password must be at least 8 characters.';
         $messageType = 'error';
     } elseif (!in_array($role, $validRoles, true)) {
         $message = 'Please select a valid role.';
         $messageType = 'error';
+    } elseif ($isSectionAdmin && in_array($role, ['superadmin', 'section_admin'], true)) {
+        $message = 'You do not have permission to create that role.';
+        $messageType = 'error';
     } elseif (!in_array($section, $validSections, true)) {
         $message = 'Please select a valid section.';
+        $messageType = 'error';
+    } elseif ($role === 'section_admin' && $section === 'both') {
+        $message = 'A Section Admin must be assigned to Senior or Junior Secondary specifically, not Both.';
         $messageType = 'error';
     } elseif (in_array($role, $classRoles, true) && $classAssigned === '') {
         $message = 'Please select both a grade level and a class for the Form Teacher role.';
@@ -115,18 +169,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $stmt = $pdo->prepare(
                     'INSERT INTO users
-                        (full_name, email, password, role, section, department, class_assigned, is_active, created_by)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)'
+                        (full_name, email, phone, gender, password, role, section, department, class_assigned, is_active, created_by)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)'
                 );
                 $stmt->execute([
-                    $fullName, $email, $hash, $role, $section,
+                    $fullName, $email, $phone ?: null, $gender ?: null, $hash, $role, $section,
                     $finalDepartment, $finalClass, $admin['id'],
                 ]);
 
                 $message = 'Account created successfully for ' . htmlspecialchars($fullName) . '.';
                 $messageType = 'success';
 
-                $fullName = $email = $role = $section = $department = $gradeLevelOnly = $classOnly = '';
+                $fullName = $email = $phone = $gender = $role = $section = $department = $gradeLevelOnly = $classOnly = '';
 
             } catch (PDOException $e) {
                 error_log('IHS users-create error: ' . $e->getMessage());
@@ -210,6 +264,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                    value="<?php echo htmlspecialchars($email ?? ''); ?>" placeholder="staff@ibekuhighschool.edu.ng"/>
           </div>
 
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="phone">Phone Number</label>
+              <input type="tel" class="form-input" id="phone" name="phone" maxlength="20"
+                     value="<?php echo htmlspecialchars($phone ?? ''); ?>" placeholder="e.g. 08012345678"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="gender">Gender</label>
+              <select class="form-select" id="gender" name="gender">
+                <option value="">Select gender</option>
+                <option value="male" <?php echo ($gender ?? '') === 'male' ? 'selected' : ''; ?>>Male</option>
+                <option value="female" <?php echo ($gender ?? '') === 'female' ? 'selected' : ''; ?>>Female</option>
+              </select>
+            </div>
+          </div>
+
           <div class="form-group">
             <label class="form-label" for="password">Temporary Password</label>
             <input type="text" class="form-input" id="password" name="password" required minlength="8"
@@ -231,12 +301,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div class="form-group">
               <label class="form-label" for="section">Section</label>
+              <?php if ($isSectionAdmin): ?>
+              <select class="form-select" id="section" name="section" disabled>
+                <option value="<?php echo $adminOwnSection; ?>" selected>
+                  <?php echo $adminOwnSection === 'ss' ? 'Senior Secondary' : 'Junior Secondary'; ?>
+                </option>
+              </select>
+              <input type="hidden" name="section" value="<?php echo htmlspecialchars($adminOwnSection); ?>"/>
+              <p class="char-hint">Locked to your own section.</p>
+              <?php else: ?>
               <select class="form-select" id="section" name="section" required>
                 <option value="">Select section</option>
                 <option value="ss" <?php echo ($section ?? '') === 'ss' ? 'selected' : ''; ?>>Senior Secondary</option>
                 <option value="js" <?php echo ($section ?? '') === 'js' ? 'selected' : ''; ?>>Junior Secondary</option>
                 <option value="both" <?php echo ($section ?? '') === 'both' ? 'selected' : ''; ?>>Both Sections</option>
               </select>
+              <?php endif; ?>
             </div>
           </div>
 
@@ -248,7 +328,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <option value="<?php echo htmlspecialchars($dept); ?>" <?php echo ($department ?? '') === $dept ? 'selected' : ''; ?>><?php echo htmlspecialchars($dept); ?></option>
               <?php endforeach; ?>
             </select>
-            <p class="char-hint">Required for Head of Department and Subject Teacher roles. This must exactly match a subject name for the results entry permission system to work correctly.</p>
+            <p class="char-hint">Required for Head of Department and Subject Teacher roles; optional for other staff who also teach a subject. This must exactly match a subject name for the results entry permission system to work correctly.</p>
           </div>
 
           <div class="form-group conditional-field" id="classField">
@@ -288,7 +368,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     var gradeLevelOnlySelect = document.getElementById('grade_level_only');
     var classOnlySelect      = document.getElementById('class_only');
 
-    var departmentRoles = ['hod', 'subject_teacher'];
+    var departmentRoles = [
+      'principal', 'vp_admin', 'vp_academics', 'vp_general', 'vp_student_affairs',
+      'dean', 'counselor', 'hod', 'form_teacher', 'subject_teacher'
+    ];
     var classRoles      = ['form_teacher'];
 
     /* ── Classes data passed from PHP — single source of truth from class_arms table ── */

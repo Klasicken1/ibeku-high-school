@@ -23,7 +23,10 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-/* ── Role hierarchy — higher index = more permissions ── */
+/* ── Role hierarchy — higher index = more permissions ──
+   section_admin sits between principal and superadmin: full
+   control within their own section, but never cross-section and
+   never superadmin's site-wide reach. ── */
 define('ROLE_HIERARCHY', [
     'subject_teacher' => 1,
     'form_teacher'    => 2,
@@ -31,10 +34,12 @@ define('ROLE_HIERARCHY', [
     'counselor'       => 3,
     'dean'            => 4,
     'vp_general'      => 5,
+    'vp_student_affairs' => 5,
     'vp_admin'        => 5,
     'vp_academics'    => 5,
     'principal'       => 6,
-    'superadmin'      => 7,
+    'section_admin'   => 7,
+    'superadmin'      => 8,
 ]);
 
 /* ── Check if user is logged in ── */
@@ -94,14 +99,24 @@ function currentAdmin(): array {
     ];
 }
 
+/* ── Convenience check — true if the logged-in admin is a
+   section_admin (i.e. full control within one section only,
+   never site-wide). Used throughout the admin panel to decide
+   whether to scope queries/UI to the admin's own section. ── */
+function isSectionAdmin(): bool {
+    return ($_SESSION['admin_role'] ?? null) === 'section_admin';
+}
+
 /* ── Human-readable role label ── */
 function roleLabel(string $role, string $section): string {
     $labels = [
         'superadmin'      => 'System Administrator',
+        'section_admin'   => 'Section Admin',
         'principal'       => 'Principal',
         'vp_admin'        => 'Vice Principal (Administration)',
         'vp_academics'    => 'Vice Principal (Academics)',
         'vp_general'      => 'Vice Principal (General Duties)',
+        'vp_student_affairs' => 'Vice Principal (Student Affairs)',
         'dean'            => 'Dean of Studies',
         'counselor'       => 'Guidance Counsellor',
         'hod'             => 'Head of Department',

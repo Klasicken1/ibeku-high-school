@@ -18,10 +18,20 @@ require_once dirname(__DIR__, 2) . '/src/config/database.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-auth.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-sidebar.php';
 
-requireRole(['superadmin']);
+requireRole(['superadmin', 'section_admin']);
 
-$admin = currentAdmin();
-$pdo   = getDB();
+$admin           = currentAdmin();
+$pdo             = getDB();
+$isSectionAdmin  = $admin['role'] === 'section_admin';
+$adminOwnSection = $admin['section']; /* 'ss' or 'js' for a section_admin */
+
+try {
+    $pdo->exec(
+        "ALTER TABLE users MODIFY COLUMN role
+         ENUM('superadmin','section_admin','principal','vp_admin','vp_academics','vp_general','vp_student_affairs','dean','counselor','hod','form_teacher','subject_teacher')
+         NOT NULL"
+    );
+} catch (PDOException $e) { /* already includes section_admin */ }
 
 $message = '';
 $messageType = '';
@@ -35,7 +45,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_id'], $_POST['ac
     if ($userId === (int) $admin['id']) {
         $message = 'You cannot deactivate or delete your own account while logged in.';
         $messageType = 'error';
-    } else {
+    } elseif ($isSectionAdmin) {
+        /* Section admins can only act on regular staff within their
+           own section — never on superadmin or other section_admin
+           accounts, and never outside their section. */
+        $targetStmt = $pdo->prepare('SELECT role, section FROM users WHERE id = ? LIMIT 1');
+        $targetStmt->execute([$userId]);
+        $target = $targetStmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$target) {
+            $message = 'User not found.'; $messageType = 'error';
+        } elseif (in_array($target['role'], ['superadmin', 'section_admin'], true)) {
+            $message = 'You do not have permission to manage that account.'; $messageType = 'error';
+        } elseif ($target['section'] !== $adminOwnSection && $target['section'] !== 'both') {
+            $message = 'You can only manage staff in your own section.'; $messageType = 'error';
+        }
+    }
+
+    if ($message === '') {
         try {
             if ($action === 'activate') {
                 $pdo->prepare('UPDATE users SET is_active = 1 WHERE id = ?')->execute([$userId]);
@@ -63,10 +90,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_id'], $_POST['ac
 /* ── Role display labels ── */
 $roleLabels = [
     'superadmin'      => 'System Administrator',
+    'section_admin'   => 'Section Admin',
     'principal'       => 'Principal',
     'vp_admin'        => 'VP (Administration)',
     'vp_academics'    => 'VP (Academics)',
     'vp_general'      => 'VP (General Duties)',
+    'vp_student_affairs' => 'VP (Student Affairs)',
     'dean'            => 'Dean of Studies',
     'counselor'       => 'Guidance Counsellor',
     'hod'             => 'Head of Department',
@@ -74,8 +103,10 @@ $roleLabels = [
     'subject_teacher' => 'Subject Teacher',
 ];
 
-/* ── Filter by role/section ── */
-$sectionFilter = $_GET['section'] ?? 'all';
+/* ── Filter by role/section ──
+   Section admins are locked to their own section regardless of
+   any ?section= in the URL — they never get a choice here. ── */
+$sectionFilter = $isSectionAdmin ? $adminOwnSection : ($_GET['section'] ?? 'all');
 
 $sql = 'SELECT * FROM users';
 $params = [];
@@ -85,15 +116,35 @@ if ($sectionFilter !== 'all') {
     $params[] = $sectionFilter;
 }
 
-$sql .= ' ORDER BY FIELD(role, "superadmin","principal","vp_admin","vp_academics","vp_general","dean","counselor","hod","form_teacher","subject_teacher"), full_name ASC';
+/* Section admins never see superadmin or other section_admin accounts */
+if ($isSectionAdmin) {
+    $sql .= ($params ? ' AND' : ' WHERE') . ' role NOT IN ("superadmin", "section_admin")';
+}
+
+$sql .= ' ORDER BY FIELD(role, "superadmin","section_admin","principal","vp_admin","vp_academics","vp_general","vp_student_affairs","dean","counselor","hod","form_teacher","subject_teacher"), full_name ASC';
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $users = $stmt->fetchAll();
 
-$totalCount    = $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
-$activeCount   = $pdo->query('SELECT COUNT(*) FROM users WHERE is_active = 1')->fetchColumn();
-$inactiveCount = $pdo->query('SELECT COUNT(*) FROM users WHERE is_active = 0')->fetchColumn();
+/* ── Stats — scoped to the section admin's own section ── */
+if ($isSectionAdmin) {
+    $totalCount    = $pdo->prepare('SELECT COUNT(*) FROM users WHERE (section = ? OR section = "both") AND role NOT IN ("superadmin","section_admin")');
+    $totalCount->execute([$adminOwnSection]);
+    $totalCount = $totalCount->fetchColumn();
+
+    $activeCount   = $pdo->prepare('SELECT COUNT(*) FROM users WHERE (section = ? OR section = "both") AND role NOT IN ("superadmin","section_admin") AND is_active = 1');
+    $activeCount->execute([$adminOwnSection]);
+    $activeCount = $activeCount->fetchColumn();
+
+    $inactiveCount = $pdo->prepare('SELECT COUNT(*) FROM users WHERE (section = ? OR section = "both") AND role NOT IN ("superadmin","section_admin") AND is_active = 0');
+    $inactiveCount->execute([$adminOwnSection]);
+    $inactiveCount = $inactiveCount->fetchColumn();
+} else {
+    $totalCount    = $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
+    $activeCount   = $pdo->query('SELECT COUNT(*) FROM users WHERE is_active = 1')->fetchColumn();
+    $inactiveCount = $pdo->query('SELECT COUNT(*) FROM users WHERE is_active = 0')->fetchColumn();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -183,7 +234,7 @@ $inactiveCount = $pdo->query('SELECT COUNT(*) FROM users WHERE is_active = 0')->
       <div class="page-header-row">
         <div class="page-header" style="margin-bottom:0">
           <h2>Manage Users</h2>
-          <p>Staff accounts across both Senior and Junior Secondary sections.</p>
+          <p><?php echo $isSectionAdmin ? 'Staff accounts in your section.' : 'Staff accounts across both Senior and Junior Secondary sections.'; ?></p>
         </div>
         <a href="users-create.php" class="btn-new">+ New User</a>
       </div>
@@ -198,11 +249,13 @@ $inactiveCount = $pdo->query('SELECT COUNT(*) FROM users WHERE is_active = 0')->
         <div class="stat-pill"><strong><?php echo $inactiveCount; ?></strong> Inactive</div>
       </div>
 
+      <?php if (!$isSectionAdmin): ?>
       <div class="filter-tabs">
         <a href="?section=all" class="filter-tab <?php echo $sectionFilter === 'all' ? 'filter-tab--active' : ''; ?>">All</a>
         <a href="?section=ss"  class="filter-tab <?php echo $sectionFilter === 'ss'  ? 'filter-tab--active' : ''; ?>">Senior Secondary</a>
         <a href="?section=js"  class="filter-tab <?php echo $sectionFilter === 'js'  ? 'filter-tab--active' : ''; ?>">Junior Secondary</a>
       </div>
+      <?php endif; ?>
 
       <div class="users-table-wrap">
         <?php if (empty($users)): ?>

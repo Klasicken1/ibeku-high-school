@@ -4,12 +4,19 @@
    File: public/admin/corps-letter.php
    Also accessible from portal-corps/clearance-letter.php
 
-   Faithful reproduction of the official Abia State Secondary
-   Education Management Board clearance letter template, with
-   member details, call up number, month, and bank account
-   details auto-filled, plus the conduct/payment selections
-   made by admin on corps-clearance.php rendered as checked
-   boxes.
+   Renders one of TWO letter formats depending on the corps
+   member's section:
+     - SS (and 'both', defaulting to SS): the official Abia State
+       Secondary Education Management Board letterhead format
+       ("CLEARANCE FOR CORPS MEMBER").
+     - JS: the "Letter of Clearance" format addressed through the
+       Local Government Inspector to the State Coordinator.
+   Both share the same auto-filled member/bank/principal data and
+   conduct/payment checkboxes.
+
+   Includes a faint repeating "IHS" watermark plus a Nigerian flag
+   and Abia State emblem in the letterhead, as a light deterrent
+   against easy forgery/photocopy reuse.
 
    Print/PDF: same approach as the public result slip — a
    dedicated @page rule and a hidden no-print bar, so "Print /
@@ -117,6 +124,14 @@ $schoolName = $_site['school_name'] ?? 'Ibeku High School';
    'both' defaults to the SS Principal. */
 $principal = getPrincipalAssets($member['section'] ?? 'ss');
 
+/* Which letter format to use: Junior Secondary corps members get
+   the "Letter of Clearance" format; SS (and 'both', defaulting to
+   SS) get the official government-letterhead format. */
+$isJS = ($member['section'] ?? 'ss') === 'js';
+
+$abiaEmblem = $_site['abia_state_emblem'] ?? '';
+$schoolLogo = $_site['school_logo'] ?? '';
+
 $months = ['','January','February','March','April','May','June',
            'July','August','September','October','November','December'];
 
@@ -160,7 +175,28 @@ if ($download) {
     }
 
     /* ── LETTER ── */
-    .letter{background:#fff;width:780px;max-width:100%;padding:30px 44px;box-shadow:0 8px 40px rgba(0,0,0,.15);border-radius:8px;position:relative;font-size:13.5px;line-height:1.5;color:#1a1a1a}
+    .letter{background:#fff;width:780px;max-width:100%;padding:30px 44px;box-shadow:0 8px 40px rgba(0,0,0,.15);border-radius:8px;position:relative;font-size:13.5px;line-height:1.5;color:#1a1a1a;overflow:hidden}
+
+    /* ── Security watermark — faint repeating IHS mark behind the
+       content, makes the letter harder to convincingly forge or
+       pass off a screenshot/photocopy as a blank template. ── */
+    .watermark{position:absolute;inset:0;display:flex;flex-wrap:wrap;align-content:center;justify-content:center;overflow:hidden;pointer-events:none;z-index:0;gap:40px;transform:rotate(-28deg) scale(1.4)}
+    .watermark span{font-family:'Playfair Display',serif;font-weight:900;font-size:64px;color:rgba(61,26,110,.05);white-space:nowrap;user-select:none}
+    .watermark img{width:80px;height:80px;object-fit:contain;opacity:.07}
+    .letter > *:not(.watermark){position:relative;z-index:1}
+
+    /* Nigerian flag — simple, accurate tricolor */
+    .ng-flag{width:36px;height:24px;display:flex;flex-shrink:0;border:1px solid rgba(0,0,0,.2)}
+    .ng-flag span{flex:1}
+    .ng-flag span:nth-child(1){background:#008751}
+    .ng-flag span:nth-child(2){background:#fff}
+    .ng-flag span:nth-child(3){background:#008751}
+
+    /* Abia State emblem slot — falls back to a text badge if no
+       image has been uploaded in Settings yet */
+    .abia-emblem{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid #1a1a1a;overflow:hidden;background:#f0ecfa;font-size:.5rem;font-weight:700;color:#3d1a6e;text-align:center;line-height:1.15}
+    .abia-emblem img{width:100%;height:100%;object-fit:cover}
+    .letterhead__side{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0}
 
     /* Letterhead */
     .letterhead{display:flex;align-items:center;gap:18px;border-bottom:3px double #1a1a1a;padding-bottom:10px;margin-bottom:8px}
@@ -222,9 +258,10 @@ if ($download) {
       .no-print-bar span { flex: none; margin-bottom: 4px; }
       .letter { padding: 20px 18px; font-size: 12.5px; }
       .letterhead { flex-wrap: wrap; justify-content: center; text-align: center; }
-      .letterhead__crest:last-child { display: none; }
+      .letterhead__side { display: none; }
       .ref-line { flex-direction: column; gap: 4px; }
       .bank-box__grid { grid-template-columns: 1fr; }
+      .watermark span { font-size: 40px; }
     }
   </style>
 </head>
@@ -244,16 +281,37 @@ if ($download) {
 <!-- THE LETTER -->
 <div class="letter">
 
+  <!-- Security watermark -->
+  <div class="watermark" aria-hidden="true">
+    <?php if ($schoolLogo): ?>
+      <?php for ($i = 0; $i < 12; $i++): ?>
+      <img src="../assets/images/settings/<?php echo htmlspecialchars($schoolLogo); ?>" alt=""/>
+      <?php endfor; ?>
+    <?php else: ?>
+      <?php for ($i = 0; $i < 12; $i++): ?><span>IHS</span><?php endfor; ?>
+    <?php endif; ?>
+  </div>
+
   <!-- Letterhead -->
   <div class="letterhead">
-    <div class="letterhead__crest"><span>IHS</span></div>
+    <div class="letterhead__side">
+      <div class="abia-emblem">
+        <?php if ($abiaEmblem): ?>
+        <img src="../assets/images/settings/<?php echo htmlspecialchars($abiaEmblem); ?>" alt="Abia State"/>
+        <?php else: ?>
+        ABIA<br/>STATE
+        <?php endif; ?>
+      </div>
+    </div>
     <div class="letterhead__text">
       <div class="letterhead__gov">Government of Abia State</div>
       <div class="letterhead__board">Secondary Education Management Board</div>
       <div class="letterhead__school"><?php echo htmlspecialchars(strtoupper($schoolName)); ?></div>
       <div class="letterhead__address">P.O. BOX 168, UMUAHIA, ABIA STATE</div>
     </div>
-    <div class="letterhead__crest" style="visibility:hidden"><span>IHS</span></div>
+    <div class="letterhead__side">
+      <div class="ng-flag"><span></span><span></span><span></span></div>
+    </div>
   </div>
 
   <!-- Ref/Date line -->
@@ -262,6 +320,42 @@ if ($download) {
     <span>YOUR REF: <strong>&nbsp;</strong></span>
     <span>DATE: <strong><?php echo $letterDate; ?></strong></span>
   </div>
+
+  <?php if ($isJS): ?>
+  <!-- ═══ JUNIOR SECONDARY FORMAT — "Letter of Clearance" ═══ -->
+
+  <!-- Recipient -->
+  <div class="recipient">
+    <div>THE STATE COORDINATOR</div>
+    <div>NATIONAL YOUTH SERVICE CORPS SECRETARIAT</div>
+    <div>UMUAHIA, ABIA STATE</div>
+  </div>
+  <p style="font-size:.82rem;margin-bottom:12px">
+    <strong>Through:</strong> The Local Government Inspector, National Youth Service Corps Secretariat, Umuahia, Abia State.
+  </p>
+
+  <div class="salutation">Sir/Madam,</div>
+
+  <div class="letter-title" style="text-align:center">LETTER OF CLEARANCE</div>
+
+  <p class="intro-text">
+    This is to inform you that the Corps Member <strong><?php echo htmlspecialchars($member['full_name']); ?></strong>,
+    who was deployed to <?php echo htmlspecialchars($schoolName); ?>, Umuahia North Local Government Area, Abia State,
+    is hereby cleared for the month of <strong><?php echo htmlspecialchars($monthName . ' ' . $year); ?></strong>.
+  </p>
+
+  <!-- Fill-in fields -->
+  <div class="fill-row">
+    <span class="fill-row__label">STATE CODE:</span>
+    <span class="fill-row__value"><?php echo htmlspecialchars($member['state_code']); ?></span>
+  </div>
+  <div class="fill-row">
+    <span class="fill-row__label">CALL UP NUMBER:</span>
+    <span class="fill-row__value"><?php echo htmlspecialchars($member['call_up_number'] ?? ''); ?></span>
+  </div>
+
+  <?php else: ?>
+  <!-- ═══ SENIOR SECONDARY FORMAT — official letterhead ═══ -->
 
   <!-- Recipient -->
   <div class="recipient">
@@ -296,6 +390,7 @@ if ($download) {
     <span class="fill-row__label">MONTH:</span>
     <span class="fill-row__value"><?php echo htmlspecialchars($monthName . ' ' . $year); ?></span>
   </div>
+  <?php endif; ?>
 
   <!-- Bank details -->
   <div class="bank-box">
@@ -339,6 +434,12 @@ if ($download) {
 
   <?php if (!empty($clearance['remarks'])): ?>
   <p style="margin-bottom:16px"><strong>Remarks:</strong> <?php echo htmlspecialchars($clearance['remarks']); ?></p>
+  <?php endif; ?>
+
+  <?php if ($isJS): ?>
+  <p style="margin-bottom:16px">
+    Please accord him/her all rights and privileges he/she deserves by virtue of this clearance.
+  </p>
   <?php endif; ?>
 
   <!-- Sign-off -->

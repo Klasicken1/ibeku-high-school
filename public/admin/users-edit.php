@@ -28,10 +28,27 @@ require_once dirname(__DIR__, 2) . '/src/config/database.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-auth.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-sidebar.php';
 
-requireRole(['superadmin']);
+requireRole(['superadmin', 'section_admin']);
 
-$admin = currentAdmin();
-$pdo   = getDB();
+$admin           = currentAdmin();
+$isSectionAdmin  = $admin['role'] === 'section_admin';
+$adminOwnSection = $admin['section'];
+$pdo             = getDB();
+
+/* Self-healing column adds — same as users-create.php */
+try {
+    $pdo->exec("ALTER TABLE users ADD COLUMN phone VARCHAR(20) NULL AFTER email");
+} catch (PDOException $e) { /* already exists */ }
+try {
+    $pdo->exec("ALTER TABLE users ADD COLUMN gender ENUM('male','female') NULL AFTER phone");
+} catch (PDOException $e) { /* already exists */ }
+try {
+    $pdo->exec(
+        "ALTER TABLE users MODIFY COLUMN role
+         ENUM('superadmin','section_admin','principal','vp_admin','vp_academics','vp_general','vp_student_affairs','dean','counselor','hod','form_teacher','subject_teacher')
+         NOT NULL"
+    );
+} catch (PDOException $e) { /* already includes section_admin */ }
 
 $userId = (int) ($_GET['id'] ?? 0);
 
@@ -49,10 +66,26 @@ if (!$user) {
     exit;
 }
 
+/* Section admins can only view/edit regular staff within their
+   own section — never superadmin/section_admin accounts, and
+   never staff outside their section. */
+if ($isSectionAdmin) {
+    $targetOutOfScope = in_array($user['role'], ['superadmin', 'section_admin'], true)
+        || ($user['section'] !== $adminOwnSection && $user['section'] !== 'both');
+    if ($targetOutOfScope) {
+        $_SESSION['admin_error'] = 'You do not have permission to manage that account.';
+        header('Location: users.php');
+        exit;
+    }
+}
+
 $message     = '';
 $messageType = '';
 
-$departmentRoles = ['hod', 'subject_teacher'];
+$departmentRoles = [
+    'principal', 'vp_admin', 'vp_academics', 'vp_general', 'vp_student_affairs',
+    'dean', 'counselor', 'hod', 'form_teacher', 'subject_teacher',
+];
 $classRoles      = ['form_teacher'];
 
 /* ── Pull subjects for department dropdown ── */
@@ -88,13 +121,19 @@ $roleLabels = [
     'vp_admin'        => 'Vice Principal (Administration)',
     'vp_academics'    => 'Vice Principal (Academics)',
     'vp_general'      => 'Vice Principal (General Duties)',
+    'vp_student_affairs' => 'Vice Principal (Student Affairs)',
     'dean'            => 'Dean of Studies',
     'counselor'       => 'Guidance Counsellor',
     'hod'             => 'Head of Department',
     'form_teacher'    => 'Form Teacher',
     'subject_teacher' => 'Subject Teacher',
+    'section_admin'   => 'Section Admin',
     'superadmin'      => 'System Administrator',
 ];
+
+if ($isSectionAdmin) {
+    unset($roleLabels['section_admin'], $roleLabels['superadmin']);
+}
 
 $closureReasonLabels = [
     'retired'     => 'Retired',
@@ -177,6 +216,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         /* ── Standard profile update ── */
         $fullName        = trim($_POST['full_name']        ?? '');
         $email           = trim($_POST['email']             ?? '');
+        $phone           = trim($_POST['phone']             ?? '');
+        $gender          = trim($_POST['gender']            ?? '');
         $role            = trim($_POST['role']              ?? '');
         $section         = trim($_POST['section']           ?? '');
         $department      = trim($_POST['department']        ?? '');
@@ -190,15 +231,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $validRoles    = array_keys($roleLabels);
         $validSections = ['ss', 'js', 'both'];
+        $validGenders  = ['male', 'female', ''];
+
+        /* Section admins can't move a staff member out of their
+           section, and $validRoles already excludes superadmin/
+           section_admin for them (roleLabels was filtered above),
+           so an out-of-range $role here also fails the next check. */
+        if ($isSectionAdmin) {
+            $section = $adminOwnSection;
+        }
 
         if ($fullName === '') {
             $message = 'Full name is required.'; $messageType = 'error';
         } elseif ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $message = 'A valid email address is required.'; $messageType = 'error';
+        } elseif (!in_array($gender, $validGenders, true)) {
+            $message = 'Please select a valid gender.'; $messageType = 'error';
         } elseif (!in_array($role, $validRoles, true)) {
             $message = 'Please select a valid role.'; $messageType = 'error';
         } elseif (!in_array($section, $validSections, true)) {
             $message = 'Please select a valid section.'; $messageType = 'error';
+        } elseif ($role === 'section_admin' && $section === 'both') {
+            $message = 'A Section Admin must be assigned to Senior or Junior Secondary specifically, not Both.'; $messageType = 'error';
         } elseif ($newPassword !== '' && strlen($newPassword) < 8) {
             $message = 'New password must be at least 8 characters.'; $messageType = 'error';
         } elseif ($newPassword !== '' && $newPassword !== $confirmPassword) {
@@ -219,10 +273,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $pdo->beginTransaction();
 
                     $pdo->prepare(
-                        'UPDATE users SET full_name=?, email=?, role=?, section=?,
+                        'UPDATE users SET full_name=?, email=?, phone=?, gender=?, role=?, section=?,
                          department=?, class_assigned=?, is_active=?, updated_at=NOW()
                          WHERE id=?'
-                    )->execute([$fullName, $email, $role, $section, $finalDepartment, $finalClass, $isActive, $userId]);
+                    )->execute([$fullName, $email, $phone ?: null, $gender ?: null, $role, $section, $finalDepartment, $finalClass, $isActive, $userId]);
 
                     if ($newPassword !== '') {
                         $hash = password_hash($newPassword, PASSWORD_BCRYPT, ['cost' => 12]);
@@ -443,6 +497,22 @@ $isClosed = !empty($user['closed_reason']);
 
           <div class="form-row">
             <div class="form-group">
+              <label class="form-label" for="phone">Phone Number</label>
+              <input type="tel" class="form-input" id="phone" name="phone" maxlength="20"
+                     value="<?php echo htmlspecialchars($user['phone'] ?? ''); ?>" placeholder="e.g. 08012345678"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="gender">Gender</label>
+              <select class="form-select" id="gender" name="gender">
+                <option value="">Select gender</option>
+                <option value="male" <?php echo ($user['gender'] ?? '') === 'male' ? 'selected' : ''; ?>>Male</option>
+                <option value="female" <?php echo ($user['gender'] ?? '') === 'female' ? 'selected' : ''; ?>>Female</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
               <label class="form-label" for="role">Role</label>
               <select class="form-select" id="role" name="role" required
                       <?php echo $userId === (int) $admin['id'] ? 'disabled' : ''; ?>>
@@ -456,11 +526,19 @@ $isClosed = !empty($user['closed_reason']);
             </div>
             <div class="form-group">
               <label class="form-label" for="section">Section</label>
+              <?php if ($isSectionAdmin): ?>
+              <select class="form-select" id="section" disabled>
+                <option selected><?php echo $adminOwnSection === 'ss' ? 'Senior Secondary' : 'Junior Secondary'; ?></option>
+              </select>
+              <input type="hidden" name="section" value="<?php echo htmlspecialchars($adminOwnSection); ?>"/>
+              <p class="char-hint">Locked to your own section.</p>
+              <?php else: ?>
               <select class="form-select" id="section" name="section" required>
                 <option value="ss"   <?php echo $user['section'] === 'ss'   ? 'selected' : ''; ?>>Senior Secondary</option>
                 <option value="js"   <?php echo $user['section'] === 'js'   ? 'selected' : ''; ?>>Junior Secondary</option>
                 <option value="both" <?php echo $user['section'] === 'both' ? 'selected' : ''; ?>>Both Sections</option>
               </select>
+              <?php endif; ?>
             </div>
           </div>
 
@@ -636,7 +714,10 @@ $isClosed = !empty($user['closed_reason']);
     var gradeLevelOnlySelect    = document.getElementById('grade_level_only');
     var classOnlySelect         = document.getElementById('class_only');
 
-    var departmentRoles        = ['hod', 'subject_teacher'];
+    var departmentRoles        = [
+      'principal', 'vp_admin', 'vp_academics', 'vp_general', 'vp_student_affairs',
+      'dean', 'counselor', 'hod', 'form_teacher', 'subject_teacher'
+    ];
     var teacherAssignmentRoles = ['subject_teacher'];
     var classRoles             = ['form_teacher'];
 

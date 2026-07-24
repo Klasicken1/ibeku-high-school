@@ -84,6 +84,8 @@ function getSettings(): array {
         'school_website'         => 'https://ibekuhighschool.edu.ng',
         'school_motto'           => 'Knowledge, Discipline, Excellence',
         'school_hours'           => 'Mon – Fri: 8:00 AM – 3:00 PM',
+        'abia_state_emblem'      => '',
+        'school_logo'            => '',
 
         /* Principals */
         'principal_ss_name'      => '[SS Principal\'s Full Name]',

@@ -838,6 +838,43 @@
    ============================================================ */
 .result-sheet {
   display: none;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Security watermark — faint repeating school logo (or IHS
+   text if no logo has been uploaded yet), matching the same
+   treatment used on corps clearance letters ── */
+.rs-watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  gap: 40px;
+  transform: rotate(-28deg) scale(1.4);
+}
+.rs-watermark span {
+  font-family: 'Playfair Display', serif;
+  font-weight: 900;
+  font-size: 56px;
+  color: rgba(61,26,110,.05);
+  white-space: nowrap;
+  user-select: none;
+}
+.rs-watermark img {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+  opacity: .07;
+}
+.result-sheet > *:not(.rs-watermark) {
+  position: relative;
+  z-index: 1;
 }
 
 /* ── Sheet header ── */

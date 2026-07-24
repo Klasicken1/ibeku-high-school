@@ -24,35 +24,35 @@ function renderAdminSidebar(array $admin, string $currentPage = ''): void {
     $navItems = [
         ['dashboard',          'index.php',               '🏠', 'Dashboard',            null],
 
-        ['timetables-ss',      'timetables-ss.php',       '📅', 'SS Timetables',        ['superadmin', 'dean']],
-        ['timetables-js',      'timetables-js.php',       '📅', 'JS Timetables',        ['superadmin', 'dean']],
+        ['timetables-ss',      'timetables-ss.php',       '📅', 'SS Timetables',        ['superadmin', 'dean', 'section_admin']],
+        ['timetables-js',      'timetables-js.php',       '📅', 'JS Timetables',        ['superadmin', 'dean', 'section_admin']],
 
-        ['results-entry',      'results-entry.php',       '📊', 'Enter Results',        ['superadmin', 'subject_teacher', 'form_teacher', 'vp_academics']],
-        ['results-approve',    'results-approve.php',     '🔍', 'Approve Results',      ['superadmin', 'form_teacher']],
-        ['results-publish',    'results-publish.php',     '✅', 'Publish Results',      ['superadmin', 'vp_academics']],
+        ['results-entry',      'results-entry.php',       '📊', 'Enter Results',        ['superadmin', 'subject_teacher', 'form_teacher', 'vp_academics', 'section_admin']],
+        ['results-approve',    'results-approve.php',     '🔍', 'Approve Results',      ['superadmin', 'form_teacher', 'section_admin']],
+        ['results-publish',    'results-publish.php',     '✅', 'Publish Results',      ['superadmin', 'vp_academics', 'section_admin']],
 
-        ['news-create',        'news-create.php',         '📰', 'Create News',          ['superadmin', 'principal', 'vp_general']],
-        ['news',               'news.php',                '📋', 'All News',             ['superadmin', 'principal', 'vp_general']],
+        ['news-create',        'news-create.php',         '📰', 'Create News',          ['superadmin', 'principal', 'vp_general', 'vp_student_affairs']],
+        ['news',               'news.php',                '📋', 'All News',             ['superadmin', 'principal', 'vp_general', 'vp_student_affairs']],
 
-        ['events',             'events.php',              '📆', 'All Events',           ['superadmin', 'principal', 'vp_general', 'dean']],
-        ['events-create',      'events-create.php',       '➕', 'Create Event',         ['superadmin', 'principal', 'vp_general', 'dean']],
+        ['events',             'events.php',              '📆', 'All Events',           ['superadmin', 'principal', 'vp_general', 'vp_student_affairs', 'dean']],
+        ['events-create',      'events-create.php',       '➕', 'Create Event',         ['superadmin', 'principal', 'vp_general', 'vp_student_affairs', 'dean']],
 
-        ['gallery',            'gallery.php',             '🖼️', 'Gallery',              null],
-        ['hero-images',        'hero-images.php',         '🌅', 'Hero Images',          ['superadmin', 'principal', 'vp_general']],
-        ['gallery-upload',     'gallery-upload.php',      '📷', 'Upload Photos',        ['superadmin', 'principal', 'vp_general']],
+        ['gallery',            'gallery.php',             '🖼️', 'Gallery',              ['superadmin', 'principal', 'vp_admin', 'vp_academics', 'vp_general', 'vp_student_affairs', 'dean', 'counselor', 'hod', 'form_teacher', 'subject_teacher']],
+        ['hero-images',        'hero-images.php',         '🌅', 'Hero Images',          ['superadmin', 'principal', 'vp_general', 'vp_student_affairs']],
+        ['gallery-upload',     'gallery-upload.php',      '📷', 'Upload Photos',        ['superadmin', 'principal', 'vp_general', 'vp_student_affairs']],
 
-        ['students',           'students.php',            '🎒', 'Students',             ['superadmin', 'principal', 'vp_admin', 'form_teacher']],
-        ['students-promote',   'students-promote.php',    '⬆️', 'Promote Students',     ['superadmin', 'principal', 'form_teacher']],
+        ['students',           'students.php',            '🎒', 'Students',             ['superadmin', 'principal', 'vp_admin', 'form_teacher', 'section_admin']],
+        ['students-promote',   'students-promote.php',    '⬆️', 'Promote Students',     ['superadmin', 'principal', 'form_teacher', 'section_admin']],
 
         /* ── Student Portal Controls ── */
-        ['student-portal',     'student-portal.php',      '🔐', 'Portal Access',        ['superadmin', 'principal', 'vp_admin', 'vp_academics']],
-        ['student-notices',    'student-notices.php',     '📢', 'Student Notices',      ['superadmin', 'principal', 'vp_admin', 'vp_academics', 'dean', 'form_teacher']],
+        ['student-portal',     'student-portal.php',      '🔐', 'Portal Access',        ['superadmin', 'principal', 'vp_admin', 'vp_academics', 'section_admin']],
+        ['student-notices',    'student-notices.php',     '📢', 'Student Notices',      ['superadmin', 'principal', 'vp_admin', 'vp_academics', 'dean', 'form_teacher', 'section_admin']],
 
         /* ── Corps Members Module ── */
-        ['corps',              'corps.php',                '🧑‍🤝‍🧑', 'Corps Members',       ['superadmin', 'principal', 'vp_admin', 'vp_academics', 'vp_general', 'dean']],
-        ['corps-messages',     'corps-messages.php',       '✉️', 'Corps Messages',       ['superadmin', 'principal', 'vp_admin', 'vp_academics', 'vp_general', 'dean']],
+        ['corps',              'corps.php',                '🧑‍🤝‍🧑', 'Corps Members',       ['superadmin', 'principal', 'vp_admin', 'vp_academics', 'vp_general', 'vp_student_affairs', 'dean', 'section_admin']],
+        ['corps-messages',     'corps-messages.php',       '✉️', 'Corps Messages',       ['superadmin', 'principal', 'vp_admin', 'vp_academics', 'vp_general', 'vp_student_affairs', 'dean', 'section_admin']],
 
-        ['admissions',         'admissions.php',          '🎓', 'Admissions',           null],
+        ['admissions',         'admissions.php',          '🎓', 'Admissions',           ['superadmin', 'principal', 'vp_admin', 'vp_academics', 'vp_general', 'vp_student_affairs', 'dean', 'counselor', 'hod', 'form_teacher', 'subject_teacher']],
 
         ['staff',              'staff.php',               '👨‍🏫', 'Staff Directory',    ['superadmin']],
         ['milestones',         'milestones.php',          '🕐', 'History Timeline',     ['superadmin']],
@@ -63,15 +63,15 @@ function renderAdminSidebar(array $admin, string $currentPage = ''): void {
         ['prefects-admin',     'prefects-admin.php',      '🎖️', 'Prefects',             ['superadmin', 'principal']],
         ['hall-of-fame-admin', 'hall-of-fame-admin.php',  '🏆', 'Hall of Fame',         ['superadmin']],
         ['nominations',        'nominations.php',         '📬', 'Nominations',          ['superadmin']],
-        ['reviews',            'reviews.php',              '⭐', 'Reviews',              ['superadmin', 'principal', 'vp_general']],
+        ['reviews',            'reviews.php',              '⭐', 'Reviews',              ['superadmin', 'principal', 'vp_general', 'vp_student_affairs']],
 
         ['messages',           'messages.php',            '💬', 'Messages',             null],
         ['change-password',    'change-password.php',     '🔑', 'Change Password',      null],
         ['push-notifications', 'push-notifications.php',  '🔔', 'Push Notifications',  ['superadmin', 'principal']],
-        ['newsletter-admin',   'newsletter-admin.php',    '📧', 'Newsletter',           ['superadmin', 'principal', 'vp_general']],
+        ['newsletter-admin',   'newsletter-admin.php',    '📧', 'Newsletter',           ['superadmin', 'principal', 'vp_general', 'vp_student_affairs']],
 
-        ['users',              'users.php',               '👥', 'Manage Users',         ['superadmin']],
-        ['class-arms',         'class-arms.php',          '🏫', 'Manage Classes',       ['superadmin']],
+        ['users',              'users.php',               '👥', 'Manage Users',         ['superadmin', 'section_admin']],
+        ['class-arms',         'class-arms.php',          '🏫', 'Manage Classes',       ['superadmin', 'section_admin']],
         ['subjects',           'subjects.php',            '📚', 'Manage Subjects',      ['superadmin']],
         ['settings',           'settings.php',            '⚙️', 'Settings',             ['superadmin']],
     ];

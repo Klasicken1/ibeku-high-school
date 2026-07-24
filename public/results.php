@@ -215,6 +215,17 @@ endif;
            ═══════════════════════════════════════════ -->
       <div class="result-sheet" id="resultSheet">
 
+        <!-- Security watermark -->
+        <div class="rs-watermark" aria-hidden="true">
+          <?php if (!empty($_site['school_logo'])): ?>
+            <?php for ($i = 0; $i < 12; $i++): ?>
+            <img src="<?php echo BASE_PATH; ?>assets/images/settings/<?php echo htmlspecialchars($_site['school_logo']); ?>" alt=""/>
+            <?php endfor; ?>
+          <?php else: ?>
+            <?php for ($i = 0; $i < 12; $i++): ?><span>IHS</span><?php endfor; ?>
+          <?php endif; ?>
+        </div>
+
         <!-- Header -->
         <div class="rs-header">
           <div class="rs-header__logo">IHS</div>
