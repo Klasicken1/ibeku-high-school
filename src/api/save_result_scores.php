@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $admin = currentAdmin();
 
 /* ── Allowed roles for this action ── */
-$allowedRoles = ['superadmin', 'subject_teacher', 'form_teacher', 'vp_academics'];
+$allowedRoles = ['superadmin', 'subject_teacher', 'form_teacher', 'vp_academics', 'section_admin'];
 if (!in_array($admin['role'], $allowedRoles, true)) {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'You do not have permission to enter results.']);

@@ -12,18 +12,31 @@ require_once dirname(__DIR__, 2) . '/src/config/database.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-auth.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-sidebar.php';
 
-requireRole(['superadmin', 'principal', 'vp_admin', 'vp_academics', 'vp_general', 'dean']);
+requireRole(['superadmin', 'principal', 'vp_admin', 'vp_academics', 'vp_general', 'dean', 'section_admin']);
 
-$admin = currentAdmin();
-$pdo   = getDB();
+$admin           = currentAdmin();
+$pdo             = getDB();
+$isSectionAdmin  = $admin['role'] === 'section_admin';
+$adminOwnSection = $admin['section'];
 
 $message = ''; $messageType = '';
+
+/* Section admins can only act on corps members whose section is an
+   EXACT match to their own — 'both' is intentionally excluded and
+   stays superadmin-only, unlike the OR-both pattern used elsewhere. */
+function corpsMemberInScope(PDO $pdo, int $id, string $section): bool {
+    $stmt = $pdo->prepare('SELECT section FROM corps_members WHERE id = ? LIMIT 1');
+    $stmt->execute([$id]);
+    return $stmt->fetchColumn() === $section;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $id     = (int) ($_POST['member_id'] ?? 0);
 
-    if ($action === 'passout' && $id > 0) {
+    if ($isSectionAdmin && $id > 0 && !corpsMemberInScope($pdo, $id, $adminOwnSection)) {
+        $message = 'You do not have permission to manage that corps member.'; $messageType = 'error';
+    } elseif ($action === 'passout' && $id > 0) {
         $pdo->prepare(
             "UPDATE corps_members SET status='passed_out', status_changed_at=NOW(), status_changed_by=? WHERE id=?"
         )->execute([$admin['id'], $id]);
@@ -57,6 +70,7 @@ $filterStatus = $_GET['status'] ?? 'active';
 $search       = trim($_GET['search'] ?? '');
 $where = ['1=1']; $params = [];
 if ($filterStatus !== 'all') { $where[] = 'status = ?'; $params[] = $filterStatus; }
+if ($isSectionAdmin) { $where[] = 'section = ?'; $params[] = $adminOwnSection; }
 if ($search) {
     $where[] = '(full_name LIKE ? OR state_code LIKE ?)';
     $params[] = '%'.$search.'%'; $params[] = '%'.$search.'%';
@@ -66,7 +80,13 @@ $stmt = $pdo->prepare("SELECT * FROM corps_members WHERE $whereSQL ORDER BY full
 $stmt->execute($params);
 $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$counts = $pdo->query("SELECT status, COUNT(*) as n FROM corps_members GROUP BY status")->fetchAll(PDO::FETCH_ASSOC);
+if ($isSectionAdmin) {
+    $countsStmt = $pdo->prepare("SELECT status, COUNT(*) as n FROM corps_members WHERE section = ? GROUP BY status");
+    $countsStmt->execute([$adminOwnSection]);
+    $counts = $countsStmt->fetchAll(PDO::FETCH_ASSOC);
+} else {
+    $counts = $pdo->query("SELECT status, COUNT(*) as n FROM corps_members GROUP BY status")->fetchAll(PDO::FETCH_ASSOC);
+}
 $countMap = array_column($counts, 'n', 'status');
 ?>
 <!DOCTYPE html>

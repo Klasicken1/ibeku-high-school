@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $admin = currentAdmin();
 
-if (!in_array($admin['role'], ['superadmin', 'vp_academics'], true)) {
+if (!in_array($admin['role'], ['superadmin', 'vp_academics', 'section_admin'], true)) {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'You do not have permission to publish results.']);
     exit;

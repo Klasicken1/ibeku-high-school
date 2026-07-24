@@ -12,10 +12,12 @@ require_once dirname(__DIR__, 2) . '/src/config/database.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-auth.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-sidebar.php';
 
-requireRole(['superadmin', 'principal', 'vp_admin', 'vp_academics', 'vp_general', 'dean']);
+requireRole(['superadmin', 'principal', 'vp_admin', 'vp_academics', 'vp_general', 'dean', 'section_admin']);
 
-$admin = currentAdmin();
-$pdo   = getDB();
+$admin           = currentAdmin();
+$pdo             = getDB();
+$isSectionAdmin  = $admin['role'] === 'section_admin';
+$adminOwnSection = $admin['section'];
 
 /* Self-healing column adds — same pattern used throughout the app */
 try {
@@ -34,6 +36,13 @@ $mStmt->execute([$memberId]);
 $rows   = $mStmt->fetchAll(PDO::FETCH_ASSOC);
 $member = $rows[0] ?? null;
 if (!$member) { header('Location: corps.php'); exit; }
+
+/* Section admins can only manage clearance for corps members in
+   their exact section — 'both' stays out of scope for them */
+if ($isSectionAdmin && $member['section'] !== $adminOwnSection) {
+    $_SESSION['admin_error'] = 'You do not have permission to manage that corps member\'s clearance.';
+    header('Location: corps.php'); exit;
+}
 
 $message = ''; $messageType = '';
 

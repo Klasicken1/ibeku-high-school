@@ -100,6 +100,17 @@ $rows   = $mStmt->fetchAll(PDO::FETCH_ASSOC);
 $member = $rows[0] ?? null;
 if (!$member) { echo '<p>Corps member not found.</p>'; exit; }
 
+/* Section admins can only view letters for corps members in their
+   exact section — 'both' stays out of scope for them, matching the
+   same strict rule used on corps.php/corps-edit.php/corps-clearance.php */
+if ($isAdmin && ($_SESSION['admin_role'] ?? null) === 'section_admin') {
+    if ($member['section'] !== ($_SESSION['admin_section'] ?? null)) {
+        header('HTTP/1.0 403 Forbidden');
+        echo '<p>You do not have permission to view that corps member\'s letter.</p>';
+        exit;
+    }
+}
+
 /* Load clearance record */
 $cStmt = $pdo->prepare(
     'SELECT c.*, u.full_name AS cleared_by_name

@@ -22,10 +22,12 @@ require_once dirname(__DIR__, 2) . '/src/config/database.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-auth.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-sidebar.php';
 
-requireRole(['superadmin', 'form_teacher']);
+requireRole(['superadmin', 'form_teacher', 'section_admin']);
 
-$admin = currentAdmin();
-$pdo   = getDB();
+$admin           = currentAdmin();
+$pdo             = getDB();
+$isSectionAdmin  = $admin['role'] === 'section_admin';
+$adminOwnSection = $admin['section'];
 
 /* ── Form teacher: force their assigned class ── */
 $formTeacherGradeLevel = null;
@@ -49,12 +51,23 @@ foreach ($allClasses as $row) {
 
 $allGradeLevels = ['JSS1'=>'JSS 1','JSS2'=>'JSS 2','JSS3'=>'JSS 3',
                     'SSS1'=>'SSS 1','SSS2'=>'SSS 2','SSS3'=>'SSS 3'];
+if ($isSectionAdmin) {
+    $prefix = $adminOwnSection === 'ss' ? 'SSS' : 'JSS';
+    $allGradeLevels = array_filter($allGradeLevels, fn($k) => str_starts_with($k, $prefix), ARRAY_FILTER_USE_KEY);
+    $classesByGradeLevel = array_intersect_key($classesByGradeLevel, $allGradeLevels);
+}
 
 /* ── Selected filters ── */
 $selectedGradeLevel = $formTeacherGradeLevel ?? ($_GET['grade_level'] ?? '');
 $selectedClass      = $formTeacherClass      ?? ($_GET['class']       ?? '');
 $selectedSession    = $_GET['session']       ?? '2025/2026';
 $selectedTerm       = $_GET['term']          ?? 'first';
+
+/* Section admin can't view another section's class via URL tampering */
+if ($isSectionAdmin && $selectedGradeLevel && !array_key_exists($selectedGradeLevel, $allGradeLevels)) {
+    $selectedGradeLevel = '';
+    $selectedClass      = '';
+}
 
 /* ── Load students and their scores + approval status ── */
 $students      = [];

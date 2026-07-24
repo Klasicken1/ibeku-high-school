@@ -24,7 +24,7 @@ require_once dirname(__DIR__, 2) . '/src/config/database.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-auth.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-sidebar.php';
 
-requireRole(['superadmin', 'vp_academics']);
+requireRole(['superadmin', 'vp_academics', 'section_admin']);
 
 $admin = currentAdmin();
 $pdo   = getDB();

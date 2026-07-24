@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $admin = currentAdmin();
 
-if (!in_array($admin['role'], ['superadmin', 'form_teacher'], true)) {
+if (!in_array($admin['role'], ['superadmin', 'form_teacher', 'section_admin'], true)) {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'You do not have permission to approve results.']);
     exit;
@@ -87,6 +87,16 @@ if ($admin['role'] === 'form_teacher') {
             ]);
             exit;
         }
+    }
+}
+
+/* ── Section admin can only approve results within their own section ── */
+if ($admin['role'] === 'section_admin') {
+    $targetSection = str_starts_with($gradeLevel, 'JSS') ? 'js' : 'ss';
+    if ($targetSection !== $admin['section']) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'You can only approve results within your own section.']);
+        exit;
     }
 }
 

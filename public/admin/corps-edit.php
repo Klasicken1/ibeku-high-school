@@ -12,10 +12,12 @@ require_once dirname(__DIR__, 2) . '/src/config/database.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-auth.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-sidebar.php';
 
-requireRole(['superadmin', 'principal', 'vp_admin', 'vp_academics', 'vp_general', 'dean']);
+requireRole(['superadmin', 'principal', 'vp_admin', 'vp_academics', 'vp_general', 'dean', 'section_admin']);
 
-$admin = currentAdmin();
-$pdo   = getDB();
+$admin           = currentAdmin();
+$pdo             = getDB();
+$isSectionAdmin  = $admin['role'] === 'section_admin';
+$adminOwnSection = $admin['section'];
 
 /* Self-healing column add — same pattern used throughout the app */
 try {
@@ -33,6 +35,13 @@ $rows   = $mStmt->fetchAll(PDO::FETCH_ASSOC);
 $member = $rows[0] ?? null;
 if (!$member) { header('Location: corps.php'); exit; }
 
+/* Section admins can only edit corps members in their exact section
+   — 'both' stays out of scope for them, matching corps.php's rule */
+if ($isSectionAdmin && $member['section'] !== $adminOwnSection) {
+    $_SESSION['admin_error'] = 'You do not have permission to edit that corps member.';
+    header('Location: corps.php'); exit;
+}
+
 $message = ''; $messageType = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -47,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $cdsDay        = trim($_POST['cds_day']        ?? '');
     $subject       = trim($_POST['subject_taught']  ?? '');
     $section       = $_POST['section']             ?? 'both';
+    if ($isSectionAdmin) $section = $adminOwnSection; /* strict — never 'both' for them */
     $classArms     = trim($_POST['class_arms']     ?? '');
     $phone         = trim($_POST['phone']          ?? '');
     $bankName      = trim($_POST['bank_name']      ?? '');
@@ -245,11 +255,19 @@ $photoSrc = !empty($member['photo']) ? '../assets/images/corps/' . htmlspecialch
             </div>
             <div class="form-group">
               <label class="form-label">Section</label>
+              <?php if ($isSectionAdmin): ?>
+              <select class="form-select" disabled>
+                <option selected><?php echo $adminOwnSection === 'ss' ? 'Senior Secondary' : 'Junior Secondary'; ?></option>
+              </select>
+              <input type="hidden" name="section" value="<?php echo htmlspecialchars($adminOwnSection); ?>"/>
+              <p class="char-hint">Locked to your own section.</p>
+              <?php else: ?>
               <select class="form-select" name="section">
                 <?php foreach ($sections as $k => $v): ?>
                 <option value="<?php echo $k; ?>" <?php echo $member['section'] === $k ? 'selected' : ''; ?>><?php echo $v; ?></option>
                 <?php endforeach; ?>
               </select>
+              <?php endif; ?>
             </div>
           </div>
           <div class="form-row">
