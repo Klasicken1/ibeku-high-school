@@ -33,6 +33,22 @@ if (($corpsMember['status'] ?? 'active') !== 'active') {
     exit;
 }
 
+/* Self-healing — same schema extension as corps-edit.php and
+   save_result_scores.php, kept here too since this page can be
+   the very first to query it. */
+try {
+    $pdo->exec("ALTER TABLE teacher_class_assignments MODIFY COLUMN teacher_id INT UNSIGNED NULL");
+} catch (PDOException $e) { /* already nullable */ }
+try {
+    $pdo->exec("ALTER TABLE teacher_class_assignments ADD COLUMN corps_member_id INT UNSIGNED NULL AFTER teacher_id");
+} catch (PDOException $e) { /* already exists */ }
+try {
+    $pdo->exec(
+        "ALTER TABLE teacher_class_assignments
+         ADD CONSTRAINT fk_tca_corps FOREIGN KEY (corps_member_id) REFERENCES corps_members(id) ON DELETE CASCADE ON UPDATE CASCADE"
+    );
+} catch (PDOException $e) { /* already exists */ }
+
 /* ── Grade levels available, based on the corps member's section ── */
 $allGradeLevels = ['JSS1'=>'JSS 1','JSS2'=>'JSS 2','JSS3'=>'JSS 3',
                     'SSS1'=>'SSS 1','SSS2'=>'SSS 2','SSS3'=>'SSS 3'];
