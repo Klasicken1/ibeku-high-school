@@ -217,6 +217,89 @@ function renderInnerHeroStyle(string $pageKey): string {
     $pos = htmlspecialchars($entry['position'], ENT_QUOTES);
     return ' style="background-image:url(\'' . htmlspecialchars($url, ENT_QUOTES) . '\');background-position:' . $pos . '"';
 }
+/* ── Staff Directory sync ──
+   Keeps the public Staff Directory (the `staff` table, shown on
+   Academics) automatically populated from login accounts (`users`
+   table), so admins enter a staff member's info once — on the
+   Create/Edit User form — instead of twice.
+
+   `staff.user_id` links a directory row back to its source user.
+   Rows created directly on admin/staff.php (for staff who don't
+   have a login account — e.g. support staff) have a NULL user_id
+   and are completely untouched by this sync; both systems coexist.
+
+   Category is auto-derived rather than asked for again: admin-tier
+   roles map to 'administration'; teaching roles look up their
+   assigned subject's own department in the subjects table; anyone
+   else falls back to 'support'.
+   ============================================================ */
+function deriveStaffCategory(PDO $pdo, string $role, ?string $department): string {
+    $adminRoles = [
+        'principal', 'vp_admin', 'vp_academics', 'vp_general', 'vp_student_affairs',
+        'dean', 'section_admin', 'counselor', 'superadmin',
+    ];
+    if (in_array($role, $adminRoles, true)) return 'administration';
+
+    if ($department) {
+        $stmt = $pdo->prepare('SELECT department FROM subjects WHERE name = ? LIMIT 1');
+        $stmt->execute([$department]);
+        $subjectDept = $stmt->fetchColumn();
+        if (in_array($subjectDept, ['sciences', 'arts', 'commercial'], true)) {
+            return $subjectDept;
+        }
+    }
+    return 'support';
+}
+
+function syncStaffDirectoryFromUser(PDO $pdo, int $userId): void {
+    /* Self-healing — the link column may not exist yet on a page
+       that hasn't run this before */
+    try {
+        $pdo->exec("ALTER TABLE staff ADD COLUMN user_id INT UNSIGNED NULL AFTER id");
+    } catch (PDOException $e) { /* already exists */ }
+
+    $uStmt = $pdo->prepare('SELECT * FROM users WHERE id = ? LIMIT 1');
+    $uStmt->execute([$userId]);
+    $user = $uStmt->fetch(PDO::FETCH_ASSOC);
+    if (!$user) return;
+
+    /* Not opted into the public directory — hide (not delete) any
+       existing linked entry, so re-enabling later just restores it */
+    if (empty($user['show_on_directory'])) {
+        $pdo->prepare('UPDATE staff SET is_published = 0 WHERE user_id = ?')->execute([$userId]);
+        return;
+    }
+
+    $roleDisplay = function_exists('roleLabel')
+        ? preg_replace('/\s*—.*/', '', roleLabel($user['role'], $user['section'] ?? 'both')) /* strip the " — Senior Secondary" suffix for the directory */
+        : ucwords(str_replace('_', ' ', $user['role']));
+
+    $category = deriveStaffCategory($pdo, $user['role'], $user['department'] ?? null);
+
+    $existing = $pdo->prepare('SELECT id FROM staff WHERE user_id = ? LIMIT 1');
+    $existing->execute([$userId]);
+    $existingId = $existing->fetchColumn();
+
+    if ($existingId) {
+        $pdo->prepare(
+            'UPDATE staff SET full_name=?, role=?, department=?, section=?, category=?,
+                bio=?, photo=?, is_published=1
+             WHERE user_id=?'
+        )->execute([
+            $user['full_name'], $roleDisplay, $user['department'] ?? null, $user['section'] ?? 'both',
+            $category, $user['bio'] ?? null, $user['photo'] ?? null, $userId,
+        ]);
+    } else {
+        $pdo->prepare(
+            'INSERT INTO staff (user_id, full_name, role, department, section, category, bio, photo, is_published, sort_order)
+             VALUES (?,?,?,?,?,?,?,?,1,0)'
+        )->execute([
+            $userId, $user['full_name'], $roleDisplay, $user['department'] ?? null, $user['section'] ?? 'both',
+            $category, $user['bio'] ?? null, $user['photo'] ?? null,
+        ]);
+    }
+}
+
 /* ── Principal signature/stamp assets ──
    Returns the correct principal's name, signature filename, and
    stamp filename for a given section ('ss' or 'js'). 'both' or

@@ -43,6 +43,15 @@ try {
     $pdo->exec("ALTER TABLE users ADD COLUMN gender ENUM('male','female') NULL AFTER phone");
 } catch (PDOException $e) { /* already exists */ }
 try {
+    $pdo->exec("ALTER TABLE users ADD COLUMN photo VARCHAR(255) NULL AFTER gender");
+} catch (PDOException $e) { /* already exists */ }
+try {
+    $pdo->exec("ALTER TABLE users ADD COLUMN bio TEXT NULL AFTER photo");
+} catch (PDOException $e) { /* already exists */ }
+try {
+    $pdo->exec("ALTER TABLE users ADD COLUMN show_on_directory TINYINT(1) NOT NULL DEFAULT 1 AFTER bio");
+} catch (PDOException $e) { /* already exists */ }
+try {
     $pdo->exec(
         "ALTER TABLE users MODIFY COLUMN role
          ENUM('superadmin','section_admin','principal','vp_admin','vp_academics','vp_general','vp_student_affairs','dean','counselor','hod','form_teacher','subject_teacher')
@@ -218,6 +227,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email           = trim($_POST['email']             ?? '');
         $phone           = trim($_POST['phone']             ?? '');
         $gender          = trim($_POST['gender']            ?? '');
+        $bio             = trim($_POST['bio']               ?? '');
+        $showOnDirectory = isset($_POST['show_on_directory']) ? 1 : 0;
         $role            = trim($_POST['role']              ?? '');
         $section         = trim($_POST['section']           ?? '');
         $department      = trim($_POST['department']        ?? '');
@@ -269,14 +280,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $finalDepartment = in_array($role, $departmentRoles, true) ? ($department ?: null) : null;
                 $finalClass      = in_array($role, $classRoles, true) ? ($classAssigned ?: null) : null;
 
+                /* ── Photo upload — optional, keeps existing photo if
+                   no new file is chosen ── */
+                $photoFilename = $user['photo'] ?? null;
+                if (!empty($_FILES['photo']['name'])) {
+                    $ext     = strtolower(pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION));
+                    $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+                    if (!in_array($ext, $allowed, true)) {
+                        $message = 'Photo must be JPG, PNG, or WEBP.'; $messageType = 'error';
+                    } elseif ($_FILES['photo']['size'] > 2 * 1024 * 1024) {
+                        $message = 'Photo must be under 2MB.'; $messageType = 'error';
+                    } else {
+                        $photoDir = dirname(__DIR__) . '/assets/images/staff/';
+                        if (!is_dir($photoDir)) mkdir($photoDir, 0755, true);
+                        $newPhotoFilename = uniqid('staff_', true) . '.' . $ext;
+                        if (move_uploaded_file($_FILES['photo']['tmp_name'], $photoDir . $newPhotoFilename)) {
+                            $photoFilename = $newPhotoFilename;
+                        } else {
+                            $message = 'Photo upload failed.'; $messageType = 'error';
+                        }
+                    }
+                }
+
+                if ($messageType === 'error') {
+                    /* photo upload failed — fall through without saving */
+                } else {
                 try {
                     $pdo->beginTransaction();
 
                     $pdo->prepare(
-                        'UPDATE users SET full_name=?, email=?, phone=?, gender=?, role=?, section=?,
+                        'UPDATE users SET full_name=?, email=?, phone=?, gender=?, photo=?, bio=?, show_on_directory=?, role=?, section=?,
                          department=?, class_assigned=?, is_active=?, updated_at=NOW()
                          WHERE id=?'
-                    )->execute([$fullName, $email, $phone ?: null, $gender ?: null, $role, $section, $finalDepartment, $finalClass, $isActive, $userId]);
+                    )->execute([$fullName, $email, $phone ?: null, $gender ?: null, $photoFilename, $bio ?: null, $showOnDirectory, $role, $section, $finalDepartment, $finalClass, $isActive, $userId]);
 
                     if ($newPassword !== '') {
                         $hash = password_hash($newPassword, PASSWORD_BCRYPT, ['cost' => 12]);
@@ -301,6 +337,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     $pdo->commit();
 
+                    syncStaffDirectoryFromUser($pdo, $userId);
+
                     $message = 'Account updated successfully.'; $messageType = 'success';
 
                     $stmt->execute([$userId]);
@@ -316,6 +354,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $pdo->rollBack();
                     error_log('IHS users-edit error: ' . $e->getMessage());
                     $message = 'A server error occurred while saving.'; $messageType = 'error';
+                }
                 }
             }
         }
@@ -480,7 +519,7 @@ $isClosed = !empty($user['closed_reason']);
       <?php endif; ?>
 
       <div class="admin-card" style="max-width:680px">
-        <form method="POST" id="editForm">
+        <form method="POST" id="editForm" enctype="multipart/form-data">
           <input type="hidden" name="form_action" value="update"/>
 
           <div class="form-group">
@@ -509,6 +548,28 @@ $isClosed = !empty($user['closed_reason']);
                 <option value="female" <?php echo ($user['gender'] ?? '') === 'female' ? 'selected' : ''; ?>>Female</option>
               </select>
             </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="photo">Profile Photo</label>
+            <?php if (!empty($user['photo'])): ?>
+            <img src="../assets/images/staff/<?php echo htmlspecialchars($user['photo']); ?>"
+                 style="width:64px;height:64px;object-fit:cover;border-radius:10px;display:block;margin-bottom:8px"/>
+            <?php endif; ?>
+            <input type="file" class="form-input" id="photo" name="photo" accept="image/jpeg,image/png,image/webp"/>
+            <p class="char-hint">Shown on the public Staff Directory (if enabled below). Leave blank to keep the current photo.</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="bio">Short Bio</label>
+            <textarea class="form-textarea" id="bio" name="bio" rows="3"
+                      placeholder="A brief description shown on the public Staff Directory..."><?php echo htmlspecialchars($user['bio'] ?? ''); ?></textarea>
+          </div>
+
+          <div class="form-group" style="display:flex;align-items:center;gap:8px">
+            <input type="checkbox" id="show_on_directory" name="show_on_directory" value="1"
+                   <?php echo (!isset($user['show_on_directory']) || $user['show_on_directory']) ? 'checked' : ''; ?>/>
+            <label class="form-label" for="show_on_directory" style="margin:0">Show on public Staff Directory (Academics page)</label>
           </div>
 
           <div class="form-row">

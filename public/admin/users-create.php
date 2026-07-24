@@ -46,6 +46,15 @@ try {
          NOT NULL"
     );
 } catch (PDOException $e) { /* already includes section_admin */ }
+try {
+    $pdo->exec("ALTER TABLE users ADD COLUMN photo VARCHAR(255) NULL AFTER gender");
+} catch (PDOException $e) { /* already exists */ }
+try {
+    $pdo->exec("ALTER TABLE users ADD COLUMN bio TEXT NULL AFTER photo");
+} catch (PDOException $e) { /* already exists */ }
+try {
+    $pdo->exec("ALTER TABLE users ADD COLUMN show_on_directory TINYINT(1) NOT NULL DEFAULT 1 AFTER bio");
+} catch (PDOException $e) { /* already exists */ }
 
 $message = '';
 $messageType = '';
@@ -101,17 +110,19 @@ if ($isSectionAdmin) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $fullName       = trim($_POST['full_name']       ?? '');
-    $email          = trim($_POST['email']            ?? '');
-    $phone          = trim($_POST['phone']            ?? '');
-    $gender         = trim($_POST['gender']           ?? '');
-    $password       = $_POST['password']              ?? '';
-    $role           = trim($_POST['role']             ?? '');
-    $section        = trim($_POST['section']          ?? '');
-    $department     = trim($_POST['department']       ?? '');
-    $gradeLevelOnly = trim($_POST['grade_level_only'] ?? '');
-    $classOnly      = trim($_POST['class_only']        ?? '');
-    $classAssigned  = ($gradeLevelOnly && $classOnly) ? $gradeLevelOnly . $classOnly : '';
+    $fullName        = trim($_POST['full_name']       ?? '');
+    $email           = trim($_POST['email']            ?? '');
+    $phone           = trim($_POST['phone']            ?? '');
+    $gender          = trim($_POST['gender']           ?? '');
+    $bio             = trim($_POST['bio']              ?? '');
+    $showOnDirectory = isset($_POST['show_on_directory']) ? 1 : 0;
+    $password        = $_POST['password']              ?? '';
+    $role            = trim($_POST['role']             ?? '');
+    $section         = trim($_POST['section']          ?? '');
+    $department      = trim($_POST['department']       ?? '');
+    $gradeLevelOnly  = trim($_POST['grade_level_only'] ?? '');
+    $classOnly       = trim($_POST['class_only']        ?? '');
+    $classAssigned   = ($gradeLevelOnly && $classOnly) ? $gradeLevelOnly . $classOnly : '';
 
     $validRoles    = array_keys($roleLabels);
     $validSections = ['ss', 'js', 'both'];
@@ -164,28 +175,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $finalDepartment = in_array($role, $departmentRoles, true) ? ($department ?: null) : null;
             $finalClass      = in_array($role, $classRoles, true) ? ($classAssigned ?: null) : null;
 
+            /* ── Photo upload — optional ── */
+            $photoFilename = null;
+            if (!empty($_FILES['photo']['name'])) {
+                $ext     = strtolower(pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION));
+                $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+                if (!in_array($ext, $allowed, true)) {
+                    $message = 'Photo must be JPG, PNG, or WEBP.'; $messageType = 'error';
+                } elseif ($_FILES['photo']['size'] > 2 * 1024 * 1024) {
+                    $message = 'Photo must be under 2MB.'; $messageType = 'error';
+                } else {
+                    $photoDir = dirname(__DIR__) . '/assets/images/staff/';
+                    if (!is_dir($photoDir)) mkdir($photoDir, 0755, true);
+                    $photoFilename = uniqid('staff_', true) . '.' . $ext;
+                    if (!move_uploaded_file($_FILES['photo']['tmp_name'], $photoDir . $photoFilename)) {
+                        $photoFilename = null;
+                        $message = 'Photo upload failed.'; $messageType = 'error';
+                    }
+                }
+            }
+
+            if ($messageType !== 'error') {
             try {
                 $hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
 
                 $stmt = $pdo->prepare(
                     'INSERT INTO users
-                        (full_name, email, phone, gender, password, role, section, department, class_assigned, is_active, created_by)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)'
+                        (full_name, email, phone, gender, photo, bio, show_on_directory, password, role, section, department, class_assigned, is_active, created_by)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)'
                 );
                 $stmt->execute([
-                    $fullName, $email, $phone ?: null, $gender ?: null, $hash, $role, $section,
-                    $finalDepartment, $finalClass, $admin['id'],
+                    $fullName, $email, $phone ?: null, $gender ?: null, $photoFilename, $bio ?: null, $showOnDirectory,
+                    $hash, $role, $section, $finalDepartment, $finalClass, $admin['id'],
                 ]);
+
+                $newUserId = (int) $pdo->lastInsertId();
+                syncStaffDirectoryFromUser($pdo, $newUserId);
 
                 $message = 'Account created successfully for ' . htmlspecialchars($fullName) . '.';
                 $messageType = 'success';
 
-                $fullName = $email = $phone = $gender = $role = $section = $department = $gradeLevelOnly = $classOnly = '';
+                $fullName = $email = $phone = $gender = $bio = $role = $section = $department = $gradeLevelOnly = $classOnly = '';
 
             } catch (PDOException $e) {
                 error_log('IHS users-create error: ' . $e->getMessage());
                 $message = 'A server error occurred while creating the account.';
                 $messageType = 'error';
+            }
             }
         }
     }
@@ -250,7 +286,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php endif; ?>
 
       <div class="admin-card" style="max-width:620px">
-        <form method="POST" id="userForm">
+        <form method="POST" id="userForm" enctype="multipart/form-data">
 
           <div class="form-group">
             <label class="form-label" for="full_name">Full Name</label>
@@ -278,6 +314,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <option value="female" <?php echo ($gender ?? '') === 'female' ? 'selected' : ''; ?>>Female</option>
               </select>
             </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="photo">Profile Photo</label>
+            <input type="file" class="form-input" id="photo" name="photo" accept="image/jpeg,image/png,image/webp"/>
+            <p class="char-hint">Shown on the public Staff Directory (if enabled below) and used as their profile photo throughout the admin panel.</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="bio">Short Bio</label>
+            <textarea class="form-textarea" id="bio" name="bio" rows="3"
+                      placeholder="A brief description shown on the public Staff Directory..."><?php echo htmlspecialchars($bio ?? ''); ?></textarea>
+          </div>
+
+          <div class="form-group" style="display:flex;align-items:center;gap:8px">
+            <input type="checkbox" id="show_on_directory" name="show_on_directory" value="1"
+                   <?php echo !isset($showOnDirectory) || $showOnDirectory ? 'checked' : ''; ?>/>
+            <label class="form-label" for="show_on_directory" style="margin:0">Show on public Staff Directory (Academics page)</label>
           </div>
 
           <div class="form-group">
