@@ -31,6 +31,7 @@ $_navPage = basename($_SERVER['PHP_SELF'], '.php');
     </a>
     <nav class="corps-nav" id="corpsNav">
       <a href="dashboard.php" class="corps-nav__link <?php echo $_navPage === 'dashboard' ? 'corps-nav__link--active' : ''; ?>">Home</a>
+      <a href="results-entry.php" class="corps-nav__link <?php echo $_navPage === 'results-entry' ? 'corps-nav__link--active' : ''; ?>">Enter Results</a>
       <a href="clearance.php" class="corps-nav__link <?php echo $_navPage === 'clearance' ? 'corps-nav__link--active' : ''; ?>">Clearance</a>
       <a href="messages.php" class="corps-nav__link <?php echo $_navPage === 'messages' ? 'corps-nav__link--active' : ''; ?>">
         Messages

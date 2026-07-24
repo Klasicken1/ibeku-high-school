@@ -38,16 +38,10 @@
 
 declare(strict_types=1);
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
 header('Content-Type: application/json; charset=utf-8');
 
 require_once dirname(__DIR__) . '/config/database.php';
-require_once dirname(__DIR__) . '/includes/admin-auth.php';
-
-requireLogin();
+require_once dirname(__DIR__) . '/includes/corps-auth.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -55,12 +49,50 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$admin = currentAdmin();
+/* ── Dual auth: staff (admin) or corps member ──
+   Checks which session cookie is actually present BEFORE starting
+   either session, avoiding the unreliable pattern of blindly
+   starting the default session first (see corps-letter.php for
+   the same fix applied earlier). ── */
+$admin = null;
+
+if (isset($_COOKIE['ihs_corps'])) {
+    corpsSessionStart();
+    if (corpsLoggedIn()) {
+        $corpsMember = currentCorpsMember();
+        if (($corpsMember['status'] ?? 'active') !== 'active') {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Your account is not active.']);
+            exit;
+        }
+        /* Normalise into the same shape the rest of this file expects */
+        $admin = [
+            'id'             => $corpsMember['id'],
+            'role'           => 'corps_member',
+            'section'        => $corpsMember['section'] ?? 'both',
+            'dept'           => $corpsMember['subject_taught'] ?? null,
+            'class_assigned' => null,
+        ];
+    }
+}
+
+if ($admin === null) {
+    require_once dirname(__DIR__) . '/includes/admin-auth.php';
+    if (isLoggedIn()) {
+        $admin = currentAdmin();
+    }
+}
+
+if ($admin === null) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Please log in.']);
+    exit;
+}
 
 /* ── Allowed roles for this action ── */
 $allowedRoles = [
     'superadmin', 'subject_teacher', 'form_teacher', 'vp_academics', 'section_admin',
-    'dean', 'hod', 'vp_admin', 'vp_general', 'vp_student_affairs',
+    'dean', 'hod', 'vp_admin', 'vp_general', 'vp_student_affairs', 'corps_member',
 ];
 if (!in_array($admin['role'], $allowedRoles, true)) {
     http_response_code(403);
@@ -123,7 +155,7 @@ try {
        — everyone entering results for a specific subject rather
        than the whole section, i.e. everyone except superadmin,
        form_teacher, vp_academics, and section_admin). ── */
-    $subjectRestrictedRoles = ['subject_teacher', 'dean', 'hod', 'vp_admin', 'vp_general', 'vp_student_affairs'];
+    $subjectRestrictedRoles = ['subject_teacher', 'dean', 'hod', 'vp_admin', 'vp_general', 'vp_student_affairs', 'corps_member'];
     if (in_array($admin['role'], $subjectRestrictedRoles, true)) {
         $subjStmt = $pdo->prepare('SELECT name FROM subjects WHERE id = ?');
         $subjStmt->execute([$subjectId]);
@@ -168,8 +200,12 @@ try {
     /* ── Subject-restricted class check: if specific classes are assigned via
        teacher_class_assignments, verify the submitted class is one of them.
        If no assignments exist, open access to all classes in their section
-       (already enforced by the section check above). ── */
-    if (in_array($admin['role'], $subjectRestrictedRoles, true)) {
+       (already enforced by the section check above).
+       Corps members are deliberately excluded here — that table isn't
+       corps-aware yet (a future enhancement), so they always get open
+       access to all classes in their section for their assigned subject. ── */
+    $classAssignmentCheckRoles = ['subject_teacher', 'dean', 'hod', 'vp_admin', 'vp_general', 'vp_student_affairs'];
+    if (in_array($admin['role'], $classAssignmentCheckRoles, true)) {
         $countStmt = $pdo->prepare(
             'SELECT COUNT(*) FROM teacher_class_assignments WHERE teacher_id = ?'
         );
@@ -240,9 +276,17 @@ try {
                 uploaded_by = VALUES(uploaded_by),
                 uploaded_at = NOW()'
         );
+        /* uploaded_by has a foreign key to users(id) specifically — a
+           corps member's id lives in a different table entirely, so
+           inserting it here would either violate the FK or, worse,
+           silently misattribute the entry to an unrelated user who
+           happens to share that numeric id. Pass NULL for corps
+           members instead; no audit-trail regression for staff. */
+        $uploaderId = $admin['role'] === 'corps_member' ? null : $admin['id'];
+
         $upsertScore->execute([
             $resultId, $subjectId, $ca1, $ca2, $exam,
-            $gradeInfo['grade'], $gradeInfo['remark'], $admin['id'],
+            $gradeInfo['grade'], $gradeInfo['remark'], $uploaderId,
         ]);
 
         $savedCount++;
