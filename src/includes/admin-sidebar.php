@@ -27,7 +27,7 @@ function renderAdminSidebar(array $admin, string $currentPage = ''): void {
         ['timetables-ss',      'timetables-ss.php',       '📅', 'SS Timetables',        ['superadmin', 'dean', 'section_admin']],
         ['timetables-js',      'timetables-js.php',       '📅', 'JS Timetables',        ['superadmin', 'dean', 'section_admin']],
 
-        ['results-entry',      'results-entry.php',       '📊', 'Enter Results',        ['superadmin', 'subject_teacher', 'form_teacher', 'vp_academics', 'section_admin']],
+        ['results-entry',      'results-entry.php',       '📊', 'Enter Results',        ['superadmin', 'subject_teacher', 'form_teacher', 'vp_academics', 'section_admin', 'dean', 'hod', 'vp_admin', 'vp_general', 'vp_student_affairs']],
         ['results-approve',    'results-approve.php',     '🔍', 'Approve Results',      ['superadmin', 'form_teacher', 'section_admin']],
         ['results-publish',    'results-publish.php',     '✅', 'Publish Results',      ['superadmin', 'vp_academics', 'section_admin']],
 

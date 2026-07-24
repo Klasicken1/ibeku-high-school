@@ -34,7 +34,10 @@ require_once dirname(__DIR__, 2) . '/src/config/database.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-auth.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-sidebar.php';
 
-requireRole(['superadmin', 'subject_teacher', 'form_teacher', 'vp_academics', 'section_admin']);
+requireRole([
+    'superadmin', 'subject_teacher', 'form_teacher', 'vp_academics', 'section_admin',
+    'dean', 'hod', 'vp_admin', 'vp_general', 'vp_student_affairs',
+]);
 
 $admin = currentAdmin();
 $pdo   = getDB();
@@ -100,12 +103,16 @@ if ($formTeacherGradeLevel !== null) {
     ];
 }
 
-/* ── Subject teacher class restriction: if the superadmin has assigned specific
-   classes via teacher_class_assignments, only show those.
-   If no assignments exist, they see all classes in their section (open access). ── */
+/* ── Subject-restricted roles: if the superadmin has assigned specific
+   classes via teacher_class_assignments, only show those. Applies to
+   anyone entering results for a specific subject/department rather
+   than the whole section (Subject Teacher, Dean, HOD, VPs — everyone
+   except Principal). If no assignments exist, they see all classes
+   in their section (open access). ── */
+$subjectRestrictedRoles = ['subject_teacher', 'dean', 'hod', 'vp_admin', 'vp_general', 'vp_student_affairs'];
 $subjectTeacherAssignedClasses = null; // null = no restriction
 
-if ($admin['role'] === 'subject_teacher') {
+if (in_array($admin['role'], $subjectRestrictedRoles, true)) {
     $assignStmt = $pdo->prepare(
         'SELECT grade_level, class FROM teacher_class_assignments WHERE teacher_id = ? ORDER BY grade_level ASC, class ASC'
     );
@@ -271,9 +278,10 @@ if ($selectedGradeLevel && $selectedClass && $selectedSubject && array_key_exist
         <p>Select a grade level, class, subject, session, and term to enter or update student scores. Results stay in draft until published.</p>
       </div>
 
-      <?php if ($admin['role'] === 'subject_teacher'): ?>
+      <?php if (in_array($admin['role'], $subjectRestrictedRoles, true)): ?>
       <div class="role-note">
-        You are signed in as a Subject Teacher for <strong><?php echo htmlspecialchars($admin['dept'] ?? 'no subject assigned'); ?></strong>.
+        You are signed in as <strong><?php echo htmlspecialchars(roleLabel($admin['role'], $admin['section'])); ?></strong>
+        for <strong><?php echo htmlspecialchars($admin['dept'] ?? 'no subject assigned'); ?></strong>.
         You can only save scores for that subject.
         <?php if ($subjectTeacherAssignedClasses !== null): ?>
         Your access is limited to <strong><?php echo array_sum(array_map('count', $subjectTeacherAssignedClasses)); ?></strong> assigned class(es).

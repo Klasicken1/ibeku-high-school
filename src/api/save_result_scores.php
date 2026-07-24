@@ -58,7 +58,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $admin = currentAdmin();
 
 /* ── Allowed roles for this action ── */
-$allowedRoles = ['superadmin', 'subject_teacher', 'form_teacher', 'vp_academics', 'section_admin'];
+$allowedRoles = [
+    'superadmin', 'subject_teacher', 'form_teacher', 'vp_academics', 'section_admin',
+    'dean', 'hod', 'vp_admin', 'vp_general', 'vp_student_affairs',
+];
 if (!in_array($admin['role'], $allowedRoles, true)) {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'You do not have permission to enter results.']);
@@ -115,8 +118,13 @@ try {
         /* Column already exists — fine */
     }
 
-    /* ── Permission check: subject_teacher restricted to their own subject ── */
-    if ($admin['role'] === 'subject_teacher') {
+    /* ── Permission check: subject-restricted roles are locked to
+       their own assigned subject (Subject Teacher, Dean, HOD, VPs
+       — everyone entering results for a specific subject rather
+       than the whole section, i.e. everyone except superadmin,
+       form_teacher, vp_academics, and section_admin). ── */
+    $subjectRestrictedRoles = ['subject_teacher', 'dean', 'hod', 'vp_admin', 'vp_general', 'vp_student_affairs'];
+    if (in_array($admin['role'], $subjectRestrictedRoles, true)) {
         $subjStmt = $pdo->prepare('SELECT name FROM subjects WHERE id = ?');
         $subjStmt->execute([$subjectId]);
         $subjectName = $subjStmt->fetchColumn();
@@ -157,11 +165,11 @@ try {
         }
     }
 
-    /* ── Subject teacher class check: if specific classes are assigned via
+    /* ── Subject-restricted class check: if specific classes are assigned via
        teacher_class_assignments, verify the submitted class is one of them.
-       If no assignments exist, the teacher has open access to all classes
-       in their section (already enforced by the section check above). ── */
-    if ($admin['role'] === 'subject_teacher') {
+       If no assignments exist, open access to all classes in their section
+       (already enforced by the section check above). ── */
+    if (in_array($admin['role'], $subjectRestrictedRoles, true)) {
         $countStmt = $pdo->prepare(
             'SELECT COUNT(*) FROM teacher_class_assignments WHERE teacher_id = ?'
         );
