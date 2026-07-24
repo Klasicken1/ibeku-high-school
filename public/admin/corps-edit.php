@@ -16,6 +16,9 @@ requireRole(['superadmin', 'principal', 'vp_admin', 'vp_academics', 'vp_general'
 
 $admin           = currentAdmin();
 $pdo             = getDB();
+
+/* ── Subjects for the dropdown — avoids free-text mismatches ── */
+$allSubjects = $pdo->query('SELECT name FROM subjects WHERE is_active = 1 ORDER BY name ASC')->fetchAll(PDO::FETCH_COLUMN);
 $isSectionAdmin  = $admin['role'] === 'section_admin';
 $adminOwnSection = $admin['section'];
 
@@ -24,6 +27,40 @@ try {
     $pdo->exec("ALTER TABLE corps_members ADD COLUMN call_up_number VARCHAR(30) NULL AFTER state_code");
 } catch (PDOException $e) {
     /* Column already exists — fine */
+}
+
+/* Self-healing: extend teacher_class_assignments to also support
+   corps members, not just staff. teacher_id had a NOT NULL FK to
+   users(id), so a corps member's id can't safely go there — a
+   dedicated nullable corps_member_id column (own FK to
+   corps_members) avoids any risk of misattribution. A row has
+   EITHER teacher_id OR corps_member_id set, never both. */
+try {
+    $pdo->exec("ALTER TABLE teacher_class_assignments MODIFY COLUMN teacher_id INT UNSIGNED NULL");
+} catch (PDOException $e) { /* already nullable */ }
+try {
+    $pdo->exec("ALTER TABLE teacher_class_assignments ADD COLUMN corps_member_id INT UNSIGNED NULL AFTER teacher_id");
+} catch (PDOException $e) { /* already exists */ }
+try {
+    $pdo->exec(
+        "ALTER TABLE teacher_class_assignments
+         ADD CONSTRAINT fk_tca_corps FOREIGN KEY (corps_member_id) REFERENCES corps_members(id) ON DELETE CASCADE ON UPDATE CASCADE"
+    );
+} catch (PDOException $e) { /* already exists */ }
+
+/* ── Load class arms for the assignment checkbox grid ── */
+$gradeLevelLabels = ['JSS1'=>'JSS 1','JSS2'=>'JSS 2','JSS3'=>'JSS 3','SSS1'=>'SSS 1','SSS2'=>'SSS 2','SSS3'=>'SSS 3'];
+$classArmRows = $pdo->query("SELECT grade_level, class FROM class_arms WHERE is_active = 1 ORDER BY grade_level ASC, class ASC")->fetchAll();
+$classesByGradeLevel = [];
+foreach ($classArmRows as $row) {
+    $classesByGradeLevel[$row['grade_level']][] = $row['class'];
+}
+
+$existingAssignments = [];
+$assignStmt = $pdo->prepare('SELECT grade_level, class FROM teacher_class_assignments WHERE corps_member_id = ? ORDER BY grade_level ASC, class ASC');
+$assignStmt->execute([$id]);
+foreach ($assignStmt->fetchAll() as $row) {
+    $existingAssignments[] = $row['grade_level'] . '|' . $row['class'];
 }
 
 $id = (int) ($_GET['id'] ?? 0);
@@ -115,10 +152,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $bankName,$accountName,$accountNumber,$status,
                 $admin['id'],$id
             ]);
+            /* ── Sync class assignments ── */
+            $pdo->prepare('DELETE FROM teacher_class_assignments WHERE corps_member_id = ?')->execute([$id]);
+            $submittedAssignments = $_POST['class_assignments'] ?? [];
+            if (!empty($submittedAssignments)) {
+                $validGradeLevels = ['JSS1','JSS2','JSS3','SSS1','SSS2','SSS3'];
+                $insertAssign = $pdo->prepare(
+                    'INSERT IGNORE INTO teacher_class_assignments (corps_member_id, grade_level, class) VALUES (?, ?, ?)'
+                );
+                foreach ($submittedAssignments as $pair) {
+                    $parts = explode('|', (string) $pair);
+                    if (count($parts) === 2 && in_array($parts[0], $validGradeLevels, true) && $parts[1] !== '') {
+                        $insertAssign->execute([$id, $parts[0], $parts[1]]);
+                    }
+                }
+            }
+
             /* Reload updated member */
             $mStmt->execute([$id]);
             $rows   = $mStmt->fetchAll(PDO::FETCH_ASSOC);
             $member = $rows[0] ?? $member;
+
+            /* Reload assignments for display */
+            $existingAssignments = [];
+            $assignStmt->execute([$id]);
+            foreach ($assignStmt->fetchAll() as $row) {
+                $existingAssignments[] = $row['grade_level'] . '|' . $row['class'];
+            }
+
             $message = 'Changes saved.'; $messageType = 'success';
         } catch (PDOException $e) {
             error_log('IHS corps-edit: ' . $e->getMessage());
@@ -250,8 +311,13 @@ $photoSrc = !empty($member['photo']) ? '../assets/images/corps/' . htmlspecialch
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Subject Taught</label>
-              <input type="text" class="form-input" name="subject_taught" maxlength="150"
-                     value="<?php echo htmlspecialchars($member['subject_taught'] ?? ''); ?>"/>
+              <select class="form-select" name="subject_taught">
+                <option value="">Select subject</option>
+                <?php foreach ($allSubjects as $subj): ?>
+                <option value="<?php echo htmlspecialchars($subj); ?>" <?php echo ($member['subject_taught'] ?? '') === $subj ? 'selected' : ''; ?>><?php echo htmlspecialchars($subj); ?></option>
+                <?php endforeach; ?>
+              </select>
+              <p class="char-hint">Must match an active subject exactly, or results entry won't work for this corps member.</p>
             </div>
             <div class="form-group">
               <label class="form-label">Section</label>
@@ -270,7 +336,42 @@ $photoSrc = !empty($member['photo']) ? '../assets/images/corps/' . htmlspecialch
               <?php endif; ?>
             </div>
           </div>
-          <div class="form-row">
+
+          <div style="margin-top:16px">
+            <div class="char-hint" style="font-weight:700;color:#3d1a6e;margin-bottom:6px">Class Assignments</div>
+            <p class="char-hint" style="margin-bottom:8px">
+              Tick the specific classes this corps member is allowed to enter results for.
+              Leave all unticked to allow access to <em>all</em> classes in their section (open access).
+            </p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px 12px;background:#f8f7fc;border-radius:10px;padding:14px">
+              <?php
+              $corpsCurrentSection = $member['section'] ?? 'both';
+              foreach ($classesByGradeLevel as $gl => $classes):
+                  $glSection = str_starts_with($gl, 'JSS') ? 'js' : 'ss';
+                  if ($corpsCurrentSection !== 'both' && $glSection !== $corpsCurrentSection) continue;
+              ?>
+              <div style="grid-column:1/-1;font-size:11px;font-weight:700;color:#9b97b0;text-transform:uppercase;margin-top:6px"><?php echo $gradeLevelLabels[$gl] ?? $gl; ?></div>
+              <?php foreach ($classes as $cls):
+                  $pair    = $gl . '|' . $cls;
+                  $checked = in_array($pair, $existingAssignments, true) ? 'checked' : '';
+              ?>
+              <label style="display:flex;align-items:center;gap:5px;font-size:12.5px">
+                <input type="checkbox" name="class_assignments[]" value="<?php echo htmlspecialchars($pair); ?>" <?php echo $checked; ?>/>
+                <?php echo ($gradeLevelLabels[$gl] ?? $gl) . ' ' . htmlspecialchars($cls); ?>
+              </label>
+              <?php endforeach; ?>
+              <?php endforeach; ?>
+            </div>
+            <p class="char-hint" style="margin-top:6px">
+              <?php if (!empty($existingAssignments)): ?>
+              Currently assigned to <strong><?php echo count($existingAssignments); ?></strong> class(es).
+              <?php else: ?>
+              No specific assignments — open access to all classes in their section.
+              <?php endif; ?>
+            </p>
+          </div>
+
+          <div class="form-row" style="margin-top:16px">
             <div class="form-group">
               <label class="form-label">Class Arms</label>
               <input type="text" class="form-input" name="class_arms" maxlength="255"

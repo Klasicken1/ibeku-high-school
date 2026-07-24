@@ -57,6 +57,24 @@ foreach ($classRows as $row) {
     }
 }
 
+/* ── If admin has assigned this corps member specific classes via
+   Manage Class Assignments, restrict to only those. If none exist,
+   open access to all classes in their section (default). ── */
+$assignStmt = $pdo->prepare(
+    'SELECT grade_level, class FROM teacher_class_assignments WHERE corps_member_id = ? ORDER BY grade_level ASC, class ASC'
+);
+$assignStmt->execute([$corpsMember['id']]);
+$assignedRows = $assignStmt->fetchAll();
+
+if (!empty($assignedRows)) {
+    $assignedClasses = [];
+    foreach ($assignedRows as $row) {
+        $assignedClasses[$row['grade_level']][] = $row['class'];
+    }
+    $gradeLevelOptions   = array_intersect_key($gradeLevelOptions, $assignedClasses);
+    $classesByGradeLevel = $assignedClasses;
+}
+
 /* ── Resolve their assigned subject ── */
 $subjectName = trim($corpsMember['subject_taught'] ?? '');
 $subjectId   = null;
@@ -201,7 +219,11 @@ $pageTitle = 'Enter Results — Corps Portal — Ibeku High School';
   <?php else: ?>
   <div class="role-note">
     You are entering results as an NYSC Corps Member for <strong><?php echo htmlspecialchars($subjectName); ?></strong>.
+    <?php if (!empty($assignedRows)): ?>
+    Your access is limited to <strong><?php echo count($assignedRows); ?></strong> assigned class(es).
+    <?php else: ?>
     You can select any class within your section (<?php echo htmlspecialchars(sectionLabel($section)); ?>).
+    <?php endif; ?>
   </div>
 
   <form method="GET" class="filter-bar" id="filterForm">

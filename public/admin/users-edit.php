@@ -322,7 +322,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     /* ── Sync teacher class assignments ── */
                     $pdo->prepare('DELETE FROM teacher_class_assignments WHERE teacher_id = ?')->execute([$userId]);
 
-                    if ($role === 'subject_teacher' && !empty($teacherAssignments)) {
+                    if (in_array($role, ['subject_teacher', 'dean', 'hod', 'vp_admin', 'vp_general', 'vp_student_affairs'], true) && !empty($teacherAssignments)) {
                         $validGradeLevels = ['JSS1','JSS2','JSS3','SSS1','SSS2','SSS3'];
                         $insertAssign = $pdo->prepare(
                             'INSERT IGNORE INTO teacher_class_assignments (teacher_id, grade_level, class) VALUES (?, ?, ?)'
@@ -779,7 +779,7 @@ $isClosed = !empty($user['closed_reason']);
       'principal', 'vp_admin', 'vp_academics', 'vp_general', 'vp_student_affairs',
       'dean', 'counselor', 'hod', 'form_teacher', 'subject_teacher'
     ];
-    var teacherAssignmentRoles = ['subject_teacher'];
+    var teacherAssignmentRoles = ['subject_teacher', 'dean', 'hod', 'vp_admin', 'vp_general', 'vp_student_affairs'];
     var classRoles             = ['form_teacher'];
 
     var classesByGradeLevel = <?php echo json_encode($classesByGradeLevel); ?>;

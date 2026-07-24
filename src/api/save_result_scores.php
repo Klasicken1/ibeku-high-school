@@ -89,6 +89,24 @@ if ($admin === null) {
     exit;
 }
 
+$pdo = getDB();
+
+/* Self-healing — same schema extension as corps-edit.php, kept here
+   too so this endpoint never fatals if it's hit before that page
+   has run once. */
+try {
+    $pdo->exec("ALTER TABLE teacher_class_assignments MODIFY COLUMN teacher_id INT UNSIGNED NULL");
+} catch (PDOException $e) { /* already nullable */ }
+try {
+    $pdo->exec("ALTER TABLE teacher_class_assignments ADD COLUMN corps_member_id INT UNSIGNED NULL AFTER teacher_id");
+} catch (PDOException $e) { /* already exists */ }
+try {
+    $pdo->exec(
+        "ALTER TABLE teacher_class_assignments
+         ADD CONSTRAINT fk_tca_corps FOREIGN KEY (corps_member_id) REFERENCES corps_members(id) ON DELETE CASCADE ON UPDATE CASCADE"
+    );
+} catch (PDOException $e) { /* already exists */ }
+
 /* ── Allowed roles for this action ── */
 $allowedRoles = [
     'superadmin', 'subject_teacher', 'form_teacher', 'vp_academics', 'section_admin',
@@ -201,21 +219,23 @@ try {
        teacher_class_assignments, verify the submitted class is one of them.
        If no assignments exist, open access to all classes in their section
        (already enforced by the section check above).
-       Corps members are deliberately excluded here — that table isn't
-       corps-aware yet (a future enhancement), so they always get open
-       access to all classes in their section for their assigned subject. ── */
-    $classAssignmentCheckRoles = ['subject_teacher', 'dean', 'hod', 'vp_admin', 'vp_general', 'vp_student_affairs'];
+       Corps members are checked via corps_member_id (a separate nullable
+       column, since teacher_id has an FK to users specifically and a
+       corps member's id lives in a different table). ── */
+    $classAssignmentCheckRoles = ['subject_teacher', 'dean', 'hod', 'vp_admin', 'vp_general', 'vp_student_affairs', 'corps_member'];
     if (in_array($admin['role'], $classAssignmentCheckRoles, true)) {
+        $idColumn = $admin['role'] === 'corps_member' ? 'corps_member_id' : 'teacher_id';
+
         $countStmt = $pdo->prepare(
-            'SELECT COUNT(*) FROM teacher_class_assignments WHERE teacher_id = ?'
+            "SELECT COUNT(*) FROM teacher_class_assignments WHERE $idColumn = ?"
         );
         $countStmt->execute([$admin['id']]);
         $assignCount = (int) $countStmt->fetchColumn();
 
         if ($assignCount > 0) {
             $checkStmt = $pdo->prepare(
-                'SELECT COUNT(*) FROM teacher_class_assignments
-                 WHERE teacher_id = ? AND grade_level = ? AND class = ?'
+                "SELECT COUNT(*) FROM teacher_class_assignments
+                 WHERE $idColumn = ? AND grade_level = ? AND class = ?"
             );
             $checkStmt->execute([$admin['id'], $gradeLevel, $class]);
 

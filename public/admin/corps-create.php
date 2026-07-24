@@ -16,6 +16,10 @@ requireRole(['superadmin', 'principal', 'vp_admin', 'vp_academics', 'vp_general'
 
 $admin           = currentAdmin();
 $pdo             = getDB();
+
+/* ── Subjects for the dropdown — avoids free-text mismatches that
+   would silently break results-entry matching later ── */
+$allSubjects = $pdo->query('SELECT name FROM subjects WHERE is_active = 1 ORDER BY name ASC')->fetchAll(PDO::FETCH_COLUMN);
 $isSectionAdmin  = $admin['role'] === 'section_admin';
 $adminOwnSection = $admin['section'];
 
@@ -221,9 +225,13 @@ $days     = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Subject Taught</label>
-              <input type="text" class="form-input" name="subject_taught" maxlength="150"
-                     value="<?php echo htmlspecialchars($formData['subject'] ?? ''); ?>"
-                     placeholder="e.g. Digital Technology"/>
+              <select class="form-select" name="subject_taught">
+                <option value="">Select subject</option>
+                <?php foreach ($allSubjects as $subj): ?>
+                <option value="<?php echo htmlspecialchars($subj); ?>" <?php echo ($formData['subject'] ?? '') === $subj ? 'selected' : ''; ?>><?php echo htmlspecialchars($subj); ?></option>
+                <?php endforeach; ?>
+              </select>
+              <p class="char-hint">Must match an active subject exactly, or results entry won't work for this corps member.</p>
             </div>
             <div class="form-group">
               <label class="form-label">Section</label>
