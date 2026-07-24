@@ -65,22 +65,11 @@ if (!$member) {
     exit;
 }
 
-/* ── Current month's clearance status (active members only —
-   this concept doesn't apply once someone has passed out) ── */
-$isPassedOut  = $member['status'] === 'passed_out';
-$isClearedNow = false;
-$currentMonthLabel = date('F Y');
-
-if (!$isPassedOut) {
-    $clearStmt = $pdo->prepare(
-        'SELECT is_cleared FROM corps_clearance
-         WHERE corps_member_id = ? AND month = ? AND year = ?
-         LIMIT 1'
-    );
-    $clearStmt->execute([$member['id'], (int) date('n'), (int) date('Y')]);
-    $clearRow     = $clearStmt->fetch(PDO::FETCH_ASSOC);
-    $isClearedNow = $clearRow && (int) $clearRow['is_cleared'] === 1;
-}
+/* Monthly clearance status is intentionally NOT shown on this
+   public page — whether someone is cleared or pending for a given
+   month is private, administrative information. Corps members can
+   see their own clearance history in their private portal instead. */
+$isPassedOut = $member['status'] === 'passed_out';
 
 $initial = strtoupper(substr($member['full_name'], 0, 1));
 
@@ -133,21 +122,13 @@ $photoSrc = !empty($member['photo'])
       </div>
       <?php endif; ?>
 
+      <?php if ($isPassedOut): ?>
       <div style="flex:1;min-width:220px">
-        <?php if ($isPassedOut): ?>
         <div style="background:#eceaf0;border:1px solid #dcdae5;border-radius:10px;padding:12px 16px;font-size:13.5px;color:#5a5a68;font-weight:600">
           🎓 Passed Out — Service Completed
         </div>
-        <?php elseif ($isClearedNow): ?>
-        <div style="background:#e6f9ed;border:1px solid #b2dfce;border-radius:10px;padding:12px 16px;font-size:13.5px;color:#1a7a3a">
-          ✓ Cleared for <?php echo htmlspecialchars($currentMonthLabel); ?>
-        </div>
-        <?php else: ?>
-        <div style="background:#fff3e6;border:1px solid #f0d8b0;border-radius:10px;padding:12px 16px;font-size:13.5px;color:#8a4a00">
-          Clearance pending for <?php echo htmlspecialchars($currentMonthLabel); ?> — contact the Principal or school office.
-        </div>
-        <?php endif; ?>
       </div>
+      <?php endif; ?>
     </div>
 
     <div class="card" style="padding:24px;margin-bottom:20px">
