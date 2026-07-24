@@ -40,7 +40,7 @@ $stmt = $pdo->prepare(
             institution, course_studied, subject_taught, section, class_arms,
             cds_group, cds_day, status
      FROM corps_members
-     WHERE state_code = ? AND status = 'active'
+     WHERE state_code = ? AND status IN ('active', 'passed_out')
      LIMIT 1"
 );
 $stmt->execute([$code]);
@@ -65,23 +65,31 @@ if (!$member) {
     exit;
 }
 
-/* ── Current month's clearance status ── */
-$clearStmt = $pdo->prepare(
-    'SELECT is_cleared FROM corps_clearance
-     WHERE corps_member_id = ? AND month = ? AND year = ?
-     LIMIT 1'
-);
-$clearStmt->execute([$member['id'], (int) date('n'), (int) date('Y')]);
-$clearRow      = $clearStmt->fetch(PDO::FETCH_ASSOC);
-$isClearedNow  = $clearRow && (int) $clearRow['is_cleared'] === 1;
+/* ── Current month's clearance status (active members only —
+   this concept doesn't apply once someone has passed out) ── */
+$isPassedOut  = $member['status'] === 'passed_out';
+$isClearedNow = false;
 $currentMonthLabel = date('F Y');
+
+if (!$isPassedOut) {
+    $clearStmt = $pdo->prepare(
+        'SELECT is_cleared FROM corps_clearance
+         WHERE corps_member_id = ? AND month = ? AND year = ?
+         LIMIT 1'
+    );
+    $clearStmt->execute([$member['id'], (int) date('n'), (int) date('Y')]);
+    $clearRow     = $clearStmt->fetch(PDO::FETCH_ASSOC);
+    $isClearedNow = $clearRow && (int) $clearRow['is_cleared'] === 1;
+}
 
 $initial = strtoupper(substr($member['full_name'], 0, 1));
 
 $sectionLabels = ['ss' => 'Senior Secondary', 'js' => 'Junior Secondary', 'both' => 'Both Sections'];
 
 $pageTitle   = htmlspecialchars($member['full_name']) . ' — NYSC Corps Member — Ibeku High School';
-$pageDesc    = htmlspecialchars($member['full_name']) . ', NYSC corps member serving at Ibeku High School, Umuahia.';
+$pageDesc    = $isPassedOut
+    ? htmlspecialchars($member['full_name']) . ', a former NYSC corps member who served at Ibeku High School, Umuahia.'
+    : htmlspecialchars($member['full_name']) . ', NYSC corps member serving at Ibeku High School, Umuahia.';
 $currentPage = 'corps';
 
 require_once dirname(__DIR__) . '/src/includes/header.php';
@@ -111,21 +119,26 @@ $photoSrc = !empty($member['photo'])
   <div class="wrap" style="max-width:760px">
 
     <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;margin-bottom:32px">
+      <?php $avatarGrad = $isPassedOut ? 'linear-gradient(135deg,#8a8a94,#b0b0ba)' : 'linear-gradient(135deg,#3d1a6e,#4a90d9)'; ?>
       <?php if ($photoSrc): ?>
       <img src="<?php echo $photoSrc; ?>" alt="<?php echo htmlspecialchars($member['full_name']); ?>"
-           style="width:120px;height:120px;border-radius:16px;object-fit:cover;flex-shrink:0"
+           style="width:120px;height:120px;border-radius:16px;object-fit:cover;flex-shrink:0;<?php echo $isPassedOut ? 'filter:grayscale(55%)' : ''; ?>"
            onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex'"/>
-      <div style="display:none;width:120px;height:120px;border-radius:16px;background:linear-gradient(135deg,#3d1a6e,#4a90d9);align-items:center;justify-content:center;font-size:2.5rem;font-weight:700;color:#fff;flex-shrink:0">
+      <div style="display:none;width:120px;height:120px;border-radius:16px;background:<?php echo $avatarGrad; ?>;align-items:center;justify-content:center;font-size:2.5rem;font-weight:700;color:#fff;flex-shrink:0">
         <?php echo $initial; ?>
       </div>
       <?php else: ?>
-      <div style="width:120px;height:120px;border-radius:16px;background:linear-gradient(135deg,#3d1a6e,#4a90d9);display:flex;align-items:center;justify-content:center;font-size:2.5rem;font-weight:700;color:#fff;flex-shrink:0">
+      <div style="width:120px;height:120px;border-radius:16px;background:<?php echo $avatarGrad; ?>;display:flex;align-items:center;justify-content:center;font-size:2.5rem;font-weight:700;color:#fff;flex-shrink:0">
         <?php echo $initial; ?>
       </div>
       <?php endif; ?>
 
       <div style="flex:1;min-width:220px">
-        <?php if ($isClearedNow): ?>
+        <?php if ($isPassedOut): ?>
+        <div style="background:#eceaf0;border:1px solid #dcdae5;border-radius:10px;padding:12px 16px;font-size:13.5px;color:#5a5a68;font-weight:600">
+          🎓 Passed Out — Service Completed
+        </div>
+        <?php elseif ($isClearedNow): ?>
         <div style="background:#e6f9ed;border:1px solid #b2dfce;border-radius:10px;padding:12px 16px;font-size:13.5px;color:#1a7a3a">
           ✓ Cleared for <?php echo htmlspecialchars($currentMonthLabel); ?>
         </div>

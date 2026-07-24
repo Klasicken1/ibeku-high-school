@@ -105,6 +105,7 @@ $showPushBanner = !empty($vapidPublicKey)
           <li><a href="<?php echo BASE_PATH; ?>news.php">News &amp; Events</a></li>
           <li><a href="<?php echo BASE_PATH; ?>gallery.php">Gallery</a></li>
           <li><a href="<?php echo BASE_PATH; ?>hall-of-fame.php">Hall of Fame</a></li>
+          <li><a href="<?php echo BASE_PATH; ?>corps.php">NYSC Corps Members</a></li>
           <li><a href="<?php echo BASE_PATH; ?>contact.php">Contact Us</a></li>
         </ul>
       </div>
