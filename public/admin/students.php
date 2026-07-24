@@ -17,10 +17,12 @@ require_once dirname(__DIR__, 2) . '/src/config/database.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-auth.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-sidebar.php';
 
-requireRole(['superadmin', 'principal', 'vp_admin', 'form_teacher']);
+requireRole(['superadmin', 'principal', 'vp_admin', 'form_teacher', 'section_admin']);
 
-$admin = currentAdmin();
-$pdo   = getDB();
+$admin           = currentAdmin();
+$pdo             = getDB();
+$isSectionAdmin  = $admin['role'] === 'section_admin';
+$adminOwnSection = $admin['section'];
 
 /* ── Form teacher: force their class ── */
 $formTeacherGradeLevel = null;
@@ -47,7 +49,7 @@ $allGradeLevels = ['JSS1'=>'JSS 1','JSS2'=>'JSS 2','JSS3'=>'JSS 3',
 /* ── Filters ── */
 $filterGradeLevel = $formTeacherGradeLevel ?? ($_GET['grade_level'] ?? '');
 $filterClass      = $formTeacherClass      ?? ($_GET['class']       ?? '');
-$filterSection    = $_GET['section']    ?? '';
+$filterSection    = $isSectionAdmin ? $adminOwnSection : ($_GET['section'] ?? '');
 $filterStatus     = $_GET['status']     ?? 'active';
 $filterSearch     = trim($_GET['search'] ?? '');
 $page             = max(1, (int) ($_GET['page'] ?? 1));

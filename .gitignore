@@ -21,3 +21,8 @@ vendor/
 
 # VAPID private key — do not expose
 src/config/vapid.php
+public/assets/images/corps/
+public/assets/images/hero/
+public/assets/images/staff/
+public/assets/images/signatures/
+public/assets/images/settings/

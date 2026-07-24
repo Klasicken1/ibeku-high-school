@@ -29,7 +29,7 @@ requireLogin();
 
 $admin = currentAdmin();
 
-if (!in_array($admin['role'], ['superadmin', 'principal', 'form_teacher'], true)) {
+if (!in_array($admin['role'], ['superadmin', 'principal', 'form_teacher', 'section_admin'], true)) {
     $_SESSION['admin_error'] = 'You do not have permission to perform this action.';
     header('Location: ../../public/admin/students.php');
     exit;
@@ -95,6 +95,16 @@ try {
                 if ($s['grade_level'] !== $m[1] || $s['class'] !== $m[2]) {
                     $skipped++; continue;
                 }
+            }
+        }
+
+        /* Section admin restriction — can only act on students
+           currently in their own section (evaluated on the CURRENT
+           grade level, so JSS3 → SSS1 graduation still works) */
+        if ($admin['role'] === 'section_admin') {
+            $studentCurrentSection = str_starts_with($s['grade_level'], 'JSS') ? 'js' : 'ss';
+            if ($studentCurrentSection !== $admin['section']) {
+                $skipped++; continue;
             }
         }
 

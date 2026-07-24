@@ -19,7 +19,7 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once dirname(__DIR__, 2) . '/src/config/database.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-auth.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-sidebar.php';
-requireRole(['superadmin', 'dean'], 'ss');
+requireRole(['superadmin', 'dean', 'section_admin'], 'ss');
 
 $admin = currentAdmin();
 

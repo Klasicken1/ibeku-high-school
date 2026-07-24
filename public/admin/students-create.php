@@ -20,10 +20,12 @@ require_once dirname(__DIR__, 2) . '/src/config/database.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-auth.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-sidebar.php';
 
-requireRole(['superadmin', 'vp_admin']);
+requireRole(['superadmin', 'vp_admin', 'section_admin']);
 
-$admin = currentAdmin();
-$pdo   = getDB();
+$admin           = currentAdmin();
+$pdo             = getDB();
+$isSectionAdmin  = $admin['role'] === 'section_admin';
+$adminOwnSection = $admin['section'];
 
 /* ── Load active classes ── */
 $allClassRows = $pdo->query(
@@ -39,6 +41,10 @@ $allGradeLevels = [
     'JSS1' => 'JSS 1', 'JSS2' => 'JSS 2', 'JSS3' => 'JSS 3',
     'SSS1' => 'SSS 1', 'SSS2' => 'SSS 2', 'SSS3' => 'SSS 3',
 ];
+if ($isSectionAdmin) {
+    $prefix = $adminOwnSection === 'ss' ? 'SSS' : 'JSS';
+    $allGradeLevels = array_filter($allGradeLevels, fn($k) => str_starts_with($k, $prefix), ARRAY_FILTER_USE_KEY);
+}
 
 /* ── Auto-generate next admission number ── */
 function generateAdmissionNumber(PDO $pdo): string {
@@ -106,6 +112,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Date of birth is required.'; $messageType = 'error';
     } elseif (!in_array($gradeLevel, $validGradeLevels, true)) {
         $message = 'Please select a grade level.'; $messageType = 'error';
+    } elseif ($isSectionAdmin && $section !== $adminOwnSection) {
+        $message = 'You can only add students to your own section.'; $messageType = 'error';
     } elseif ($class === '') {
         $message = 'Please select a class.'; $messageType = 'error';
     } else {

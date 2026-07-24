@@ -23,10 +23,12 @@ require_once dirname(__DIR__, 2) . '/src/config/database.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-auth.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-sidebar.php';
 
-requireRole(['superadmin', 'principal', 'form_teacher']);
+requireRole(['superadmin', 'principal', 'form_teacher', 'section_admin']);
 
-$admin = currentAdmin();
-$pdo   = getDB();
+$admin           = currentAdmin();
+$pdo             = getDB();
+$isSectionAdmin  = $admin['role'] === 'section_admin';
+$adminOwnSection = $admin['section'];
 
 $allGradeLevels = ['JSS1'=>'JSS 1','JSS2'=>'JSS 2','JSS3'=>'JSS 3',
                     'SSS1'=>'SSS 1','SSS2'=>'SSS 2','SSS3'=>'SSS 3'];
@@ -72,6 +74,16 @@ if ($studentId > 0) {
         ($student['grade_level'] !== $formTeacherGradeLevel || $student['class'] !== $formTeacherClass)) {
         header('Location: students.php'); exit;
     }
+
+    /* Section admin can only promote students currently in their own
+       section — evaluated on the student's CURRENT grade level, so
+       the normal JSS3 → SSS1 graduation still works for a JS admin. */
+    if ($isSectionAdmin) {
+        $studentCurrentSection = str_starts_with($student['grade_level'], 'JSS') ? 'js' : 'ss';
+        if ($studentCurrentSection !== $adminOwnSection) {
+            header('Location: students.php'); exit;
+        }
+    }
 }
 
 /* ── Bulk: load class ── */
@@ -83,6 +95,14 @@ if ($isBulk && $bulkGradeLevel && $bulkClass) {
     /* Form teacher restriction */
     if ($formTeacherGradeLevel && ($bulkGradeLevel !== $formTeacherGradeLevel || $bulkClass !== $formTeacherClass)) {
         header('Location: students.php'); exit;
+    }
+    /* Section admin restriction — same current-section logic as
+       single-student mode above */
+    if ($isSectionAdmin) {
+        $bulkCurrentSection = str_starts_with($bulkGradeLevel, 'JSS') ? 'js' : 'ss';
+        if ($bulkCurrentSection !== $adminOwnSection) {
+            header('Location: students.php'); exit;
+        }
     }
     $bulkStmt = $pdo->prepare(
         "SELECT id, admission_number, first_name, last_name, other_name, grade_level, class

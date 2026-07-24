@@ -19,10 +19,12 @@ require_once dirname(__DIR__, 2) . '/src/config/database.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-auth.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-sidebar.php';
 
-requireRole(['superadmin', 'vp_admin']);
+requireRole(['superadmin', 'vp_admin', 'section_admin']);
 
-$admin = currentAdmin();
-$pdo   = getDB();
+$admin           = currentAdmin();
+$pdo             = getDB();
+$isSectionAdmin  = $admin['role'] === 'section_admin';
+$adminOwnSection = $admin['section'];
 
 $studentId = (int) ($_GET['id'] ?? 0);
 if ($studentId <= 0) { header('Location: students.php'); exit; }
@@ -31,6 +33,12 @@ $stmt = $pdo->prepare('SELECT * FROM students WHERE id = ? LIMIT 1');
 $stmt->execute([$studentId]);
 $student = $stmt->fetch();
 if (!$student) { header('Location: students.php'); exit; }
+
+/* Section admins can only view/edit students in their own section */
+if ($isSectionAdmin && $student['section'] !== $adminOwnSection) {
+    $_SESSION['admin_error'] = 'You do not have permission to edit that student.';
+    header('Location: students.php'); exit;
+}
 
 /* ── Load student history ── */
 $historyStmt = $pdo->prepare(

@@ -20,16 +20,28 @@ require_once dirname(__DIR__, 2) . '/src/config/database.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-auth.php';
 require_once dirname(__DIR__, 2) . '/src/includes/admin-sidebar.php';
 
-requireRole(['superadmin']);
+requireRole(['superadmin', 'section_admin']);
 
-$admin = currentAdmin();
-$pdo   = getDB();
+$admin           = currentAdmin();
+$pdo             = getDB();
+$isSectionAdmin  = $admin['role'] === 'section_admin';
+$adminOwnSection = $admin['section'];
 
 $message = '';
 $messageType = '';
 
 $gradeLevels = ['JSS1' => 'JSS 1', 'JSS2' => 'JSS 2', 'JSS3' => 'JSS 3',
                 'SSS1' => 'SSS 1', 'SSS2' => 'SSS 2', 'SSS3' => 'SSS 3'];
+if ($isSectionAdmin) {
+    $prefix = $adminOwnSection === 'ss' ? 'SSS' : 'JSS';
+    $gradeLevels = array_filter($gradeLevels, fn($k) => str_starts_with($k, $prefix), ARRAY_FILTER_USE_KEY);
+}
+
+/* Helper: does a class_arms row belong to the section admin's own
+   section? (based on its grade_level prefix) */
+function classArmInSection(string $gradeLevel, string $section): bool {
+    return str_starts_with($gradeLevel, $section === 'ss' ? 'SSS' : 'JSS');
+}
 
 /* ── Add a new class ── */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
@@ -38,6 +50,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     if (!array_key_exists($gradeLevel, $gradeLevels)) {
         $message = 'Invalid grade level selected.';
+        $messageType = 'error';
+    } elseif ($isSectionAdmin && !classArmInSection($gradeLevel, $adminOwnSection)) {
+        $message = 'You can only add classes within your own section.';
         $messageType = 'error';
     } elseif ($class === '' || !preg_match('/^[A-Z0-9]{1,5}$/', $class)) {
         $message = 'Class must be 1-5 letters/numbers, e.g. A, B, F.';
@@ -62,6 +77,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 /* ── Toggle active/inactive (soft delete) ── */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['class_id']) && $_POST['action'] === 'toggle') {
     $classId = (int) $_POST['class_id'];
+
+    $allowed = true;
+    if ($isSectionAdmin) {
+        $checkStmt = $pdo->prepare('SELECT grade_level FROM class_arms WHERE id = ? LIMIT 1');
+        $checkStmt->execute([$classId]);
+        $targetGL = $checkStmt->fetchColumn();
+        $allowed  = $targetGL && classArmInSection($targetGL, $adminOwnSection);
+    }
+
+    if (!$allowed) {
+        $message = 'You can only manage classes within your own section.';
+        $messageType = 'error';
+    } else {
     try {
         $pdo->prepare('UPDATE class_arms SET is_active = NOT is_active WHERE id = ?')->execute([$classId]);
         $message = 'Class status updated.';
@@ -71,11 +99,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['cla
         $message = 'A server error occurred.';
         $messageType = 'error';
     }
+    }
 }
 
 /* ── Permanently delete ── */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['class_id']) && $_POST['action'] === 'delete') {
     $classId = (int) $_POST['class_id'];
+
+    $allowed = true;
+    if ($isSectionAdmin) {
+        $checkStmt = $pdo->prepare('SELECT grade_level FROM class_arms WHERE id = ? LIMIT 1');
+        $checkStmt->execute([$classId]);
+        $targetGL = $checkStmt->fetchColumn();
+        $allowed  = $targetGL && classArmInSection($targetGL, $adminOwnSection);
+    }
+
+    if (!$allowed) {
+        $message = 'You can only manage classes within your own section.';
+        $messageType = 'error';
+    } else {
     try {
         $pdo->prepare('DELETE FROM class_arms WHERE id = ?')->execute([$classId]);
         $message = 'Class deleted permanently.';
@@ -85,10 +127,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['cla
         $message = 'A server error occurred.';
         $messageType = 'error';
     }
+    }
 }
 
 /* ── Load all classes grouped by grade level ── */
 $allClasses = $pdo->query('SELECT * FROM class_arms ORDER BY grade_level ASC, class ASC')->fetchAll();
+if ($isSectionAdmin) {
+    $allClasses = array_values(array_filter($allClasses, fn($c) => classArmInSection($c['grade_level'], $adminOwnSection)));
+}
 $classesByGradeLevel = [];
 foreach ($gradeLevels as $key => $label) {
     $classesByGradeLevel[$key] = array_filter($allClasses, fn($c) => $c['grade_level'] === $key);
