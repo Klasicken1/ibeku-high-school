@@ -212,6 +212,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $newUserId = (int) $pdo->lastInsertId();
                 syncStaffDirectoryFromUser($pdo, $newUserId);
 
+                /* ── Save class assignments, if any were ticked ── */
+                $teacherAssignments = $_POST['teacher_assignments'] ?? [];
+                if (in_array($role, ['subject_teacher', 'dean', 'hod', 'vp_admin', 'vp_general', 'vp_student_affairs'], true) && !empty($teacherAssignments)) {
+                    $validGradeLevels = ['JSS1','JSS2','JSS3','SSS1','SSS2','SSS3'];
+                    $insertAssign = $pdo->prepare(
+                        'INSERT IGNORE INTO teacher_class_assignments (teacher_id, grade_level, class) VALUES (?, ?, ?)'
+                    );
+                    foreach ($teacherAssignments as $pair) {
+                        $parts = explode('|', (string) $pair);
+                        if (count($parts) === 2 && in_array($parts[0], $validGradeLevels, true) && $parts[1] !== '') {
+                            $insertAssign->execute([$newUserId, $parts[0], $parts[1]]);
+                        }
+                    }
+                }
+
                 $message = 'Account created successfully for ' . htmlspecialchars($fullName) . '.';
                 $messageType = 'success';
 
@@ -385,6 +400,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <p class="char-hint">Required for Head of Department and Subject Teacher roles; optional for other staff who also teach a subject. This must exactly match a subject name for the results entry permission system to work correctly.</p>
           </div>
 
+          <div class="conditional-field" id="teacherAssignmentsField">
+            <div class="form-group" style="margin-top:16px">
+              <div class="char-hint" style="font-weight:700;color:#3d1a6e;margin-bottom:6px">Class Assignments</div>
+              <p class="char-hint" style="margin-bottom:8px">
+                Tick the classes this person will be allowed to enter scores for. Leave all unticked to allow access to <em>all</em> classes in their section.
+              </p>
+              <div style="margin-bottom:10px">
+                <button type="button" class="btn-select-all" onclick="selectAllClasses(true)">Select All</button>
+                <button type="button" class="btn-select-all" onclick="selectAllClasses(false)">Clear All</button>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px 12px;background:#f8f7fc;border-radius:10px;padding:14px">
+                <?php
+                $gradeLevelLabels = ['JSS1'=>'JSS 1','JSS2'=>'JSS 2','JSS3'=>'JSS 3','SSS1'=>'SSS 1','SSS2'=>'SSS 2','SSS3'=>'SSS 3'];
+                foreach ($classesByGradeLevel as $gl => $classes):
+                ?>
+                <div style="grid-column:1/-1;font-size:11px;font-weight:700;color:#9b97b0;text-transform:uppercase;margin-top:6px"><?php echo $gradeLevelLabels[$gl] ?? $gl; ?></div>
+                <?php foreach ($classes as $cls): ?>
+                <label style="display:flex;align-items:center;gap:5px;font-size:12.5px">
+                  <input type="checkbox" name="teacher_assignments[]" class="teacher-assign-cb" value="<?php echo htmlspecialchars($gl . '|' . $cls); ?>"/>
+                  <?php echo ($gradeLevelLabels[$gl] ?? $gl) . ' ' . htmlspecialchars($cls); ?>
+                </label>
+                <?php endforeach; ?>
+                <?php endforeach; ?>
+              </div>
+            </div>
+          </div>
+
           <div class="form-group conditional-field" id="classField">
             <label class="form-label">Grade Level &amp; Class Assigned</label>
             <div class="form-row">
@@ -419,6 +461,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     var sectionSelect        = document.getElementById('section');
     var departmentField      = document.getElementById('departmentField');
     var classField           = document.getElementById('classField');
+    var teacherAssignmentsField = document.getElementById('teacherAssignmentsField');
     var gradeLevelOnlySelect = document.getElementById('grade_level_only');
     var classOnlySelect      = document.getElementById('class_only');
 
@@ -427,6 +470,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       'dean', 'counselor', 'hod', 'form_teacher', 'subject_teacher'
     ];
     var classRoles      = ['form_teacher'];
+    var teacherAssignmentRoles = ['subject_teacher', 'dean', 'hod', 'vp_admin', 'vp_general', 'vp_student_affairs'];
 
     /* ── Classes data passed from PHP — single source of truth from class_arms table ── */
     var classesByGradeLevel = <?php echo json_encode($classesByGradeLevel); ?>;
@@ -487,6 +531,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       } else {
         classField.classList.remove('conditional-field--show');
       }
+
+      if (teacherAssignmentRoles.indexOf(role) !== -1) {
+        teacherAssignmentsField.classList.add('conditional-field--show');
+      } else {
+        teacherAssignmentsField.classList.remove('conditional-field--show');
+      }
+    }
+
+    function selectAllClasses(state) {
+      document.querySelectorAll('.teacher-assign-cb').forEach(function (cb) {
+        cb.checked = state;
+      });
     }
 
     roleSelect.addEventListener('change', updateConditionalFields);

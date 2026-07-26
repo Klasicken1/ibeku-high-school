@@ -23,6 +23,29 @@ $allSubjects = $pdo->query('SELECT name FROM subjects WHERE is_active = 1 ORDER 
 $isSectionAdmin  = $admin['role'] === 'section_admin';
 $adminOwnSection = $admin['section'];
 
+/* ── Class arms for the assignment checkbox grid ── */
+$gradeLevelLabels = ['JSS1'=>'JSS 1','JSS2'=>'JSS 2','JSS3'=>'JSS 3','SSS1'=>'SSS 1','SSS2'=>'SSS 2','SSS3'=>'SSS 3'];
+$classArmRows = $pdo->query("SELECT grade_level, class FROM class_arms WHERE is_active = 1 ORDER BY grade_level ASC, class ASC")->fetchAll();
+$classesByGradeLevel = [];
+foreach ($classArmRows as $row) {
+    $classesByGradeLevel[$row['grade_level']][] = $row['class'];
+}
+
+/* Self-healing — corps_member_id column on teacher_class_assignments,
+   same as corps-edit.php / save_result_scores.php */
+try {
+    $pdo->exec("ALTER TABLE teacher_class_assignments MODIFY COLUMN teacher_id INT UNSIGNED NULL");
+} catch (PDOException $e) { /* already nullable */ }
+try {
+    $pdo->exec("ALTER TABLE teacher_class_assignments ADD COLUMN corps_member_id INT UNSIGNED NULL AFTER teacher_id");
+} catch (PDOException $e) { /* already exists */ }
+try {
+    $pdo->exec(
+        "ALTER TABLE teacher_class_assignments
+         ADD CONSTRAINT fk_tca_corps FOREIGN KEY (corps_member_id) REFERENCES corps_members(id) ON DELETE CASCADE ON UPDATE CASCADE"
+    );
+} catch (PDOException $e) { /* already exists */ }
+
 /* Self-healing column add — same pattern used throughout the app */
 try {
     $pdo->exec("ALTER TABLE corps_members ADD COLUMN call_up_number VARCHAR(30) NULL AFTER state_code");
@@ -100,6 +123,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
             $message = htmlspecialchars($fullName) . ' added successfully. Default password is their state code.';
             $messageType = 'success';
+
+            /* ── Save class assignments, if any were ticked ── */
+            $newCorpsId = (int) $pdo->lastInsertId();
+            $classAssignments = $_POST['class_assignments'] ?? [];
+            if (!empty($classAssignments)) {
+                $validGradeLevels = ['JSS1','JSS2','JSS3','SSS1','SSS2','SSS3'];
+                $insertAssign = $pdo->prepare(
+                    'INSERT IGNORE INTO teacher_class_assignments (corps_member_id, grade_level, class) VALUES (?, ?, ?)'
+                );
+                foreach ($classAssignments as $pair) {
+                    $parts = explode('|', (string) $pair);
+                    if (count($parts) === 2 && in_array($parts[0], $validGradeLevels, true) && $parts[1] !== '') {
+                        $insertAssign->execute([$newCorpsId, $parts[0], $parts[1]]);
+                    }
+                }
+            }
+
             $formData = [];
         } catch (PDOException $e) {
             error_log('IHS corps-create: ' . $e->getMessage());
@@ -250,7 +290,30 @@ $days     = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
               <?php endif; ?>
             </div>
           </div>
-          <div class="form-row">
+
+          <div style="margin-top:16px">
+            <div class="char-hint" style="font-weight:700;color:#3d1a6e;margin-bottom:6px">Class Assignments</div>
+            <p class="char-hint" style="margin-bottom:8px">
+              Tick the specific classes this corps member will be allowed to enter results for.
+              Leave all unticked to allow access to <em>all</em> classes in their section (open access).
+            </p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px 12px;background:#f8f7fc;border-radius:10px;padding:14px">
+              <?php foreach ($classesByGradeLevel as $gl => $classes):
+                  $glSection = str_starts_with($gl, 'JSS') ? 'js' : 'ss';
+                  if ($isSectionAdmin && $glSection !== $adminOwnSection) continue;
+              ?>
+              <div style="grid-column:1/-1;font-size:11px;font-weight:700;color:#9b97b0;text-transform:uppercase;margin-top:6px"><?php echo $gradeLevelLabels[$gl] ?? $gl; ?></div>
+              <?php foreach ($classes as $cls): ?>
+              <label style="display:flex;align-items:center;gap:5px;font-size:12.5px">
+                <input type="checkbox" name="class_assignments[]" value="<?php echo htmlspecialchars($gl . '|' . $cls); ?>"/>
+                <?php echo ($gradeLevelLabels[$gl] ?? $gl) . ' ' . htmlspecialchars($cls); ?>
+              </label>
+              <?php endforeach; ?>
+              <?php endforeach; ?>
+            </div>
+          </div>
+
+          <div class="form-row" style="margin-top:16px">
             <div class="form-group">
               <label class="form-label">Class Arms</label>
               <input type="text" class="form-input" name="class_arms" maxlength="255"
